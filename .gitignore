@@ -1,0 +1,23 @@
+# Python (caveman-compress helper scripts)
+__pycache__/
+*.py[cod]
+
+# Dart / Flutter (from phase 0 onward)
+.dart_tool/
+.packages
+build/
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+# app/pubspec.lock is committed on purpose — reproducible builds matter for
+# puzzle determinism. packages/puzzle_engine/pubspec.lock stays ignored.
+packages/*/pubspec.lock
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local Claude Code settings (skills and agents in .claude/ are committed)
+.claude/settings.local.json

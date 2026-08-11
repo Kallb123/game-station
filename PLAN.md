@@ -1,175 +1,176 @@
-# GAME STATION — CAVEMAN PLAN
+# Game Station — Implementation Plan
 
-> Plan talk like caveman. Short word. No fluff. Tech under rock still sharp.
+A local, offline, ad-free games app for children. Sudoku (9x9 and 6x6, deterministic from a date or
+index) plus retro arcade games driven by on-screen controls, with progress that persists across
+sessions.
 
 ---
 
-## 1. WHAT WE MAKE
+## 1. Scope and constraints
 
-Me make game box for small human. Box live on phone. Box live on other phone. Box live on big
-flat machine with keyboard.
-
-| Rule | Why |
+| Constraint | Rationale |
 |---|---|
-| No ad | Ad bad. Ad steal child eye. Ad shout. |
-| No net | Box work in cave with no fire signal. Plane. Car. Nowhere. |
-| No spy | No count, no watch, no send. Nothing leave box. |
-| No coin trap | No buy shiny gem. No wait timer. |
-| Remember | Box remember what child beat. Box remember big number. |
-| Simple | Big button. Fat finger work. No read many word. |
+| No ads | Ads compete for a child's attention and interrupt play. |
+| No network | The app works on a plane, in a car, anywhere. |
+| No tracking | No analytics, no crash reporting, no telemetry. Nothing leaves the device. |
+| No purchases | No IAP, no energy timers, no gated content. |
+| Persistent progress | Solved puzzles, best times and high scores survive restarts. |
+| Kid-first UI | Large touch targets, minimal reading, no time pressure. |
 
-Target rock:
-
-- Android phone + tablet (Android 8 and up)
-- iOS phone + tablet (iOS 13 and up)
-- PC: Windows 10+, macOS 11+, Linux (GTK)
+Targets: Android 8+ (phone and tablet), iOS 13+ (phone and tablet), Windows 10+, macOS 11+, Linux
+(GTK).
 
 ---
 
-## 2. WHICH TOOL
+## 2. Tech stack
 
-**Flutter + Flame. Dart. One code, six rock.**
+**Flutter + Flame, in Dart. One codebase, six platforms.**
 
-Why me pick:
+Reasons:
 
-- One code go all six rock. Real desktop, not fake wrapper.
-- Flutter widget good for Sudoku grid. Grid is boring box, widget make boring box fast.
-- Flame is game loop on top of Flutter. Same code do sprite, tick, collide, on-screen button.
-- Dart do fast math. Sudoku solve need many many loop. Dart fine.
-- All free. No license tax. No engine man take share.
-- Small ship. No browser inside app.
+- One codebase reaches all six targets, with real desktop support rather than a wrapped web view.
+- Flutter's widget layer suits the Sudoku grid, which is layout and input rather than rendering.
+- Flame supplies the game loop, sprites, collision and on-screen controls on top of that same layer,
+  so the arcade games share the app's widgets and theme.
+- Dart is fast enough for the constraint propagation that puzzle generation needs.
+- Free and open source. No engine revenue share, no seat licensing.
+- Small binaries; no embedded browser runtime.
 
-Tool me not pick, and why:
+Alternatives rejected:
 
-| Tool | Why no |
+| Option | Reason rejected |
 |---|---|
-| Godot | Good game. Bad app menu. iOS ship path rough. Two mind for grid UI. |
-| React Native | Desktop story weak. Windows/macOS port limp. |
-| Unity | Big rock. Heavy. License mood swing. Overkill for 6x6 grid. |
-| Electron / Tauri web | Desktop fine. Phone weak. Fat ship. |
-| Six native app | Six times work. Caveman only two hand. |
+| Godot | Strong game engine, weak app-shell and menu UI. Rougher iOS release path. Two mental models for the Sudoku grid. |
+| React Native | Weak desktop story; the Windows and macOS ports lag the mobile ones. |
+| Unity | Heavy runtime and licensing churn for what is mostly 2D and UI. |
+| Electron / Tauri | Good on desktop, weak on mobile, large binaries. |
+| Six native apps | Six implementations of the same puzzle engine. |
 
-### Package rock (pubspec)
+### Dependencies
 
-| Need | Package | Note |
-|---|---|---|
-| Engine | `flame` | Game loop, sprite, collide, on-screen joy button |
-| State | `flutter_riverpod` | Small. No code-gen. Good for inject save-store |
-| Save path | `path_provider` | Find safe folder each rock |
-| Sound | `flutter_soloud` | Low delay. Work all six rock incl. Linux |
-| Shake | `flutter_vibrate`-like / `HapticFeedback` (built in) | Phone only, guard by platform |
-| Test | `flutter_test`, `test`, `integration_test` | Built in |
-| Lint | `flutter_lints` + strict analyze | Built in |
+| Need | Package |
+|---|---|
+| Game engine | `flame` |
+| State and DI | `flutter_riverpod` — small, no code generation |
+| Save location | `path_provider` |
+| Audio | `flutter_soloud` — low latency, works on all six targets including Linux |
+| Haptics | `HapticFeedback` (built in), guarded by platform check |
+| Test | `flutter_test`, `test`, `integration_test` |
+| Lint | `flutter_lints` plus strict analyzer options |
 
-**Package me BAN:**
+Banned dependencies:
 
-- No `google_mobile_ads`. Obvious.
-- No `firebase_*`, no `sentry`, no analytics. Nothing phone home.
-- No `google_fonts` — that fetch font over net at run. Instead bundle font file in `assets/fonts/`.
-- No `http`, no `dio`. If no net code exist, no net leak possible.
+- No ad SDKs.
+- No `firebase_*`, no `sentry`, no analytics or crash reporting.
+- No `google_fonts` — it fetches fonts over the network at runtime. Bundle font files in
+  `assets/fonts/` instead.
+- No `http`, no `dio`. If no networking code exists, no networking can leak.
 
-**Hard wall, not soft promise:**
+Enforce the constraints in the build rather than by convention:
 
-- Android: do NOT add `android.permission.INTERNET` in manifest. Then OS itself block net. Store
-  page show "no net permission". Parent trust that more than word.
-- iOS/macOS: no network entitlement. macOS sandbox: leave `com.apple.security.network.client` off.
-- CI grep step: fail build if `http://`, `https://`, `Socket`, or `HttpClient` show in `lib/`.
+- **Android:** omit `android.permission.INTERNET` from the manifest. The OS then blocks network
+  access itself, and the store listing shows the app has no network permission — stronger evidence
+  for a parent than a claim in the description.
+- **iOS / macOS:** no network entitlement. Leave `com.apple.security.network.client` off under the
+  macOS sandbox.
+- **CI:** fail the build if `http://`, `https://`, `Socket` or `HttpClient` appear in `lib/`.
 
-### Save rock
+### Persistence
 
-Small data. Few kilobyte. So no database need.
+The data is a few kilobytes, so no database is needed.
 
-- One JSON file, `save.json`, in app support folder (`path_provider`).
-- Write safe: write `save.json.tmp`, `flush`, then `rename` over old. Rename is atomic. Child
-  yank power cord mid-write, save not turn to mush.
-- Keep `schemaVersion` int. Migrate step on load, old to new.
-- Wrap in `ProgressRepository` class. If one day data grow big, swap guts to `drift` (SQLite),
-  rest of app not care.
+- A single `save.json` in the app support directory, located via `path_provider`.
+- Write to `save.json.tmp`, flush, then `rename` over the original. Rename is atomic, so a crash or
+  power loss mid-write cannot corrupt the save.
+- A `schemaVersion` integer with a migration step on load.
+- All access behind a `ProgressRepository`. If the data outgrows a JSON file, swap the implementation
+  for `drift` (SQLite) without touching callers.
 
 ---
 
-## 3. SUDOKU — SAME SEED, SAME PUZZLE, FOREVER
+## 3. Sudoku
 
-Child on phone and child on PC must see SAME puzzle for same day. No server. So puzzle must be
-born from number, not from luck.
+A child on a phone and a child on a PC must see the same puzzle for the same day, with no server. The
+puzzle therefore has to be derived from a number rather than from ambient randomness.
 
-### 3.1 Own dice
+### 3.1 Hand-rolled PRNG
 
-`dart:math` `Random(seed)` **not promised stable** between Dart version. Dart man may change guts.
-Then old puzzle change. Child cry, streak break.
+Dart's `dart:math` `Random(seed)` is **not** guaranteed to produce the same sequence across Dart
+versions. If it changes, every previously generated puzzle changes with it, which silently invalidates
+saved progress: the save file stores puzzle IDs, not grids, so a solved puzzle would come back as a
+different unsolved one.
 
-So: **write own dice.** `Xoshiro128+` or `PCG32`. Twenty line. Pure int math. Never change.
+Implement the PRNG in-repo instead — `Xoshiro128+` or `PCG32`, roughly twenty lines of integer
+arithmetic, frozen once written.
 
 ```dart
 // packages/puzzle_engine/lib/src/rng.dart
 class Rng {
   int _s0, _s1;
   Rng(int seed) : _s0 = seed ^ 0x9E3779B9, _s1 = (seed * 0x85EBCA6B) & 0xFFFFFFFF {
-    if (_s0 == 0 && _s1 == 0) _s0 = 1;      // all-zero state is death
-    for (var i = 0; i < 8; i++) nextInt(2); // warm the rock
+    if (_s0 == 0 && _s1 == 0) _s0 = 1;      // all-zero state never advances
+    for (var i = 0; i < 8; i++) nextInt(2); // discard early low-entropy output
   }
   int nextInt(int bound) { /* xorshift128, mask to 32 bit, mod bound */ }
   void shuffle<T>(List<T> list) { /* Fisher-Yates using nextInt */ }
 }
 ```
 
-Mask every step to 32 bit. Why: JS number only hold 53 bit safe. If we ever ship web, unmasked
-64-bit int drift and puzzle differ on web. Mask now, sleep good later.
+Mask to 32 bits at every step. JavaScript numbers only hold 53 bits exactly, so unmasked 64-bit
+arithmetic would diverge if a web target is ever added.
 
-### 3.2 Puzzle name and seed
+### 3.2 Puzzle identity
 
 ```
 id   = "sudoku:9x9:hard:412"
-seed = fnv1a32(id)          // own hash, in engine, never change
+seed = fnv1a32(id)          // hand-rolled hash in the engine, frozen like the PRNG
 ```
 
-Two door to same puzzle:
+Two ways to reach a puzzle:
 
-- **Day door.** `index = daysSince(2026-01-01, UTC)`. Day puzzle = one per size per difficulty per
-  day. Use UTC so child not jump day when fly over water.
-- **Number door.** Endless list. Child pick puzzle 1, 2, 3... forever. Same number, same grid,
-  same on every rock, same next year.
+- **By date.** `index = daysSince(2026-01-01, UTC)` gives one daily puzzle per size per difficulty.
+  UTC, so crossing a timezone does not skip or repeat a day.
+- **By index.** An endless numbered list. Puzzle 412 is the same grid on every platform, and next
+  year.
 
-### 3.3 Two size
+### 3.3 Sizes
 
-| Size | Digit | Box shape | Grid |
+| Size | Digits | Box shape | Cells |
 |---|---|---|---|
-| 9x9 | 1–9 | 3 row x 3 col | 81 cell |
-| 6x6 | 1–6 | 2 row x 3 col | 36 cell |
+| 9x9 | 1–9 | 3 rows x 3 cols | 81 |
+| 6x6 | 1–6 | 2 rows x 3 cols | 36 |
 
-Engine must be **size-generic**, not two copy-paste file. One `SudokuSpec { rows, cols, boxRows,
-boxCols }`. Then 4x4 or 12x12 come free later.
+The engine is size-generic — one `SudokuSpec { rows, cols, boxRows, boxCols }` rather than two
+near-duplicate implementations. 4x4 and 12x12 then cost nothing.
 
-### 3.4 How make puzzle
+### 3.4 Generation
 
-Three step. Each step must be deterministic — every list order come from own dice, never from
-`Set`/`Map` walk order (that order not promised).
+Three stages. Every ordering decision draws from `Rng`; nothing iterates a `Set` or `Map`, whose
+order is not guaranteed.
 
-**Step 1 — grow full grid.**
-Backtrack fill. Try digit in shuffled order from `Rng`. Full valid grid always exist, so this
-never fail, just sometimes back up.
+**Grow.** Backtracking fill, trying digits in `Rng`-shuffled order. A valid complete grid always
+exists, so this never fails, it only backtracks.
 
-**Step 2 — dig hole.**
-Make list of all cell. Shuffle with `Rng`. Walk list. Try take digit out. Then count solution
-with solver, **stop counting at 2** (no need count all, only need know "more than one?").
-If still exactly 1 solution → hole stay. Else → put digit back.
+**Dig.** Shuffle the cell list with `Rng` and walk it, removing one digit at a time. After each
+removal, count solutions but **stop counting at 2** — the question is only whether the solution is
+still unique, not how many exist. Unique, keep the hole; otherwise restore the digit.
 
-**Step 3 — judge hard.**
-Do NOT judge hard by count of clue. Clue count lie. Judge by **which trick human need**:
+**Judge.** Do not infer difficulty from clue count; it correlates poorly. Judge by which human
+techniques a solver needs:
 
-| Tier | Trick need | Name |
+| Tier | Techniques required | Label |
 |---|---|---|
-| T1 | naked single, hidden single | EASY |
-| T2 | + naked/hidden pair, pointing pair, box-line reduce | MEDIUM |
-| T3 | + triple, X-wing | HARD |
-| T4 | need guess / deep chain | EXPERT |
+| T1 | Naked single, hidden single | Easy |
+| T2 | + naked/hidden pair, pointing pair, box-line reduction | Medium |
+| T3 | + triples, X-wing | Hard |
+| T4 | Needs guessing or deep chains | Expert |
 
-Solver run human-trick in tier order. Highest tier it must reach = difficulty of puzzle.
+Run the technique solver in tier order; the highest tier it must reach is the puzzle's difficulty. If
+the result misses the requested tier, discard it, advance a sub-counter on the seed and regenerate,
+up to about 40 attempts. On 40 failures, widen the accepted tier by one notch and log a warning —
+never surface a generation failure to a child.
 
-Loop: dig, judge, if tier wrong → throw away, bump seed sub-counter, grow again. Cap try at ~40.
-If 40 fail, widen tier window one notch and log warn. Never ship "generation failed" to child.
-
-Clue count still useful as *guard rail* only:
+Clue counts serve only as guard rails:
 
 | | 9x9 | 6x6 |
 |---|---|---|
@@ -178,138 +179,136 @@ Clue count still useful as *guard rail* only:
 | Hard | 26–29 | 12–14 |
 | Expert | 22–25 | 10–11 |
 
-6x6 have no room for real Expert. So 6x6 ship Easy / Medium / Hard only. Do not fake it.
+6x6 has too little room for a genuine Expert tier, so it ships Easy, Medium and Hard only rather than
+mislabelling a Hard puzzle.
 
-### 3.5 Speed
+### 3.5 Performance
 
-Uniqueness check is the slow part. Numbers to beat:
+Uniqueness checking dominates. Targets:
 
-- Easy/Medium 9x9: under 100 ms
-- Hard/Expert 9x9: under 400 ms
+- 9x9 Easy and Medium: under 100 ms
+- 9x9 Hard and Expert: under 400 ms
 - 6x6: under 30 ms
 
-Do:
+To hit them:
 
-- Bitmask candidate. Row/col/box each one int. `&`, `|`, popcount. No `Set<int>` per cell.
-- Generate inside `Isolate` (`compute()`). Never block paint thread. Child see spinner never.
-- Cache made puzzle into save file (`puzzleCache`, keep last ~30). Second visit is instant.
-- Pre-warm: when child open Sudoku menu, kick isolate for today puzzle in background.
+- Bitmask candidates — one integer per row, column and box, using `&`, `|` and popcount rather than
+  a `Set<int>` per cell.
+- Generate inside an `Isolate` via `compute()`, so the raster thread never blocks.
+- Cache generated puzzles in the save file (`puzzleCache`, most recent ~30) for instant revisits.
+- Pre-warm: start generating the day's puzzle in the background when the Sudoku menu opens.
 
-### 3.6 Prove it never drift — golden test
+### 3.6 Determinism tests
 
-This the most important test in whole repo.
+The most important tests in the repository.
 
 ```
-test/golden/sudoku_9x9_easy.golden     # id -> sha256 of clue string, 100 row
+test/golden/sudoku_9x9_easy.golden     # 100 rows of id -> sha256 of the clue string
 test/golden/sudoku_9x9_medium.golden
-... one file per size x difficulty
+...                                    # one file per size x difficulty
 ```
 
-Test: for index 0..99, build puzzle, hash it, compare to file. Any change to `Rng`, hash, or
-generator order → red CI. If change is on purpose, must bump `generatorVersion` and keep old
-generator alive behind switch, so old child save not break.
+For indices 0–99, generate, hash and compare against the golden file. Any change to `Rng`, the hash
+or generator ordering turns CI red. When such a change is intentional, bump `generatorVersion` and
+keep the old generator reachable behind that switch so existing saves stay valid.
 
-Other engine test:
+Also test:
 
-- Every made puzzle has exactly one solution (brute force count == 1).
-- Judged tier match what tier-solver say (round trip).
-- 6x6 box shape correct (2x3, not 3x2).
-- Same seed, two run, same byte. Also same across isolate.
-- Fuzz: 2000 random seed, no crash, no infinite loop (hard timeout per puzzle).
+- Every generated puzzle has exactly one solution (brute-force count == 1).
+- The assigned tier matches what the technique solver reports (round trip).
+- 6x6 boxes are 2 rows x 3 cols, not 3 x 2.
+- The same seed produces byte-identical output across runs and across isolates.
+- Fuzz 2000 seeds: no crashes, no non-termination, with a hard per-puzzle timeout.
 
-### 3.7 Sudoku screen
+### 3.7 Sudoku UI
 
-Must feel good for small finger:
-
-- Grid stretch to fit, thick line on box edge, thin inside.
-- Tap cell → pick. Number pad big, under grid, in thumb zone.
-- **Pencil mode** toggle. Small note digit in corner.
-- **Undo / Redo**. Deep stack. Child undo whole game if want.
-- Mistake mark: option "show wrong now" (kid default ON) or "show wrong at end" (grown mode).
-- Same-digit highlight. Row/col/box soft highlight. Big help for small human.
-- **Hint** button: reveal one cell that human-trick can prove. Count hints used. Puzzle solved
-  with hint still count as solved, but mark it, and no "clean win" star.
-- **Auto-save every move.** Close app mid-puzzle, come back next week, board exactly there.
-- Timer: show, but small, and **can turn off** in settings. Clock stress not good for kid.
-- Win: confetti, sound, star. Not loud. Not scary.
+- The grid scales to fit, with thick box borders and thin cell borders.
+- Tap a cell to select; a large number pad sits below the grid, within thumb reach.
+- **Pencil mode** toggle for corner notes.
+- **Undo / redo** with a deep stack.
+- Mistake feedback with two modes: flag immediately (default for children) or only at completion.
+- Highlight the selected digit everywhere, and soft-highlight its row, column and box.
+- **Hint** reveals one cell the technique solver can prove. Hints are counted; the puzzle still
+  counts as solved but does not earn a clean-win star.
+- **Auto-save every move**, so closing the app mid-puzzle and returning later restores the exact
+  board.
+- The timer is visible but small, and can be switched off in settings.
+- Completion shows confetti and a sound, both subdued and both respecting the mute and reduced-motion
+  settings.
 
 ---
 
-## 4. SPACE INVADERS — AND FRIEND
+## 4. Arcade
 
-### 4.1 The game
+### 4.1 Space Invaders
 
-Flame `FlameGame`. Fixed logic step so PC at 144 Hz and phone at 60 Hz play same speed
-(`fixedDeltaTime`, accumulate leftover).
+A Flame `FixedResolutionViewport` game on a fixed logic step (accumulate leftover delta), so a 60 Hz
+phone and a 144 Hz PC play at the same speed.
 
-- Player ship at bottom. Move left/right only.
-- Alien block 5 row x 11 col. March side. Hit wall → drop down, flip way, go faster.
-- Alien shoot down at random-but-seeded rate. Rate climb with wave.
-- 4 bunker. Bullet chew hole in bunker (per-pixel-ish, use small block grid).
-- Player: 3 life. Bonus life every 10000 point.
-- Score: front row alien 10, middle 20, back 30. UFO fly over sometime, worth 50–300.
-- Wave clear → next wave, start lower, faster. Endless.
+- The player ship moves left and right along the bottom.
+- A 5 x 11 alien block marches sideways; on reaching a wall it drops one row, reverses, and speeds up.
+- Aliens fire downward at a seeded rate that climbs with the wave.
+- Four bunkers erode where shots hit, modelled as a small block grid.
+- Three lives, with a bonus life every 10,000 points.
+- Scoring: front-row aliens 10, middle 20, back 30. A UFO passes periodically for 50–300.
+- Clearing a wave starts the next one lower and faster, without limit.
 
-Kid dial in settings:
+Settings for younger players:
 
-- **Easy mode**: slower alien, fewer alien row, 5 life, alien bullet slower.
-- **Auto-fire**: hold nothing, ship shoot by self. Small human hand only manage move.
-- Never say "GAME OVER" mean. Say "Good try! Play again?".
+- **Easy mode:** slower aliens, fewer rows, five lives, slower alien fire.
+- **Auto-fire:** the ship fires on its own, so a small player only has to steer.
+- No harsh failure screen — "Good try! Play again?" rather than "GAME OVER".
 
-### 4.2 Control — this the part user ask for
+### 4.2 On-screen controls
 
-**On-screen: big LEFT button, big RIGHT button, big FIRE button.**
+Large **LEFT**, **RIGHT** and **FIRE** buttons.
 
-Rule for button:
+- Minimum 56 dp touch targets; 72 dp for the two movement buttons.
+- LEFT and RIGHT bottom-left, FIRE bottom-right, swappable in settings for left-handed players.
+- **Hold to move**, not tap-to-nudge, via `onTapDown`/`onTapUp` or Flame's `HudButtonComponent`.
+  Handle pointer-cancel: if a finger slides off the button, movement must stop, otherwise the ship
+  drifts forever. This is a common bug in on-screen D-pads; cover it with a test.
+- Support two simultaneous touches so the player can move and fire at once. Flutter's gesture arena
+  can claim the second pointer, so implement each button with a raw `Listener` rather than
+  `GestureDetector`.
+- Respect safe areas. Never place FIRE under the iOS home indicator or the Android gesture bar.
+- Buttons are semi-transparent but never invisible, and never overlap the play field.
 
-- Touch target **min 56 dp**, aim 72 dp for the two move button.
-- Sit in bottom corner, LEFT+RIGHT bottom-left, FIRE bottom-right (swap in settings for left-hand
-  child).
-- **Hold to keep move**, not tap-to-nudge. Use `onTapDown`/`onTapUp` + pointer-cancel, or Flame
-  `HudButtonComponent`. Must handle finger slide off button (pointer cancel) or ship run away
-  forever — classic bug, test it.
-- Two finger at once must work (`MultiTouch`): move and fire same time. Flutter default gesture
-  arena can eat second finger — use `Listener`/raw pointer per button, not `GestureDetector`.
-- Respect safe area / notch / gesture bar. Never put FIRE under home swipe strip.
-- Buttons semi-transparent, but never invisible, and never on top of play field.
+Desktop adds keyboard control: arrows or A/D to move, space to fire, P or Esc to pause. Hide the
+on-screen buttons after keyboard input and restore them on the next touch, so a touchscreen PC gets
+both. Gamepad support (`gamepads`) is a later addition, not part of the first release.
 
-**PC**: keyboard too. Arrow / A-D to move, Space to fire, P/Esc pause. Hide on-screen button when
-last input was keyboard, show again on first touch. PC with touch screen get both.
+### 4.3 Score persistence
 
-Optional later: gamepad (`gamepads` package). Nice for TV/PC. Not phase 1.
+- Top five scores per game per difficulty, shown on the game-over card and in the menu.
+- Each entry stores score, wave reached, date and profile.
+- Lifetime counters: games played, total aliens destroyed.
 
-### 4.3 Score remember
+### 4.4 Later games
 
-- Top 5 score per game, per difficulty. Show on game-over card and in menu.
-- Store: score, wave reached, date, which profile.
-- Also lifetime: games played, total alien squashed. Small human love big number go up.
+Each reuses the same shell and control pad, so the incremental cost is small:
 
-### 4.4 Other retro game (later phase)
-
-Same engine, same on-screen button pattern, cheap to add:
-
-| Game | Control | Save |
+| Game | Controls | Persisted |
 |---|---|---|
-| Brick Breaker | left/right paddle | high score, level reached |
-| Snake | 4 arrow or swipe | high score, longest snake |
-| Memory Match | tap card | best time per grid size |
-| Whack-a-Mole | tap hole | high score |
-| Pong (vs machine) | left/right | win count |
-| 2048 | swipe | best tile, best score |
-| Tic-Tac-Toe | tap | win/lose/draw count |
+| Brick Breaker | left / right paddle | High score, level reached |
+| Snake | four directions or swipe | High score, longest snake |
+| Memory Match | tap a card | Best time per grid size |
+| Whack-a-Mole | tap a hole | High score |
+| Pong (vs AI) | left / right | Win count |
+| 2048 | swipe | Best tile, best score |
+| Tic-Tac-Toe | tap | Win / loss / draw counts |
 
-Add one per small release. Do not build all before ship. Ship Sudoku + Invaders first.
+Add one per minor release. Do not build all of them before the first release.
 
 ---
 
-## 5. REMEMBER — WHAT BOX KEEP
+## 5. Progress and profiles
 
-### 5.1 Profile
+Several children share one tablet, so profiles are local: a name and an animal avatar, selected from
+large buttons at launch. No passwords — nothing here is worth locking. One profile exists by default,
+so there is no setup wall.
 
-Many child, one tablet. So **local profile**. Name + animal picture. No password (kid app, no
-secret worth lock). Pick profile on open, big face button. Default one profile, no setup wall.
-
-### 5.2 Shape of save
+### 5.1 Save schema
 
 ```json
 {
@@ -344,41 +343,44 @@ secret worth lock). Pick profile on open, big face button. Default one profile, 
 }
 ```
 
-Note: save keep only **puzzle id**, not whole puzzle. Because id + generator = puzzle. That why
-determinism matter so much: save file stay tiny (few KB after 500 puzzle) and stay honest.
+The save stores puzzle **IDs**, not grids, because ID plus generator reconstructs the puzzle. That is
+what keeps the file at a few kilobytes after hundreds of puzzles, and it is why §3.1 determinism is
+load-bearing rather than a nicety.
 
-### 5.3 Rule about save
+### 5.2 Rules
 
-- Write on: every Sudoku move (debounce 500 ms), game over, app pause, app close.
-- Read once at boot into memory. All read after that from memory. No disk in game loop.
-- Never crash on bad save. Try parse → fail → back up broken file to `save.corrupt.json`, start
-  fresh, tell child "could not find old game, sorry" once. Losing high score bad. Boot loop worse.
-- Export / import save as file (share sheet on phone, file picker on PC). That how family move to
-  new tablet, with no cloud, no account, no server.
-- No cloud sync. Ever. That the deal.
+- Write on every Sudoku move (debounced 500 ms), on game over, and on app pause or close.
+- Read once at startup into memory; every later read is from memory. No disk access inside a game
+  loop.
+- Never crash on a malformed save. On a parse failure, move the file aside to `save.corrupt.json`,
+  start fresh, and tell the child once that the old game could not be found. Losing a high score is
+  bad; a boot loop is worse.
+- Export and import the save as a file — the share sheet on mobile, a file picker on desktop. That is
+  how a family moves to a new tablet without an account or a server.
+- No cloud sync, by design.
 
 ---
 
-## 6. HOW REPO LOOK
+## 6. Repository layout
 
 ```
 game-station/
 ├─ PLAN.md
 ├─ README.md
-├─ melos.yaml                       # or plain path deps, decide at phase 0
+├─ melos.yaml                       # or plain path deps — decide in phase 0
 ├─ packages/
-│  └─ puzzle_engine/                # PURE DART. no flutter import at all.
+│  └─ puzzle_engine/                # pure Dart, no Flutter imports
 │     ├─ lib/
 │     │  ├─ puzzle_engine.dart
 │     │  └─ src/
-│     │     ├─ rng.dart             # own dice
-│     │     ├─ hash.dart            # own fnv1a
+│     │     ├─ rng.dart
+│     │     ├─ hash.dart            # fnv1a
 │     │     ├─ sudoku_spec.dart     # 9x9 / 6x6 shape
 │     │     ├─ sudoku_board.dart    # bitmask board
-│     │     ├─ generator.dart       # grow, dig, judge
-│     │     ├─ solver.dart          # count solution, tier solve
-│     │     ├─ techniques/          # single, pair, pointing, x-wing…
-│     │     └─ puzzle_id.dart       # id <-> seed, day <-> index
+│     │     ├─ generator.dart       # grow / dig / judge
+│     │     ├─ solver.dart          # solution counting, technique tiers
+│     │     ├─ techniques/          # singles, pairs, pointing, x-wing…
+│     │     └─ puzzle_id.dart       # id <-> seed, date <-> index
 │     └─ test/
 │        ├─ generator_test.dart
 │        ├─ solver_test.dart
@@ -389,9 +391,9 @@ game-station/
    │  ├─ main.dart
    │  ├─ app.dart                   # router, theme
    │  ├─ core/
-   │  │  ├─ storage/                # ProgressRepository, atomic file, migration
+   │  │  ├─ storage/                # ProgressRepository, atomic write, migrations
    │  │  ├─ audio/                  # soloud wrapper, mute-aware
-   │  │  └─ ui/                     # BigButton, ScreenScaffold, tokens
+   │  │  └─ ui/                     # BigButton, ScreenScaffold, design tokens
    │  ├─ features/
    │  │  ├─ home/
    │  │  ├─ profiles/
@@ -399,144 +401,152 @@ game-station/
    │  │  ├─ sudoku/                 # grid widget, keypad, controller
    │  │  └─ arcade/
    │  │     ├─ shared/              # OnScreenPad, GameShell, pause, HUD
-   │  │     └─ invaders/            # FlameGame + component
+   │  │     └─ invaders/            # FlameGame and components
    │  └─ assets/{fonts,images,audio}/
-   ├─ test/                         # widget test
-   ├─ integration_test/             # real device smoke
+   ├─ test/                         # widget tests
+   ├─ integration_test/             # on-device smoke tests
    └─ pubspec.yaml
 ```
 
-Why split `puzzle_engine` out: pure Dart test run in ~1 second, no emulator, no Flutter bind. Ten
-thousand fuzz seed cheap. Engine logic never tangle with paint code.
+`puzzle_engine` is a separate pure-Dart package so its tests run in about a second with no emulator
+and no Flutter bindings, which makes ten thousand fuzz seeds cheap. It also keeps generation logic
+from entangling with rendering code.
 
 ---
 
-## 7. PHASE — DO IN THIS ORDER
+## 7. Phases
 
-Estimate = one caveman, part time. Adjust for own tribe size.
+Estimates assume one developer working part time.
 
-### Phase 0 — clear ground (1–2 day)
+### Phase 0 — groundwork (1–2 days)
 
-- `flutter create` app, `dart create` engine package, wire path dep.
+- `flutter create` the app, `dart create` the engine package, wire the path dependency.
 - Strict `analysis_options.yaml`: `strict-casts`, `strict-raw-types`, no implicit dynamic.
-- CI: analyze + test on push. `.gitignore`. Choose license (MIT code, CC0/CC-BY art).
-- Add "no net" CI grep guard.
-- **Done when:** empty app open on Android emulator, iOS sim, and one desktop rock; CI green.
+- CI: analyze and test on push. `.gitignore`. License choice (MIT for code, CC0/CC-BY for art).
+- Add the no-network CI grep guard from §2.
+- **Done when:** an empty app launches on an Android emulator, an iOS simulator and one desktop
+  target, with CI green.
 
-### Phase 1 — bone of app (3–4 day)
+### Phase 1 — app skeleton (3–4 days)
 
-- Router + home screen with two big card: SUDOKU, ARCADE.
-- Theme token: colour, spacing, text size. Day + night. Big tap target default.
-- `ProgressRepository`: atomic JSON, schema v1, migration hook, corrupt-file recovery.
-- Profile pick screen + create/rename/delete.
-- Settings screen: sound, haptics, timer, theme, reduce-motion.
-- **Done when:** kill app, reopen, profile and setting still there, on all six rock.
+- Router and a home screen with two large cards: Sudoku and Arcade.
+- Design tokens for colour, spacing and type scale. Day and night themes. Large default tap targets.
+- `ProgressRepository`: atomic JSON writes, schema v1, migration hook, corrupt-file recovery.
+- Profile picker, plus create, rename and delete.
+- Settings: sound, haptics, timer visibility, theme, reduced motion.
+- **Done when:** killing and reopening the app preserves the profile and settings on all six targets.
 
-### Phase 2 — Sudoku engine (5–7 day) ← the real work
+### Phase 2 — Sudoku engine (5–7 days)
+
+The critical path.
 
 - `Rng`, `fnv1a`, `SudokuSpec`, bitmask `SudokuBoard`.
-- Solver: brute-force count-to-2, plus tier technique solver.
-- Generator: grow → dig → judge, retry loop.
-- `PuzzleId`: id parse/build, day-index, seed.
-- Full test set from §3.6 including golden file.
-- Bench script; hit speed target in §3.5.
-- **Done when:** `dart test` green, golden locked, 2000-seed fuzz clean, bench under target.
+- Solver: brute-force count-to-2, plus the technique-tier solver.
+- Generator: grow, dig, judge, with the retry loop.
+- `PuzzleId`: parse and build IDs, date-to-index, ID-to-seed.
+- The full test set from §3.6, including golden files.
+- A benchmark script meeting the §3.5 targets.
+- **Done when:** `dart test` is green, goldens are locked, the 2000-seed fuzz is clean, and the
+  benchmark is within target.
 
-### Phase 3 — Sudoku screen (5–7 day)
+### Phase 3 — Sudoku UI (5–7 days)
 
-- Size + difficulty pick screen, showing solved tick and best time.
-- Daily puzzle card, with streak count.
-- Grid widget (9x9 and 6x6 from same code), keypad, pencil, undo/redo, highlight.
-- Hint using tier solver. Mistake mark modes.
-- Auto-save mid-puzzle + resume. Win screen.
-- Generation in isolate + spinner + pre-warm.
-- **Done when:** solve 9x9 and 6x6 end to end; force-quit mid-puzzle and resume exact; solved
-  state show in menu after restart.
+- Size and difficulty pickers showing solved state and best times.
+- A daily-puzzle card with the current streak.
+- The grid widget, driving 9x9 and 6x6 from one implementation; keypad, pencil mode, undo/redo,
+  highlighting.
+- Hints via the technique solver. Both mistake-feedback modes.
+- Mid-puzzle auto-save and resume. Completion screen.
+- Generation in an isolate, with a spinner and pre-warming.
+- **Done when:** 9x9 and 6x6 can be solved end to end; a force-quit mid-puzzle resumes the exact
+  board; solved state persists across a restart.
 
-### Phase 4 — arcade shell + Space Invaders (5–7 day)
+### Phase 4 — arcade shell and Space Invaders (5–7 days)
 
-- `GameShell`: pause, resume, quit-confirm, life/score HUD, game-over card with high score.
-- `OnScreenPad`: LEFT / RIGHT / FIRE, multi-touch, hold-to-move, safe area, keyboard mirror.
-- Invaders: player, alien block march, bullet both way, bunker chew, UFO, wave ramp, easy mode,
+- `GameShell`: pause, resume, quit confirmation, lives and score HUD, game-over card with high
+  scores.
+- `OnScreenPad`: LEFT / RIGHT / FIRE with multi-touch, hold-to-move, pointer-cancel handling, safe
+  areas and the keyboard mirror.
+- Invaders: player, alien block, projectiles both ways, bunker erosion, UFO, wave ramp, easy mode,
   auto-fire.
-- Fixed-step loop. Test on slow old phone AND on 144 Hz PC — same speed.
-- High score persist per profile.
-- **Done when:** 10 minute play on phone + PC, no jank, no stuck ship, score survive restart.
+- Fixed-step loop verified on both a slow phone and a 144 Hz desktop.
+- High scores persisted per profile.
+- **Done when:** ten minutes of play on phone and desktop shows no jank and no stuck ship, and scores
+  survive a restart.
 
-### Phase 5 — polish (4–5 day)
+### Phase 5 — polish (4–5 days)
 
-- SFX + tiny music, all mutable, duck on app background.
-- Haptics on phone only.
-- Accessibility: screen-reader label on every button, colourblind-safe palette (never colour
-  alone to mean thing), text scale respect, `reduceMotion` kill confetti.
-- Landscape + portrait both. Tablet layout (grid not stretch ugly wide).
-- i18n scaffold (`.arb`), English first. Number-and-picture UI means translation cheap later.
-- **Done when:** a11y pass on TalkBack + VoiceOver, and rotate every screen with no break.
+- Sound effects and light music, all mutable, ducked when the app backgrounds.
+- Haptics on mobile only.
+- Accessibility: screen-reader labels on every control, a colourblind-safe palette that never uses
+  colour as the only signal, text-scale support, and `reduceMotion` suppressing confetti.
+- Portrait and landscape, with a tablet layout that does not stretch the grid.
+- i18n scaffolding (`.arb`), English first. The largely numeric UI keeps later translation cheap.
+- **Done when:** an accessibility pass on TalkBack and VoiceOver passes, and every screen survives
+  rotation.
 
-### Phase 6 — ship (3–5 day)
+### Phase 6 — release (3–5 days)
 
-- Icon, splash, store art, screenshot per rock.
-- Android: signed AAB, target latest API, Play Data-Safety form = "no data collected" (true!),
-  aim Teacher-Approved / Designed-for-Families.
-- iOS: Kids Category. Kids Category **bans** third-party ad and analytics — we have none, so we
-  pass clean. Need Apple dev account (~$99/yr) and a Mac to build.
-- Windows: MSIX or plain zip. Optional Steam/MS Store later.
-- macOS: notarize (need dev account).
-- Linux: tarball + Flathub. Also F-Droid if we keep it fully FOSS — strong "no ad, no spy" proof.
-- **Done when:** install from real store listing on real device, offline, and play.
+- Icon, splash, store artwork and per-platform screenshots.
+- Android: signed AAB, latest target API, Play Data Safety declared as no data collected (accurate),
+  aiming for Teacher Approved / Designed for Families.
+- iOS: Kids Category, which **bans** third-party ads and analytics — the app has neither, so it
+  qualifies without changes. Requires an Apple Developer account (about $99/year) and a Mac to build.
+- Windows: MSIX or a plain zip; Microsoft Store or Steam optional later.
+- macOS: notarization, which also needs the developer account.
+- Linux: tarball plus Flathub. F-Droid is also viable if the app stays fully FOSS, which is strong
+  independent evidence for the no-ads, no-tracking claim.
+- **Done when:** the app installs from a real store listing on a real device and plays offline.
 
-### Phase 7 — more game (ongoing)
+### Phase 7 — more games (ongoing)
 
-One game per small release, from §4.4 table. Each reuse `GameShell` + `OnScreenPad`.
+One game per minor release from the §4.4 table, each reusing `GameShell` and `OnScreenPad`.
 
-**Ship line: end of Phase 6.** Sudoku (both size, 4 tier) + Space Invaders is a real, whole app.
-Do not hold ship for game number seven.
+**Release at the end of Phase 6.** Sudoku in two sizes and four tiers plus Space Invaders is a
+complete app. Do not hold the release for the seventh game.
 
 ---
 
-## 8. THINGS THAT WILL BITE
+## 8. Risks
 
-| Bite | How bad | Rock to stand on |
+| Risk | Severity | Mitigation |
 |---|---|---|
-| Dart `Random` change → puzzle drift | high | Own `Rng`, golden test, `generatorVersion` |
-| Int overflow differ if we ever add web | med | Mask 32-bit everywhere from day one |
-| Hard/Expert generation slow, UI freeze | high | Bitmask + isolate + cache + pre-warm |
-| Finger slide off LEFT, ship run forever | med | Handle pointer-cancel; write a test for it |
-| Second finger eaten by gesture arena | med | Raw `Listener` per button, not `GestureDetector` |
-| Game speed tied to frame rate | med | Fixed logic step, test 60 vs 144 Hz |
-| Bad save file → boot loop | high | Try/catch, back up corrupt, start fresh, never crash |
-| iOS needs Mac + $99 + review | med | Plan early; Android + PC can ship first |
-| Linux audio flaky | low | `flutter_soloud`; sound is optional anyway |
-| Store think "kids app" = strict rules | low | We already meet them: no ad, no net, no data |
-| Feature creep (20 games, none done) | high | Ship line at Phase 6. Written down. Obey. |
+| Dart `Random` changes and puzzles drift | High | Own `Rng`, golden tests, `generatorVersion` |
+| Integer overflow differs if a web target is added | Medium | Mask to 32 bits from the start |
+| Hard/Expert generation stalls the UI | High | Bitmasks, isolate, cache, pre-warm |
+| Finger slides off LEFT and the ship never stops | Medium | Handle pointer-cancel; test it |
+| Gesture arena claims the second pointer | Medium | Raw `Listener` per button, not `GestureDetector` |
+| Game speed tied to frame rate | Medium | Fixed logic step, verified at 60 and 144 Hz |
+| Corrupt save causes a boot loop | High | Catch, move aside, start fresh, never crash |
+| iOS needs a Mac, $99/year and review | Medium | Plan early; Android and desktop can ship first |
+| Linux audio flakiness | Low | `flutter_soloud`; audio is optional anyway |
+| Kids-category store rules | Low | Already met: no ads, no network, no data collection |
+| Feature creep — twenty games, none finished | High | Release line fixed at Phase 6 |
 
 ---
 
-## 9. WHEN IS IT GOOD
+## 9. Release checklist
 
-Ship only when all true:
-
-- [ ] Airplane mode: whole app work, every screen, zero error.
-- [ ] Android build has NO internet permission. Verified in built APK manifest.
-- [ ] Same day-puzzle byte-identical on Android, iOS, Windows, macOS, Linux.
-- [ ] Golden determinism test green in CI.
-- [ ] Force-quit mid-Sudoku → resume exact board, notes, timer.
-- [ ] High score survive reinstall-less restart; survive 100 restarts.
-- [ ] 6-year-old play Invaders with on-screen button, no grown-up help, no rage.
-- [ ] Two-finger move+fire work on cheapest test phone.
-- [ ] Grid readable at 200% system text scale.
-- [ ] Zero ad SDK, zero analytics SDK, zero `http` call in dependency tree (`dart pub deps` audit).
-- [ ] Cold start under 2 seconds on old cheap Android.
+- [ ] In airplane mode, every screen works with no errors.
+- [ ] The built Android APK manifest contains no internet permission (verified in the artifact).
+- [ ] The daily puzzle is byte-identical on Android, iOS, Windows, macOS and Linux.
+- [ ] Golden determinism tests pass in CI.
+- [ ] A force-quit mid-puzzle restores the exact board, notes and timer.
+- [ ] High scores survive 100 restarts.
+- [ ] A six-year-old can play Invaders with the on-screen controls unaided.
+- [ ] Simultaneous move and fire works on the cheapest test device.
+- [ ] The grid is readable at 200% system text scale.
+- [ ] No ad, analytics or HTTP package anywhere in the dependency tree (`dart pub deps` audit).
+- [ ] Cold start under two seconds on an old low-end Android device.
 
 ---
 
-## 10. FIRST THREE THING TO DO TOMORROW
+## 10. Starting order
 
-1. Phase 0: scaffold app + engine package + CI + no-net grep guard.
-2. Write `Rng` and `fnv1a`. Write determinism test FIRST, before generator. Lock the dice.
-3. Write brute-force solver with count-to-2. Everything else in Sudoku stand on that.
+1. Phase 0: scaffold the app and engine package, CI, and the no-network guard.
+2. Write `Rng` and `fnv1a`, and write the determinism test **before** the generator, so the sequence
+   is locked before anything depends on it.
+3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it.
 
-Sudoku engine is the hard rock. Break it first, while arm strong. Invaders is fun and easy —
-save it as reward.
-
-Ugh. Plan done. Go make.
+The Sudoku engine is the hard part and comes first. Space Invaders is the easier and more enjoyable
+half, so it makes a better reward than a warm-up.

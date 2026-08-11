@@ -31,3 +31,14 @@ Flutter + [Flame](https://flamengine.org) (Dart) for all six targets, with a pur
 written local JSON file.
 
 See [PLAN.md](PLAN.md) for the reasoning, alternatives considered, phase breakdown, and risks.
+
+## Repository tooling
+
+`.claude/` is committed so the tooling travels with the repo:
+
+- `skills/caveman/` and `skills/caveman-compress/` — vendored from
+  [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (MIT). Provenance and licence in
+  [`.claude/skills/NOTICE.md`](.claude/skills/NOTICE.md).
+- `agents/caveman.md` — a documentation-compression agent for this repo. It defaults to `lite`
+  intensity, which keeps ordinary prose: documents that live in the repo are written as normal
+  English, not caveman-speak.
