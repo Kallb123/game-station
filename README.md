@@ -46,6 +46,9 @@ Two packages joined by a plain path dependency — no melos; see [PLAN.md](PLAN.
 
 ## Working on it
 
+Working practices — plan first, verify with `tool/verify.sh`, review before opening a PR — are in
+[AGENTS.md](AGENTS.md).
+
 Flutter **3.44.9** (Dart 3.12.2), pinned in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 The toolchain version moves deliberately, in its own commit, because the puzzle generator's output
 has to stay byte-identical across releases.
