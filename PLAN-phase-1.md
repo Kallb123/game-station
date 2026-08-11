@@ -13,7 +13,7 @@ screen with two entry points. It ships no gameplay.
 
 | Constraint | Rationale |
 |---|---|
-| No new dependency beyond `flutter_riverpod` and `path_provider` | `PLAN.md` §2 assigns those two to this phase. Anything else is a later phase's dependency carried through every intervening review. |
+| No new dependency beyond `flutter_riverpod` and `path_provider` | The two `PLAN.md` §2 dependencies this phase needs; the header comment in `app/pubspec.yaml` already assigns them here. Anything else is a later phase's dependency carried through every intervening review. |
 | Every save write is atomic | Interrupted writes are the only way a few kilobytes of JSON corrupts. `.tmp` + `rename` removes the failure mode rather than narrowing it. |
 | A malformed save never blocks boot | A child cannot fix a boot loop. Losing a high score is recoverable; an app that will not start is not. |
 | Storage model and codec import no `dart:io` | Keeps the schema testable without a filesystem, and keeps a fake store possible for widget tests. |
@@ -272,7 +272,7 @@ generation, and a save schema that referenced arcade high scores would break its
 
 One PR per row, merged in order; each is reviewable on its own and leaves the app running. Estimates
 assume one developer, part time (roughly half a working day per unit), which is where the spread comes
-from — the ranges widen where a platform check is involved. Total 3.5–4.5 days, against `PLAN.md` §7's
+from — the ranges widen where a platform check is involved. Total 4–4.5 days, against `PLAN.md` §7's
 3–4 days for the phase; the extra is the six-target check in PR 7.
 
 Every PR runs `tool/verify.sh` and a `/caveman-review` pass before it opens, per `AGENTS.md`.
