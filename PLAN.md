@@ -28,7 +28,7 @@ Targets: Android 8+ (phone and tablet), iOS 13+ (phone and tablet), Windows 10+,
 
 Reasons:
 
-- One codebase reaches all six targets, with real desktop support rather than a wrapped web view.
+- Real desktop support, not a wrapped web view.
 - Flutter's widget layer suits the Sudoku grid, which is layout and input rather than rendering.
 - Flame supplies the game loop, sprites, collision and on-screen controls on top of that same layer,
   so the arcade games share the app's widgets and theme.
@@ -48,19 +48,19 @@ Alternatives rejected:
 
 ### Dependencies
 
-| Need | Package |
-|---|---|
-| Game engine | `flame` |
-| State and DI | `flutter_riverpod` — small, no code generation |
-| Save location | `path_provider` |
-| Audio | `flutter_soloud` — low latency, works on all six targets including Linux |
-| Haptics | `HapticFeedback` (built in), guarded by platform check |
-| Test | `flutter_test`, `test`, `integration_test` |
-| Lint | `flutter_lints` plus strict analyzer options |
+| Need | Package | Note |
+|---|---|---|
+| Game engine | `flame` | Game loop, sprites, collision, on-screen controls |
+| State and DI | `flutter_riverpod` | Small, no code generation |
+| Save location | `path_provider` | Resolves the per-platform app support directory |
+| Audio | `flutter_soloud` | Low latency, works on all six targets including Linux |
+| Haptics | `HapticFeedback` | Built in. Guard by platform check; mobile only |
+| Test | `flutter_test`, `test`, `integration_test` | Built in |
+| Lint | `flutter_lints` plus strict analyzer options | Built in |
 
 Banned dependencies:
 
-- No ad SDKs.
+- No ad SDKs — no `google_mobile_ads` or equivalent.
 - No `firebase_*`, no `sentry`, no analytics or crash reporting.
 - No `google_fonts` — it fetches fonts over the network at runtime. Bundle font files in
   `assets/fonts/` instead.
@@ -90,8 +90,8 @@ The data is a few kilobytes, so no database is needed.
 
 ## 3. Sudoku
 
-A child on a phone and a child on a PC must see the same puzzle for the same day, with no server. The
-puzzle therefore has to be derived from a number rather than from ambient randomness.
+A child on a phone and a child on a PC must see the same puzzle for the same day, with no server. So
+the puzzle is derived from a number, not from ambient randomness.
 
 ### 3.1 Hand-rolled PRNG
 
@@ -233,8 +233,7 @@ Also test:
 - **Auto-save every move**, so closing the app mid-puzzle and returning later restores the exact
   board.
 - The timer is visible but small, and can be switched off in settings.
-- Completion shows confetti and a sound, both subdued and both respecting the mute and reduced-motion
-  settings.
+- Completion shows confetti and a subdued sound, honouring the mute and reduced-motion settings.
 
 ---
 
@@ -242,8 +241,8 @@ Also test:
 
 ### 4.1 Space Invaders
 
-A Flame `FixedResolutionViewport` game on a fixed logic step (accumulate leftover delta), so a 60 Hz
-phone and a 144 Hz PC play at the same speed.
+A Flame `FlameGame` driven on a fixed logic step — a constant `fixedDeltaTime` with leftover delta
+accumulated across frames — so a 60 Hz phone and a 144 Hz PC play at the same speed.
 
 - The player ship moves left and right along the bottom.
 - A 5 x 11 alien block marches sideways; on reaching a wall it drops one row, reverses, and speeds up.
@@ -268,15 +267,15 @@ Large **LEFT**, **RIGHT** and **FIRE** buttons.
 - **Hold to move**, not tap-to-nudge, via `onTapDown`/`onTapUp` or Flame's `HudButtonComponent`.
   Handle pointer-cancel: if a finger slides off the button, movement must stop, otherwise the ship
   drifts forever. This is a common bug in on-screen D-pads; cover it with a test.
-- Support two simultaneous touches so the player can move and fire at once. Flutter's gesture arena
-  can claim the second pointer, so implement each button with a raw `Listener` rather than
-  `GestureDetector`.
+- Support two simultaneous touches, via Flame's `MultiTouch` detectors, so the player can move and
+  fire at once. Flutter's gesture arena can claim the second pointer, so implement each button with a
+  raw `Listener` rather than `GestureDetector`.
 - Respect safe areas. Never place FIRE under the iOS home indicator or the Android gesture bar.
 - Buttons are semi-transparent but never invisible, and never overlap the play field.
 
 Desktop adds keyboard control: arrows or A/D to move, space to fire, P or Esc to pause. Hide the
 on-screen buttons after keyboard input and restore them on the next touch, so a touchscreen PC gets
-both. Gamepad support (`gamepads`) is a later addition, not part of the first release.
+both. Gamepad support (`gamepads`) comes later, not in the first release.
 
 ### 4.3 Score persistence
 
@@ -304,11 +303,13 @@ Add one per minor release. Do not build all of them before the first release.
 
 ## 5. Progress and profiles
 
+### 5.1 Profiles
+
 Several children share one tablet, so profiles are local: a name and an animal avatar, selected from
 large buttons at launch. No passwords — nothing here is worth locking. One profile exists by default,
 so there is no setup wall.
 
-### 5.1 Save schema
+### 5.2 Save schema
 
 ```json
 {
@@ -343,11 +344,10 @@ so there is no setup wall.
 }
 ```
 
-The save stores puzzle **IDs**, not grids, because ID plus generator reconstructs the puzzle. That is
-what keeps the file at a few kilobytes after hundreds of puzzles, and it is why §3.1 determinism is
-load-bearing rather than a nicety.
+The save stores puzzle **IDs**, not grids, because ID plus generator reconstructs the puzzle. That
+holds the file to a few kilobytes after 500 puzzles, and it is why §3.1 determinism is load-bearing.
 
-### 5.2 Rules
+### 5.3 Rules
 
 - Write on every Sudoku move (debounced 500 ms), on game over, and on app pause or close.
 - Read once at startup into memory; every later read is from memory. No disk access inside a game
@@ -373,7 +373,7 @@ game-station/
 │     ├─ lib/
 │     │  ├─ puzzle_engine.dart
 │     │  └─ src/
-│     │     ├─ rng.dart
+│     │     ├─ rng.dart             # hand-rolled PRNG, frozen once written
 │     │     ├─ hash.dart            # fnv1a
 │     │     ├─ sudoku_spec.dart     # 9x9 / 6x6 shape
 │     │     ├─ sudoku_board.dart    # bitmask board
@@ -503,7 +503,7 @@ The critical path.
 One game per minor release from the §4.4 table, each reusing `GameShell` and `OnScreenPad`.
 
 **Release at the end of Phase 6.** Sudoku in two sizes and four tiers plus Space Invaders is a
-complete app. Do not hold the release for the seventh game.
+complete app.
 
 ---
 
@@ -548,5 +548,4 @@ complete app. Do not hold the release for the seventh game.
    is locked before anything depends on it.
 3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it.
 
-The Sudoku engine is the hard part and comes first. Space Invaders is the easier and more enjoyable
-half, so it makes a better reward than a warm-up.
+Space Invaders is the easier and more enjoyable half, so it makes a better reward than a warm-up.

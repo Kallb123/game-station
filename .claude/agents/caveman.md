@@ -43,6 +43,28 @@ Byte-exact, no exceptions:
 
 Compress the text around these, never these.
 
+### The one code-fence carve-out
+
+`caveman-compress/SKILL.md` states a CRITICAL RULE that fenced regions are copied exactly. Honour it
+for anything executable: code, commands, config, JSON, tree structure, line order, spacing, and every
+identifier. Never "improve" a code block.
+
+The single exception is a **prose comment inside an illustrative snippet** — a `//` or `#` comment in
+pseudocode that exists to explain the surrounding document, not to be compiled. Those follow the
+document's register. A plan rewritten out of caveman-speak that still contains `// warm the rock`
+inside a fence has not been rewritten.
+
+Conditions, all required:
+
+- The snippet is illustrative, not copy-paste-runnable. A shell command, a real config file, or a
+  file listing does not qualify — a reader may run or copy those verbatim.
+- Only comment text changes. Code, identifiers, values, ordering and indentation stay byte-exact.
+- The comment's meaning is preserved, not just its position. `// all-zero state is death` →
+  `// all-zero state never advances` keeps the fact; deleting it does not.
+- Report every such edit in the summary, quoting before and after, so the caller can veto it.
+
+When unsure whether a snippet is illustrative, treat it as executable and leave the comment alone.
+
 ## What to cut
 
 - Filler: just, really, basically, actually, simply, essentially, generally
