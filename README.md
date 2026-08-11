@@ -3,7 +3,8 @@
 A local, offline, ad-free games app for kids. Android, iOS, Windows, macOS, and Linux from one
 codebase.
 
-**Status:** planning. No code yet — see [PLAN.md](PLAN.md) for the implementation plan.
+**Status:** phase 0 done — app and engine packages scaffolded, strict lints, CI, and the offline
+constraints enforced by a build check. No games yet. See [PLAN.md](PLAN.md) §7 for the phase order.
 
 ## What it is
 
@@ -31,6 +32,46 @@ Flutter + [Flame](https://flamengine.org) (Dart) for all six targets, with a pur
 written local JSON file.
 
 See [PLAN.md](PLAN.md) for the reasoning, alternatives considered, phase breakdown, and risks.
+
+## Layout
+
+```
+app/                    # the Flutter application (UI, storage, audio, arcade games)
+packages/puzzle_engine/ # pure-Dart Sudoku generation and solving
+tool/check_offline.dart # enforces no network, no ads, no tracking
+tool/verify.sh          # everything CI runs, in the same order
+```
+
+Two packages joined by a plain path dependency — no melos; see [PLAN.md](PLAN.md) §6.
+
+## Working on it
+
+Flutter **3.44.9** (Dart 3.12.2), pinned in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+The toolchain version moves deliberately, in its own commit, because the puzzle generator's output
+has to stay byte-identical across releases.
+
+```sh
+tool/verify.sh                 # format, analyze, test, offline check — both packages
+cd app && flutter run -d linux # or macos, windows, or a connected device
+```
+
+Desktop Linux builds need `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev`.
+
+## How the constraints are enforced
+
+The promises above are checked by `tool/check_offline.dart` on every CI run, so breaking one fails
+the build rather than surviving to a release:
+
+| Check | Failure |
+|---|---|
+| Networking APIs, network imports or URLs in shipped Dart | `HttpClient`, `Socket`, `dart:html`, an `https://` string literal. URLs in comments are fine — comments cannot open sockets. |
+| Ad, analytics and HTTP packages | In a declared dependency, or anywhere in the runtime dependency graph. Test-only tooling may contain an HTTP client, since it never ships. |
+| Android release manifest | Requests `INTERNET`. CI also asserts the built release APK requests no permissions at all. |
+| macOS release entitlements | Grant a network entitlement. |
+| `puzzle_engine` purity | Imports Flutter, `dart:io`, `dart:ui` or `dart:isolate`. |
+
+Code is MIT ([`LICENSE`](LICENSE)). Assets are licensed per file, with rules and an inventory in
+[`app/assets/LICENSE-ASSETS.md`](app/assets/LICENSE-ASSETS.md).
 
 ## Repository tooling
 

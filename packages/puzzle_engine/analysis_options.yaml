@@ -1,0 +1,11 @@
+# Pure-Dart lint base plus the repo-wide strictness rules.
+include:
+  - package:lints/recommended.yaml
+  - ../../analysis_options.yaml
+
+linter:
+  rules:
+    # The engine is a library with a small, frozen public surface. Documenting
+    # it is cheap now and load-bearing later: the PRNG and hash contracts are
+    # the reason saved progress stays valid across releases.
+    - public_member_api_docs

@@ -1,0 +1,17 @@
+# Flutter lint base plus the repo-wide strictness rules.
+include:
+  - package:flutter_lints/flutter.yaml
+  - ../analysis_options.yaml
+
+linter:
+  rules:
+    # Flutter-specific correctness, on top of what flutter_lints already sets.
+    - use_build_context_synchronously
+    - use_colored_box
+    - use_decorated_box
+
+analyzer:
+  errors:
+    # A missing key on a widget that rebuilds in a list is a real bug class in
+    # a game HUD, so it fails rather than informs.
+    missing_required_param: error

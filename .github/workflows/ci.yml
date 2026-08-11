@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes the older run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned rather than tracking stable: a toolchain that changes underneath the
+  # puzzle generator is exactly what the determinism tests exist to catch, so
+  # the version moves deliberately, in its own commit.
+  FLUTTER_VERSION: 3.44.9
+
+jobs:
+  verify:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: |
+          (cd packages/puzzle_engine && dart pub get)
+          (cd app && flutter pub get)
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze puzzle_engine
+        run: dart analyze --fatal-infos --fatal-warnings
+        working-directory: packages/puzzle_engine
+
+      - name: Analyze app
+        run: flutter analyze
+        working-directory: app
+
+      - name: Analyze tool scripts
+        run: dart analyze --fatal-infos --fatal-warnings tool
+
+      - name: Test puzzle_engine
+        run: dart test
+        working-directory: packages/puzzle_engine
+
+      - name: Test app
+        run: flutter test
+        working-directory: app
+
+      # The project's promises are enforced here rather than by convention:
+      # no networking APIs or URLs in shipped code, no ad, analytics or HTTP
+      # package in the runtime dependency graph, no INTERNET permission in the
+      # release manifest, no network entitlement on macOS. See PLAN.md §2.
+      - name: Check the offline, no-ads, no-tracking constraints
+        run: dart tool/check_offline.dart
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+        working-directory: app
+      # Release, not debug: the debug manifest adds INTERNET for hot reload, and
+      # it is the release artifact whose permissions are the promise. Unsigned is
+      # fine here — Flutter falls back to the debug key when no keystore exists.
+      - run: flutter build apk --release
+        working-directory: app
+
+      # Belt and braces: the source check above reads the manifest, this reads
+      # the artifact. Release checklist item — a parent's evidence that the app
+      # cannot reach the network is the built package, not the repository.
+      - name: Assert the built APK requests no permissions
+        working-directory: app
+        run: |
+          aapt=$(find "$ANDROID_HOME/build-tools" -name aapt2 | sort | tail -1)
+          permissions=$("$aapt" dump permissions \
+            build/app/outputs/flutter-apk/app-release.apk \
+            | grep -E '^uses-permission' || true)
+          if [ -n "$permissions" ]; then
+            echo "The release APK requests permissions:"
+            echo "$permissions"
+            exit 1
+          fi
+          echo 'The release APK requests no permissions.'
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Linux desktop toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+        working-directory: app
+      - run: flutter build linux --debug
+        working-directory: app
+
+  # macOS and Windows runners cost several times an Ubuntu minute, so they run
+  # on main and on request rather than on every branch push. iOS is built
+  # without signing, which is as far as CI can go without a paid account.
+  build-apple:
+    name: Build iOS and macOS
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+        working-directory: app
+      - run: flutter build ios --debug --no-codesign
+        working-directory: app
+      - run: flutter build macos --debug
+        working-directory: app
+
+  build-windows:
+    name: Build Windows
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+        working-directory: app
+      - run: flutter build windows --debug
+        working-directory: app
