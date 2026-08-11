@@ -66,7 +66,7 @@ the build rather than surviving to a release:
 |---|---|
 | Networking APIs, network imports or URLs in shipped Dart | `HttpClient`, `Socket`, `dart:html`, an `https://` string literal. URLs in comments are fine — comments cannot open sockets. |
 | Ad, analytics and HTTP packages | In a declared dependency, or anywhere in the runtime dependency graph. Test-only tooling may contain an HTTP client, since it never ships. |
-| Android release manifest | Requests `INTERNET`. CI also asserts the built release APK requests no permissions at all. |
+| Android release manifest | Requests `INTERNET`. CI also asserts the built release APK requests no platform permission — the only one present is the signature-level `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` that AndroidX grants the app over itself. |
 | macOS release entitlements | Grant a network entitlement. |
 | `puzzle_engine` purity | Imports Flutter, `dart:io`, `dart:ui` or `dart:isolate`. |
 
