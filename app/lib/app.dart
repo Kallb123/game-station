@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
+/// Placeholder seed colour, until the phase 1 design tokens replace it.
+const Color _seedColor = Color(0xFF3F6FD8);
+
 /// The application root.
 ///
 /// Phase 0 scaffold: one placeholder screen, no router and no design tokens.
@@ -14,12 +17,9 @@ class GameStationApp extends StatelessWidget {
     return MaterialApp(
       title: 'Game Station',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF3F6FD8),
-        useMaterial3: true,
-      ),
+      theme: ThemeData(colorSchemeSeed: _seedColor, useMaterial3: true),
       darkTheme: ThemeData(
-        colorSchemeSeed: const Color(0xFF3F6FD8),
+        colorSchemeSeed: _seedColor,
         brightness: Brightness.dark,
         useMaterial3: true,
       ),

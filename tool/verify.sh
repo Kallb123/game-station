@@ -33,6 +33,9 @@ step 'Testing puzzle_engine'
 step 'Testing app'
 (cd app && flutter test)
 
+step 'Testing the offline check'
+dart tool/check_offline.dart --self-test
+
 step 'Checking the offline, no-ads, no-tracking constraints'
 dart tool/check_offline.dart
 

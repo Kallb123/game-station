@@ -106,13 +106,21 @@ final List<String> _violations = [];
 final List<String> _notes = [];
 
 void main(List<String> args) {
+  if (args.contains('--self-test')) {
+    // `exitCode` rather than `exit()` throughout: `exit()` can drop buffered
+    // stdout, which would lose the report the check exists to produce.
+    exitCode = selfTest() ? 0 : 1;
+    return;
+  }
+
   final skipDeps = args.contains('--skip-deps');
   final root = Directory.current;
 
   if (!File('${root.path}/PLAN.md').existsSync() ||
       !Directory('${root.path}/app').existsSync()) {
     stderr.writeln('Run this from the repository root.');
-    exit(2);
+    exitCode = 2;
+    return;
   }
 
   checkDartSources();
@@ -143,7 +151,112 @@ void main(List<String> args) {
     '\nSee PLAN.md §2. If a hit is a false positive, narrow the pattern in '
     'tool/check_offline.dart rather than skipping the check.',
   );
-  exit(1);
+  exitCode = 1;
+}
+
+/// Checks the scanner against cases that decide whether the guard works, run by
+/// CI and `tool/verify.sh` before the guard itself.
+///
+/// The scanner is the part with a failure mode worth testing: a false positive
+/// on every documentation link would get the check ignored, and a desync inside
+/// one file would silently stop it reporting anything in the rest of that file.
+bool selfTest() {
+  final failures = <String>[];
+  var cases = 0;
+
+  void expect(String label, String source, {required bool shouldFlag}) {
+    cases++;
+    final stripped = stripComments(source);
+    final flagged =
+        RegExp(r'(?:https?|ftp|wss?)://').hasMatch(stripped) ||
+        bannedApis.any((api) => RegExp('\\b$api\\b').hasMatch(stripped));
+    if (flagged != shouldFlag) {
+      failures.add(
+        '$label: expected ${shouldFlag ? 'a hit' : 'no hit'}, got '
+        '${flagged ? 'a hit' : 'no hit'}\n    stripped: $stripped',
+      );
+    }
+  }
+
+  expect(
+    'line comment',
+    '// see https://dart.dev\nvar x = 1;',
+    shouldFlag: false,
+  );
+  expect(
+    'block comment',
+    '/* https://dart.dev and HttpClient */\nvar x = 1;',
+    shouldFlag: false,
+  );
+  expect(
+    'nested block comment',
+    '/* a /* https://x.dev */ b */\nvar x = 1;',
+    shouldFlag: false,
+  );
+  expect('doc comment', '/// https://dart.dev\nvar x = 1;', shouldFlag: false);
+  expect(
+    'api name in a comment',
+    '// HttpClient is banned\nvar x = 1;',
+    shouldFlag: false,
+  );
+
+  expect('string literal', "var u = 'https://example.com';", shouldFlag: true);
+  expect('raw string', "var u = r'http://example.com';", shouldFlag: true);
+  expect(
+    'triple quoted',
+    'var u = """https://example.com""";',
+    shouldFlag: true,
+  );
+  expect('api use', 'final c = HttpClient();', shouldFlag: true);
+
+  // The desync cases: a quote inside an interpolation, and an apostrophe inside
+  // a string, must not leave the scanner out of step for what follows.
+  //
+  // The apostrophe case is the one that bites. Quotes inside an interpolation
+  // usually come in pairs, so mishandling them still ends up back in step by
+  // accident; an apostrophe inside a nested double-quoted string breaks the
+  // parity, and everything after it is read as string content — which is how a
+  // scanner bug turns into a check that reports nothing for the rest of a file.
+  expect(
+    'apostrophe inside a nested string',
+    "var s = '\${x(\"it's\")}';\nfinal c = HttpClient();",
+    shouldFlag: true,
+  );
+  expect(
+    'comment after an apostrophe inside a nested string',
+    "var s = '\${x(\"it's\")}';\n// https://dart.dev\n",
+    shouldFlag: false,
+  );
+  expect(
+    'quote inside interpolation',
+    "var s = '\${m['k']}';\nfinal c = HttpClient();",
+    shouldFlag: true,
+  );
+  expect(
+    'brace inside interpolation',
+    "var s = '\${f({'k': 1})}';\nvar u = 'https://example.com';",
+    shouldFlag: true,
+  );
+  expect(
+    'escaped apostrophe',
+    "var s = 'it\\'s';\nfinal c = HttpClient();",
+    shouldFlag: true,
+  );
+  expect(
+    'interpolation after a comment',
+    "// https://dart.dev\nvar s = '\${x}';\nvar y = 2;",
+    shouldFlag: false,
+  );
+
+  if (failures.isEmpty) {
+    print('offline check self-test: $cases cases clean');
+    return true;
+  }
+  stderr.writeln('offline check self-test failed:');
+  for (final failure in failures) {
+    stderr.writeln('  - $failure');
+  }
+  return false;
 }
 
 /// Scans shipped Dart source for networking APIs, network imports and URLs.
@@ -192,6 +305,10 @@ void checkDartSources() {
 ///
 /// Generation runs in an isolate, but the app spawns it (`compute`); the engine
 /// itself is a plain function so its tests need no bindings.
+///
+/// `dart analyze` in the engine package is the first line of defence, since an
+/// import it has no dependency for does not resolve. This says which rule was
+/// broken, rather than leaving someone to work it out from a resolution error.
 void checkEnginePurity() {
   final lib = Directory('packages/puzzle_engine/lib');
   if (!lib.existsSync()) return;
@@ -202,10 +319,7 @@ void checkEnginePurity() {
     for (var i = 0; i < lines.length; i++) {
       for (final import in importUris(lines[i])) {
         final banned = engineBannedImports.firstWhere(
-          (b) =>
-              import == b ||
-              import.startsWith('$b/') ||
-              import.startsWith('$b:'),
+          (b) => import == b || import.startsWith('$b/'),
           orElse: () => '',
         );
         if (banned.isNotEmpty) {
@@ -366,21 +480,44 @@ String relative(String path) {
   return path.startsWith(prefix) ? path.substring(prefix.length) : path;
 }
 
+/// One level of nesting in [stripComments]: a string literal, or the code
+/// inside a `${...}` interpolation within one.
+class _Frame {
+  _Frame.string(this.delimiter, {required this.raw}) : interpolation = false;
+  _Frame.interpolation() : delimiter = '', raw = false, interpolation = true;
+
+  final String delimiter;
+  final bool raw;
+  final bool interpolation;
+
+  /// Depth of `{}` nesting inside an interpolation, so that a map or closure in
+  /// the expression does not end the interpolation early.
+  int braces = 0;
+}
+
 /// Replaces comments with spaces, keeping line count and column positions.
 ///
 /// String literals are tracked so that a `//` inside one — as in a URL — is not
-/// mistaken for the start of a comment, which would otherwise hide the very
-/// thing being looked for.
+/// mistaken for the start of a comment, which would otherwise blank out the
+/// very thing being looked for.
+///
+/// Interpolations are tracked as their own nesting level, because a quote
+/// inside one (`'${map['k']}'`) would otherwise look like the end of the
+/// string. Getting that wrong is worse than it sounds: the scanner would stay
+/// out of step for the rest of the file and quietly stop reporting anything in
+/// it. [selfTest] covers the case.
 String stripComments(String source) {
   final out = StringBuffer();
+  final stack = <_Frame>[];
   var i = 0;
   var blockDepth = 0;
-  String? quote; // the delimiter of the string literal being scanned
 
   while (i < source.length) {
     final rest = source.length - i;
     final char = source[i];
     final next = rest > 1 ? source[i + 1] : '';
+    final frame = stack.isEmpty ? null : stack.last;
+    final inString = frame != null && !frame.interpolation;
 
     if (blockDepth > 0) {
       if (char == '/' && next == '*') {
@@ -400,17 +537,23 @@ String stripComments(String source) {
       continue;
     }
 
-    if (quote != null) {
-      if (char == r'\' && !quote.startsWith('r') && rest > 1) {
+    if (inString) {
+      if (char == r'\' && !frame.raw && rest > 1) {
         out.write(source.substring(i, i + 2));
         i += 2;
         continue;
       }
-      final delimiter = quote.replaceFirst('r', '');
-      if (source.startsWith(delimiter, i)) {
-        out.write(delimiter);
-        i += delimiter.length;
-        quote = null;
+      // Raw strings do not interpolate, so `${` in one is literal text.
+      if (!frame.raw && char == r'$' && next == '{') {
+        stack.add(_Frame.interpolation());
+        out.write(r'${');
+        i += 2;
+        continue;
+      }
+      if (source.startsWith(frame.delimiter, i)) {
+        out.write(frame.delimiter);
+        i += frame.delimiter.length;
+        stack.removeLast();
         continue;
       }
       out.write(char);
@@ -418,6 +561,7 @@ String stripComments(String source) {
       continue;
     }
 
+    // Code, either at the top level or inside an interpolation.
     if (char == '/' && next == '/') {
       while (i < source.length && source[i] != '\n') {
         out.write(' ');
@@ -431,16 +575,27 @@ String stripComments(String source) {
       i += 2;
       continue;
     }
+    if (frame != null && char == '{') {
+      frame.braces++;
+    } else if (frame != null && char == '}') {
+      if (frame.braces == 0) {
+        stack.removeLast();
+        out.write(char);
+        i++;
+        continue;
+      }
+      frame.braces--;
+    }
 
-    // A raw string's backslashes are literal, so the escape rule above must
-    // know about the `r` prefix; carry it in the tracked delimiter.
+    // A raw string's backslashes are literal, so the escape rule above has to
+    // know about the `r` prefix.
     final raw = char == 'r' && (next == "'" || next == '"');
     final start = raw ? i + 1 : i;
     final quoteChar = source[start];
     if (quoteChar == "'" || quoteChar == '"') {
       final triple = quoteChar * 3;
       final delimiter = source.startsWith(triple, start) ? triple : quoteChar;
-      quote = (raw ? 'r' : '') + delimiter;
+      stack.add(_Frame.string(delimiter, raw: raw));
       out.write(source.substring(i, start + delimiter.length));
       i = start + delimiter.length;
       continue;

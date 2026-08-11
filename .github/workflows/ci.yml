@@ -1,8 +1,11 @@
 name: CI
 
 on:
+  # Pushes to main and pull requests, not every branch push: a branch with an
+  # open PR would otherwise run the whole workflow twice for one commit, and the
+  # two runs differ only in which ref they check out.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -60,6 +63,13 @@ jobs:
       # no networking APIs or URLs in shipped code, no ad, analytics or HTTP
       # package in the runtime dependency graph, no INTERNET permission in the
       # release manifest, no network entitlement on macOS. See PLAN.md §2.
+      #
+      # The guard is tested before it is trusted: its source scanner has to tell
+      # a URL in a comment from one in a string literal, and a scanner that
+      # silently loses track reports nothing while looking like it passed.
+      - name: Test the offline check
+        run: dart tool/check_offline.dart --self-test
+
       - name: Check the offline, no-ads, no-tracking constraints
         run: dart tool/check_offline.dart
 

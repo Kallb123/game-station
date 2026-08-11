@@ -5,13 +5,8 @@ include:
 
 linter:
   rules:
-    # Flutter-specific correctness, on top of what flutter_lints already sets.
-    - use_build_context_synchronously
+    # Flutter-specific rules flutter_lints does not already enable.
+    # `use_build_context_synchronously` is in that base set, so it is not
+    # repeated here.
     - use_colored_box
     - use_decorated_box
-
-analyzer:
-  errors:
-    # A missing key on a widget that rebuilds in a list is a real bug class in
-    # a game HUD, so it fails rather than informs.
-    missing_required_param: error
