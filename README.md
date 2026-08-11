@@ -36,9 +36,22 @@ See [PLAN.md](PLAN.md) for the reasoning, alternatives considered, phase breakdo
 
 `.claude/` is committed so the tooling travels with the repo:
 
-- `skills/caveman/` and `skills/caveman-compress/` — vendored from
-  [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (MIT). Provenance and licence in
-  [`.claude/skills/NOTICE.md`](.claude/skills/NOTICE.md).
-- `agents/caveman.md` — a documentation-compression agent for this repo. It defaults to `lite`
-  intensity, which keeps ordinary prose: documents that live in the repo are written as normal
-  English, not caveman-speak.
+Vendored from [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (MIT) — provenance
+and licence in [`.claude/skills/NOTICE.md`](.claude/skills/NOTICE.md):
+
+| Skill | Use |
+|---|---|
+| `/caveman` | Terse replies, at `lite`/`full`/`ultra` intensity |
+| `/caveman-compress <file>` | Compress a Markdown file to caveman register |
+| `/caveman-review` | One-line-per-finding code review |
+
+Written for this repo:
+
+| | Use |
+|---|---|
+| `/caveman-plan` | Write an implementation plan: constraints, alternatives rejected, phases with done-criteria, risks, checklist |
+| `agents/caveman.md` | Documentation-compression subagent, with a review mode |
+
+Both local additions default to `lite` intensity, which keeps ordinary prose. Documents that live in
+the repo are written in normal English, not caveman-speak — which is what the upstream skill's own
+"Boundaries" section calls for.

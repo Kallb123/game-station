@@ -1,15 +1,23 @@
 # Vendored skills
 
-The `caveman/` and `caveman-compress/` skills in this directory are vendored, unmodified, from
-an upstream project.
+The `caveman/`, `caveman-compress/` and `caveman-review/` skills in this directory are vendored,
+unmodified, from an upstream project.
 
 | | |
 |---|---|
 | Upstream | https://github.com/JuliusBrussee/caveman |
 | Version | v2.0.0 (commit `a0109974ea3258a14aadaef1ed1f8ff2837d30d5`) |
 | Vendored | 2026-08-11 |
-| Paths taken | `skills/caveman/`, `skills/caveman-compress/` |
+| Paths taken | `skills/caveman/`, `skills/caveman-compress/`, `skills/caveman-review/` |
 | License | MIT — `skills/` is MIT per upstream `LICENSING.md` |
+
+Upstream ships 20 skills; these three are the ones this repository uses. The others are available
+at the upstream URL above — note that `caveman-optimize` and `caveman-evidence-review` are Caveman
+Cloud operator tools requiring a logged-in Caveman CLI, not local document tools, despite their
+names.
+
+`caveman-plan/` is **not** vendored — there is no upstream skill by that name. It was written for
+this repository and is covered by this repository's own license, as is `../agents/caveman.md`.
 
 Only the upstream `skills/` tree is vendored. The upstream compression engine, proxy, and MCP
 binaries (`engine/`, `proxy/`, `mcp/`, `shrink/`, `browse/`, `shared/platform/`) are Business
