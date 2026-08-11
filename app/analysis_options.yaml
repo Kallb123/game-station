@@ -1,0 +1,12 @@
+# Flutter lint base plus the repo-wide strictness rules.
+include:
+  - package:flutter_lints/flutter.yaml
+  - ../analysis_options.yaml
+
+linter:
+  rules:
+    # Flutter-specific rules flutter_lints does not already enable.
+    # `use_build_context_synchronously` is in that base set, so it is not
+    # repeated here.
+    - use_colored_box
+    - use_decorated_box

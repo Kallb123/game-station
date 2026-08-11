@@ -1,0 +1,42 @@
+name: game_station
+description: >-
+  A local, offline, ad-free games app for children: deterministic Sudoku and
+  retro arcade games, with progress that persists across sessions.
+publish_to: none
+
+# The build number is bumped per store submission, the version per release.
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+# Dependencies arrive with the phase that needs them: flame and flutter_riverpod
+# in phases 1 and 4, path_provider in phase 1, flutter_soloud in phase 5.
+#
+# Nothing that talks to a network, shows an ad, or reports a crash may be added
+# here — `tool/check_offline.dart` fails the build if one appears, including
+# transitively through pubspec.lock.
+dependencies:
+  flutter:
+    sdk: flutter
+  puzzle_engine:
+    path: ../packages/puzzle_engine
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+  # Assets are declared as each phase adds real files. An asset directory that
+  # is declared but empty fails the build, and `assets/*/.gitkeep` alone does
+  # not count as content.
+  #
+  # assets:
+  #   - assets/images/
+  #   - assets/audio/
+  #
+  # Fonts are bundled rather than fetched: google_fonts downloads at runtime,
+  # which the no-network rule rules out. See assets/fonts/README.md.

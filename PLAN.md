@@ -367,7 +367,11 @@ holds the file to a few kilobytes after 500 puzzles, and it is why §3.1 determi
 game-station/
 ├─ PLAN.md
 ├─ README.md
-├─ melos.yaml                       # or plain path deps — decide in phase 0
+├─ LICENSE                          # MIT for code; assets licensed per file
+├─ analysis_options.yaml            # strict rules shared by both packages
+├─ tool/
+│  ├─ check_offline.dart            # the §2 no-network / no-ads / no-tracking guard
+│  └─ verify.sh                     # everything CI runs, in the same order
 ├─ packages/
 │  └─ puzzle_engine/                # pure Dart, no Flutter imports
 │     ├─ lib/
@@ -402,9 +406,9 @@ game-station/
    │  │  └─ arcade/
    │  │     ├─ shared/              # OnScreenPad, GameShell, pause, HUD
    │  │     └─ invaders/            # FlameGame and components
-   │  └─ assets/{fonts,images,audio}/
+   ├─ assets/{fonts,images,audio}/  # bundled, never fetched; licensed per file
    ├─ test/                         # widget tests
-   ├─ integration_test/             # on-device smoke tests
+   ├─ integration_test/             # on-device smoke tests, from phase 3
    └─ pubspec.yaml
 ```
 
@@ -412,13 +416,19 @@ game-station/
 and no Flutter bindings, which makes ten thousand fuzz seeds cheap. It also keeps generation logic
 from entangling with rendering code.
 
+**Decided in phase 0: plain path dependencies, no melos.** Melos earns its keep at five or six
+packages with interdependent versioning; two packages and one path dependency do not need a tool to
+manage them. `tool/verify.sh` covers the one thing melos would have provided — running the same
+commands over both packages in one go. Adding melos later is a small change if a third package
+appears.
+
 ---
 
 ## 7. Phases
 
 Estimates assume one developer working part time.
 
-### Phase 0 — groundwork (1–2 days)
+### Phase 0 — groundwork (1–2 days) — done
 
 - `flutter create` the app, `dart create` the engine package, wire the path dependency.
 - Strict `analysis_options.yaml`: `strict-casts`, `strict-raw-types`, no implicit dynamic.
@@ -426,6 +436,10 @@ Estimates assume one developer working part time.
 - Add the no-network CI grep guard from §2.
 - **Done when:** an empty app launches on an Android emulator, an iOS simulator and one desktop
   target, with CI green.
+
+The guard grew past a grep into `tool/check_offline.dart`, which also audits the resolved dependency
+graph, the release manifest and the macOS entitlements — see §2. Comments are stripped before the URL
+scan, so a link in a doc comment passes while the same text in a string literal fails.
 
 ### Phase 1 — app skeleton (3–4 days)
 

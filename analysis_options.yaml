@@ -1,0 +1,49 @@
+# Analyzer configuration shared by every package in the repo.
+#
+# `app/analysis_options.yaml` and `packages/*/analysis_options.yaml` include
+# this file on top of their own lint base (flutter_lints for the app,
+# package:lints/recommended for the pure-Dart engine), so the strictness rules
+# live in one place.
+#
+# `implicit-dynamic` no longer exists as a switch; strict-inference plus
+# strict-raw-types is the current equivalent — the analyzer reports any place
+# it would otherwise silently infer `dynamic`.
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # TODO comments are notes, not build failures. CI runs with --fatal-infos,
+    # which would otherwise fail on every one of them.
+    todo: ignore
+
+linter:
+  rules:
+    # Correctness
+    - avoid_dynamic_calls
+    - avoid_slow_async_io
+    - avoid_type_to_string
+    - cancel_subscriptions
+    - close_sinks
+    - collection_methods_unrelated_type
+    - literal_only_boolean_expressions
+    - no_adjacent_strings_in_list
+    - test_types_in_equals
+    - throw_in_finally
+    - unawaited_futures
+    - unnecessary_statements
+    - unrelated_type_equality_checks
+
+    # Style — consistent enough that a diff shows intent, not reformatting
+    - always_declare_return_types
+    - avoid_unused_constructor_parameters
+    - directives_ordering
+    - prefer_final_in_for_each
+    - prefer_final_locals
+    - prefer_single_quotes
+    - require_trailing_commas
+    - sort_pub_dependencies
+    - unnecessary_lambdas
+    - unnecessary_parenthesis
+    - use_string_buffers
