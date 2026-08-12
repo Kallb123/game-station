@@ -32,9 +32,36 @@ finish everything else and say plainly what was left and why.
 tool/verify.sh
 ```
 
+It takes about a minute on a warm container, which is cheaper than a red build, so run it whole
+before every commit rather than choosing which checks to skip. While iterating, run the individual
+steps directly — each is the command CI runs, so a step that passes here passes there:
+
+| Command | Covers |
+|---|---|
+| `dart format --output=none --set-exit-if-changed .` | Formatting. Takes a path to narrow it to one file. |
+| `cd packages/puzzle_engine && dart analyze --fatal-infos --fatal-warnings` | Engine lints. Infos are errors. |
+| `cd app && flutter analyze` | App lints. |
+| `dart analyze --fatal-infos --fatal-warnings tool` | The build scripts themselves. |
+| `cd packages/puzzle_engine && dart test` | Engine tests, about a second. Add a path for one file, `-n <substring>` for one test. |
+| `cd app && flutter test` | App tests, about five seconds. Same path and `-n` narrowing. |
+| `dart tool/check_offline.dart --self-test` | That the offline scanner still detects what it claims to. |
+| `dart tool/check_offline.dart` | The no-network, no-ads, no-tracking constraints. |
+
 A change is not done because it compiles. It is done when the checks pass and, for anything with
 visible behaviour, when it has been run. Report what was actually verified and what was not — "CI
 will tell us" is a gap to state, not to hide.
+
+The toolchain is already there: `.claude/hooks/session-start.sh` puts the pinned Flutter SDK on
+`PATH` and resolves both packages before the session starts, so the commands above work from the
+first one. The SDK itself comes from `tool/install_flutter.sh`, which reads the version from
+`.github/workflows/ci.yml` rather than keeping a second copy of the pin — see
+[README.md](README.md#the-toolchain-in-cloud-sessions) for how the two fit together. If a session
+starts without `flutter` on `PATH`, run the hook by hand rather than installing an unpinned
+toolchain:
+
+```sh
+CLAUDE_CODE_REMOTE=true .claude/hooks/session-start.sh
+```
 
 **4. Review after completing work.** Run `/caveman-review` on the diff before opening or updating a
 pull request, and fix what it finds. Findings come one line each: location, problem, fix. Review your

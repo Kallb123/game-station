@@ -40,6 +40,7 @@ app/                    # the Flutter application (UI, storage, audio, arcade ga
 packages/puzzle_engine/ # pure-Dart Sudoku generation and solving
 tool/check_offline.dart # enforces no network, no ads, no tracking
 tool/verify.sh          # everything CI runs, in the same order
+tool/install_flutter.sh # installs the pinned SDK, for cloud sessions
 ```
 
 Two packages joined by a plain path dependency — no melos; see [PLAN.md](PLAN.md) §6.
@@ -78,10 +79,37 @@ Code is MIT ([`LICENSE`](LICENSE)). Assets are licensed per file, with rules and
 
 ## Repository tooling
 
-`.claude/` is committed so the tooling travels with the repo:
+`.claude/` is committed so the tooling travels with the repo.
 
-Vendored from [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (MIT) — provenance
-and licence in [`.claude/skills/NOTICE.md`](.claude/skills/NOTICE.md):
+### The toolchain in cloud sessions
+
+An agent that has to download Flutter before it can run `tool/verify.sh` spends its first minutes on
+a toolchain rather than the work, so the SDK is installed ahead of the session, in two layers:
+
+- [`tool/install_flutter.sh`](tool/install_flutter.sh) installs the pinned SDK under
+  `$HOME/flutter-sdk/<version>` and warms its tool cache — about 90 seconds cold, a second warm. It
+  reads the version from the CI workflow, so the pin keeps one home.
+- [`.claude/hooks/session-start.sh`](.claude/hooks/session-start.sh) runs it as a `SessionStart`
+  hook, then resolves both packages and puts `flutter` on `PATH`. It does nothing outside Claude
+  Code on the web, where `CLAUDE_CODE_REMOTE` is set.
+
+The hook alone would pay the install once per container. Paste this into the **Setup script** field
+of the cloud environment as well, and it is paid once per environment instead: Anthropic snapshots
+the filesystem after a setup script runs and starts later containers from that snapshot, which a
+`SessionStart` hook — running after Claude Code launches — is too late to be part of.
+
+```sh
+# Flutter 3.44.9
+curl -fsSL https://raw.githubusercontent.com/Kallb123/game-station/main/tool/install_flutter.sh | bash || true
+```
+
+Two details are load-bearing. The version in the comment is what rebuilds the snapshot when the pin
+moves: the script re-runs when its own text changes, when the environment's allowed hosts change, and
+when the snapshot expires after about a week. And `|| true` keeps a failed download from failing the
+session outright — the hook retries it, in the session, where an agent can see what went wrong.
+
+Skills vendored from [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (MIT) —
+provenance and licence in [`.claude/skills/NOTICE.md`](.claude/skills/NOTICE.md):
 
 | Skill | Use |
 |---|---|
