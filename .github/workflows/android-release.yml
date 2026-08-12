@@ -1,0 +1,68 @@
+name: Android release APK
+
+# Attaches the APK to a published GitHub release, so the download lives on the
+# release page rather than as an Actions artifact behind a login and a 14-day
+# expiry. It builds from the release's tag rather than reusing an earlier run:
+# the package on a release should be reproducible from the tag it claims.
+#
+# Separate from android-apk.yml because attaching needs `contents: write`, and a
+# called workflow may only narrow the caller's token, never widen it. Keeping
+# the write here means CI can go on calling the build with a read-only token.
+on:
+  release:
+    types: [published]
+  # Re-attach without re-publishing — an upload that failed, or a release made
+  # before this workflow existed. Run it from the release's tag, not a branch:
+  # the tag is both what gets built and where the APK is attached.
+  workflow_dispatch:
+
+concurrency:
+  group: android-release-${{ github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # The same build CI runs, from the tag. Inherits this workflow's default
+  # read-only token, since it neither reads secrets nor writes anything back.
+  build:
+    name: Build
+    uses: ./.github/workflows/android-apk.yml
+
+  attach:
+    name: Attach to the release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # A dispatch from a branch would build that branch and attach it to
+      # whatever release happens to share the name — fail instead of guessing.
+      - name: Check the run is from a tag
+        if: github.event_name == 'workflow_dispatch' && github.ref_type != 'tag'
+        run: |
+          echo "Run this workflow from a release tag, not ${GITHUB_REF_NAME}." >&2
+          exit 1
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.apk }}
+          path: dist
+
+      # --clobber so a re-run replaces the asset rather than failing on the
+      # name; the tag is fixed, so the APK it names is the only one that can be
+      # right. `gh` is preinstalled on the runner and needs no extra action.
+      - name: Attach the APK to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || github.ref_name }}
+        run: |
+          gh release upload "$TAG" dist/*.apk --clobber --repo "$GITHUB_REPOSITORY"
+          echo "Attached to release $TAG:"
+          ls -lh dist
+
+          {
+            echo "## Attached to [$TAG](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG})"
+            echo
+            for f in dist/*.apk; do
+              echo "- \`$(basename "$f")\` ($(du -h "$f" | cut -f1))"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
