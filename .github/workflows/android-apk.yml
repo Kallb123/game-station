@@ -1,0 +1,124 @@
+name: Android APK
+
+# Builds the release APK and keeps it: CI needed the build to prove the app
+# compiles and requests no permissions, and threw the package away. This one
+# uploads it, so a phone can be handed a build without a store account and
+# without a local Flutter install.
+#
+# It is the same build either way — CI and the release workflow both call this
+# one rather than running their own `flutter build apk`, so the artifact people
+# install is byte-for-byte the one the pull request checked.
+on:
+  # Build on request, from any branch or tag, via the Actions tab.
+  workflow_dispatch:
+  # And as the Android leg of CI, and of android-release.yml. Nothing is passed
+  # in: the Flutter pin is read from ci.yml below, because `env` is not in scope
+  # for a called workflow's inputs and a second copy of the pin is a second
+  # thing to forget.
+  workflow_call:
+    outputs:
+      apk:
+        description: >-
+          Name of the uploaded artifact, which is also the APK's file name
+          without its extension.
+        value: ${{ jobs.build.outputs.apk }}
+
+# A newer push to the same branch makes the older build irrelevant. The caller's
+# name is in the group so a hand-triggered build and the CI leg for the same ref
+# do not cancel each other: `github.workflow` is the calling workflow's name
+# when this runs via workflow_call.
+concurrency:
+  group: apk-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    outputs:
+      apk: ${{ steps.apk.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # One pinned version for the whole project, read rather than copied — the
+      # same single home that tool/install_flutter.sh reads. See README.md.
+      - name: Read the pinned Flutter version
+        id: pin
+        run: |
+          version=$(sed -n 's/^ *FLUTTER_VERSION: *//p' .github/workflows/ci.yml | head -1)
+          if [ -z "$version" ]; then
+            echo 'Could not read FLUTTER_VERSION from .github/workflows/ci.yml' >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Flutter $version"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.pin.outputs.version }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+        working-directory: app
+
+      # Release, not debug: the debug manifest adds INTERNET for hot reload, and
+      # it is the release artifact whose permissions are the promise.
+      #
+      # Signed with Flutter's debug key, which is what app/android/app/
+      # build.gradle.kts configures for now — enough to sideload, not enough for
+      # a store. Real signing keys arrive with the Phase 6 release (PLAN.md §7),
+      # kept in secrets rather than in the repository.
+      - name: Build the release APK
+        run: flutter build apk --release
+        working-directory: app
+
+      # Belt and braces: tool/check_offline.dart reads the manifest source, this
+      # reads the built package. Release checklist item — see PLAN.md §9.
+      - name: Assert the APK requests no platform permissions
+        run: tool/check_apk_permissions.sh app/build/app/outputs/flutter-apk/app-release.apk
+
+      # Named after what it contains, since a downloaded app-release.apk tells
+      # you nothing about which build it came from. The version is pubspec's, so
+      # the file name matches the version the app reports.
+      - name: Name the APK after its version and commit
+        id: apk
+        run: |
+          version=$(sed -n 's/^version: *//p' app/pubspec.yaml | head -1)
+          name="game-station-${version/+/-build}-${GITHUB_SHA::7}"
+          cp app/build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/$name.apk"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "path=$RUNNER_TEMP/$name.apk" >> "$GITHUB_OUTPUT"
+
+          size=$(du -h "$RUNNER_TEMP/$name.apk" | cut -f1)
+          {
+            echo "## $name.apk"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Version | \`$version\` (pubspec) |"
+            echo "| Commit | \`$GITHUB_SHA\` |"
+            echo "| Size | $size |"
+            echo "| Permissions | none, asserted against the package |"
+            echo
+            echo 'Download it from **Artifacts** below, then install with'
+            echo '`adb install -r <file>.apk`, or copy it to the device and open it.'
+            echo
+            echo 'Signed with the Flutter debug key, so Android will warn about an'
+            echo 'unknown source and it cannot be published to a store. Store signing'
+            echo 'arrives with the Phase 6 release.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Fourteen days rather than the default ninety: CI runs this on every pull
+      # request, and a ~20 MB package per run is not worth three months of it.
+      # A build that matters outlives the retention by being downloaded.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14

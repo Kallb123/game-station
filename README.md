@@ -41,6 +41,7 @@ packages/puzzle_engine/ # pure-Dart Sudoku generation and solving
 tool/check_offline.dart # enforces no network, no ads, no tracking
 tool/verify.sh          # everything CI runs, in the same order
 tool/install_flutter.sh # installs the pinned SDK, for cloud sessions
+tool/check_apk_permissions.sh # asserts a built APK requests no permissions
 ```
 
 Two packages joined by a plain path dependency — no melos; see [PLAN.md](PLAN.md) §6.
@@ -60,6 +61,26 @@ cd app && flutter run -d linux # or macos, windows, or a connected device
 ```
 
 Desktop Linux builds need `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev`.
+
+### Getting an APK onto a phone
+
+The **Android APK** workflow builds the release APK and uploads it, so a device can be handed a
+build without a store account or a local Flutter install. Run it from the Actions tab on any branch,
+or take the artifact from the CI run of any pull request — CI calls the same workflow rather than
+building its own, so the two are the same package. Download it from the run's **Artifacts** section
+and `adb install -r game-station-<version>-<commit>.apk`, or copy it to the device and open it.
+
+Publishing a GitHub release builds the APK from that release's tag and attaches it to the release
+page, where it needs no login and does not expire — the **Android release APK** workflow, which can
+also be re-run by hand from a tag if an upload failed.
+
+Every build asserts that the package requests no platform permission
+([`tool/check_apk_permissions.sh`](tool/check_apk_permissions.sh)) before it is uploaded, so an APK
+that reached a phone was checked on the way.
+
+Until the Phase 6 store release it is signed with Flutter's debug key: Android warns about an unknown
+source, and it cannot be published. Locally, `cd app && flutter build apk --release` produces the
+same thing at `app/build/app/outputs/flutter-apk/app-release.apk`.
 
 ## How the constraints are enforced
 
