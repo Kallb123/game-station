@@ -146,6 +146,12 @@ Decisions:
   coercion hides the bug that produced it.
 - **`DateTime` is stored as an ISO-8601 UTC string** and parsed back as UTC, matching `PLAN.md` §3.2's
   reason for using UTC for the daily index.
+- **Keys that come from the data — puzzle ids, game ids — are written sorted.** The encoded bytes are
+  then a function of the content alone, not of the order the app inserted things in, so a re-encode of
+  an unchanged save is byte-identical and a hand-diff of the file is readable.
+- **A dangling `activeProfileId` is repaired to the first profile; everything else is refused.** It is
+  a stale pointer with a lossless fix, and refusing it would move every profile aside over one wrong
+  string. It is the only repair the codec makes.
 
 ### 4.3 Store and repository
 
