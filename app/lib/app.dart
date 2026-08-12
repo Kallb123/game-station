@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
-/// Placeholder seed colour, until the phase 1 design tokens replace it.
-const Color _seedColor = Color(0xFF3F6FD8);
+import 'core/ui/theme.dart';
+import 'core/ui/tokens.dart';
 
 /// The application root.
 ///
-/// Phase 0 scaffold: one placeholder screen, no router and no design tokens.
-/// Phase 1 replaces [ScaffoldHomePage] with the real home screen and moves
-/// theming into `core/ui/`.
+/// The themes are the phase 1 ones. The rest is still the phase 0 scaffold:
+/// one placeholder screen and no router. A later phase 1 pull request replaces
+/// [ScaffoldHomePage] with the real home screen and adds `onGenerateRoute`,
+/// and takes the theme choice from the saved settings rather than always
+/// following the system.
 class GameStationApp extends StatelessWidget {
   const GameStationApp({super.key});
 
@@ -17,12 +19,8 @@ class GameStationApp extends StatelessWidget {
     return MaterialApp(
       title: 'Game Station',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: _seedColor, useMaterial3: true),
-      darkTheme: ThemeData(
-        colorSchemeSeed: _seedColor,
-        brightness: Brightness.dark,
-        useMaterial3: true,
-      ),
+      theme: AppTheme.day(),
+      darkTheme: AppTheme.night(),
       home: const ScaffoldHomePage(),
     );
   }
@@ -43,7 +41,7 @@ class ScaffoldHomePage extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.xl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -52,13 +50,13 @@ class ScaffoldHomePage extends StatelessWidget {
                   style: theme.textTheme.displaySmall,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 Text(
                   'No ads. No network. No tracking.',
                   style: theme.textTheme.titleMedium,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xxl),
                 Text(
                   'Scaffold — puzzle engine v$generatorVersion',
                   style: theme.textTheme.bodySmall,
