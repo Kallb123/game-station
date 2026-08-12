@@ -189,8 +189,18 @@ rather than a board with two 5s in a row.
 ### 4.4 Brute-force solver
 
 ```dart
-int countSolutions(SudokuBoard board, {int max = 2, int maxNodes = 2000000});
+int countSolutions(
+  SudokuBoard board, {
+  int max = 2,
+  int maxNodes = 2000000,
+  SearchStats? stats,   // added in PR 3
+});
 ```
+
+`stats` is an out-parameter carrying the node count, added because §6's done-criteria ask for a node
+counter to show the search stopped at the second solution, and because a returned record would make
+the common call — "is it still unique" — read worse for the one caller that does not care. PR 7's
+benchmark uses it to compare boards without timing them.
 
 Backtracking with MRV cell selection: pick the empty cell with the fewest candidates, ties broken by
 lowest index — never by iteration over a collection whose order is unspecified. Digits are tried low
@@ -460,8 +470,14 @@ Commits:
 2. Tests over hand-entered grids.
 
 **Done when:** a known 17-clue 9x9 counts exactly 1; an empty 9x9 returns 2 and a node counter proves
-the search stopped at the second solution; a grid with a contradictory clue pair returns 0; a board
-built to exceed `maxNodes: 100` returns `-1`; and every count is identical across two runs.
+the search stopped at the second solution; a legal grid with no completion returns 0; a board built to
+exceed `maxNodes: 100` returns `-1`; and every count is identical across two runs.
+
+The 0 case was written as "a grid with a contradictory clue pair", which PR 2 made unconstructible:
+`SudokuBoard` refuses a duplicate in a unit, so a board holding one cannot be built to hand to the
+solver. Two grids that *are* constructible replace it — one whose empty cell has no candidates, found
+before any move, and one that is legal everywhere and still has no completion, which takes 1361 nodes
+to refute. The second is the one worth having: it is the search saying 0, not the board.
 
 ### PR 4 — Technique solver and tiers (1–1.5 day)
 
