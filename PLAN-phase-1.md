@@ -1,10 +1,15 @@
 # Phase 1 — app skeleton
 
-Expands [`PLAN.md`](PLAN.md) §7 phase 1 into an ordered set of pull requests. `PLAN.md` stays the
-source of truth for scope and phase order; this file is the working detail for one phase and is
-deleted or archived when phase 1 closes.
+**Closed. Kept as the record of a finished phase, not as current plan.** [`PLAN.md`](PLAN.md) is the
+source of truth for what the project is doing now; §7 there carries the phase-1 outcome and everything
+that differed from this file. Read this one for *why* a piece of `app/lib` is shaped the way it is —
+around thirty comments in the app and its tests cite these section numbers, which is why it stays here
+under its original name rather than being deleted or moved.
 
-Phase 1 delivers the shell the later phases plug into: theme, storage, profiles, settings, and a home
+Below, "will" and "is" describe the plan as it was written before the phase started. Each PR section
+ends with what actually differed.
+
+Phase 1 delivered the shell the later phases plug into: theme, storage, profiles, settings, and a home
 screen with two entry points. It ships no gameplay.
 
 ---
@@ -425,13 +430,31 @@ Commits:
 force-quitting and reopening, restores both — and every target not checked is named in the PR body
 with the reason.
 
+Differed from the plan, decided while closing it:
+
+- **One target was checked, not six.** Android, on a physical device: setting changed, profile
+  created, force-quit, reopened, both restored. iOS, Windows, macOS, Linux and a tablet form factor
+  were not — the hardware is not to hand, and the owner's call was to close the phase on Android
+  rather than hold it open. That answers §9's device question, and the unchecked targets become
+  `PLAN.md` §9 release-checklist items so they finish there rather than being dropped here.
+- **This file is archived in place rather than deleted or moved.** Around thirty comments in `app/lib`
+  and `app/test` cite its section numbers as the reason a piece of code is shaped the way it is.
+  Deleting it would leave those citations pointing at git history; moving it would mean rewriting
+  thirty comments in what is otherwise a documentation change. The banner at the top does the work
+  instead.
+- **`PLAN.md` grew a risk row and two release-checklist items rather than only a "done" marker.**
+  Closing a phase against a done-criterion that was only partly met is worth a line in the risk table,
+  and the §7 mitigation below — the Windows CI job exercising the rename — turned out never to have
+  been built: that job compiles the app but runs no tests, on Windows and on macOS both. Recording it
+  is this PR's job; fixing it belongs with the platform work, so it is a `PLAN.md` §9 item.
+
 ---
 
 ## 7. Risks
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| `File.rename` over an existing file fails on Windows (locked by antivirus or an indexer) | High | Exercised by the temp-directory suite on the Windows CI job, which is gated to `main`/dispatch — so PR 3 triggers a `workflow_dispatch` run before merge. If it fails, fall back to delete-then-rename and recover from `.tmp` on next load. |
+| `File.rename` over an existing file fails on Windows (locked by antivirus or an indexer) | High | Exercised by the temp-directory suite on the Windows CI job, which is gated to `main`/dispatch — so PR 3 triggers a `workflow_dispatch` run before merge. If it fails, fall back to delete-then-rename and recover from `.tmp` on next load. **This mitigation does not exist:** the Windows and macOS CI jobs build the app and run no tests, which PR 7 found and `PLAN.md` §9 carries. The risk is open. |
 | Debounced write lost on force-kill | Medium | `flush()` on `paused`/`detached` and `onExitRequested`; the ten-mutations test asserts the last state survives `flush()`. Residual risk: a kill inside the 500 ms window loses one toggle, which is acceptable for a settings flip and is why phase 3's move-by-move save also flushes on pause. |
 | Two writes race and interleave their renames | High | Single-slot write queue in `ProgressRepository`; the concurrent-mutation test asserts one resulting file and the latest state. |
 | Schema v1 turns out to be wrong in phase 3 | Medium | Phase-3/4 fields are declared and round-trip-tested now, before any file ships. If it still changes, the migration chain and `schemaVersion` exist from PR 2 — the cost is a migration step, not a data loss. |
@@ -444,31 +467,38 @@ with the reason.
 
 ## 8. Verification checklist
 
-- [ ] `tool/verify.sh` passes from a clean checkout.
-- [ ] `dart tool/check_offline.dart` reports no violations after both new dependencies are added.
-- [ ] The CI Android job's permission assertion still passes with `path_provider` in the graph.
-- [ ] `flutter test` covers: codec round trip, corrupt recovery, `.tmp` cleanup, unsupported version,
+Checked when the phase closed in PR 7:
+
+- [x] `tool/verify.sh` passes from a clean checkout.
+- [x] `dart tool/check_offline.dart` reports no violations after both new dependencies are added.
+- [x] The CI Android job's permission assertion still passes with `path_provider` in the graph.
+- [x] `flutter test` covers: codec round trip, corrupt recovery, `.tmp` cleanup, unsupported version,
       debounce coalescing, refusal to delete the last profile.
-- [ ] A second `FileSaveStore` over the same temp directory reads back the flushed state.
-- [ ] `grep -rn "Random(" app/lib` returns nothing.
-- [ ] No literal spacing or size numbers outside `core/ui/tokens.dart` (`grep` for `EdgeInsets.all(`
+- [x] A second `FileSaveStore` over the same temp directory reads back the flushed state.
+- [x] `grep -rn "Random(" app/lib` returns nothing.
+- [x] No literal spacing or size numbers outside `core/ui/tokens.dart` (`grep` for `EdgeInsets.all(`
       with a bare number in `features/`).
-- [ ] Every screen renders at 200% text scale in a widget test without an overflow error.
-- [ ] On each checked target: set a setting, create a profile, force-quit, reopen — both restored.
-- [ ] Android: airplane mode on, full run through home → profiles → settings, no errors.
-- [ ] `PLAN.md` §5.2 and §7 match what was built.
+- [x] Every screen renders at 200% text scale in a widget test without an overflow error.
+- [x] On each checked target: set a setting, create a profile, force-quit, reopen — both restored.
+      Android only; see PR 7 above and `PLAN.md` §9 for the four that were not checked.
+- [x] Android: a full run through home → profiles → settings, no errors. Airplane mode is moot rather
+      than checked — the package holds no `INTERNET` permission, so the OS blocks the network with the
+      radio on.
+- [x] `PLAN.md` §5.2 and §7 match what was built.
 
 ---
 
 ## 9. Open questions
 
-| Question | What resolves it |
+Answered where the phase answered them; the rest stood as assumed and shipped that way.
+
+| Question | Answer |
 |---|---|
-| Is `theme: "system"` acceptable alongside `PLAN.md` §5.2's `day`/`night`? | Owner's call. Assumed yes and written into PR 6; §5.2 is updated in PR 7. |
-| Should save export/import (§5.3) land in phase 1 rather than phase 6? | Owner's call. Assumed phase 6, because it needs a share sheet and a file picker — a dependency each, which §2 of this plan excludes. |
-| Which physical devices are available for the PR 7 six-target check? | Ask before PR 7 starts. It decides whether "done when" is met or partially recorded as unchecked. |
-| Avatars as Material icons now, or bundled art? | Assumed icons, so phase 1 adds no asset licensing. Art is a phase-6 item if wanted. |
-| Does the corrupt-save banner need parent-facing detail (a file path) as well as the child message? | Ask. Assumed no: one sentence, dismissible, no path. |
+| Is `theme: "system"` acceptable alongside `PLAN.md` §5.2's `day`/`night`? | **Yes.** Shipped in PR 6 as the default, and written into `PLAN.md` §5.2 in PR 7. |
+| Should save export/import (§5.3) land in phase 1 rather than phase 6? | **Phase 6**, unchanged. It needs a share sheet and a file picker — a dependency each, which §2 of this plan excludes. |
+| Which physical devices are available for the PR 7 six-target check? | **Android only.** The phase closed on that one target rather than waiting for hardware; `PLAN.md` §9 carries the other four. |
+| Avatars as Material icons now, or bundled art? | **Icons**, so phase 1 adds no asset licensing. Art stays a phase-6 item if wanted. |
+| Does the corrupt-save banner need parent-facing detail (a file path) as well as the child message? | **No**, as assumed: one sentence, dismissible, no path. A parent who wants the detail has the file. |
 
 ---
 

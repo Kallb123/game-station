@@ -347,6 +347,14 @@ so there is no setup wall.
 The save stores puzzle **IDs**, not grids, because ID plus generator reconstructs the puzzle. That
 holds the file to a few kilobytes after 500 puzzles, and it is why §3.1 determinism is load-bearing.
 
+`theme` is one of `day`, `night` or `system`, and a new save gets `system` — following the device is
+what the rest of a child's tablet already does. The block above shows `day` on purpose: it is copied
+verbatim into a decode test, where a value that is not the default proves the field is read rather than
+defaulted.
+
+`generatorVersion` is written from the engine's own constant at save time, so a file records which
+generator produced the IDs in it instead of being assumed to match the build that opens it.
+
 ### 5.3 Rules
 
 - Write on every Sudoku move (debounced 500 ms), on game over, and on app pause or close.
@@ -377,6 +385,7 @@ game-station/
 │     ├─ lib/
 │     │  ├─ puzzle_engine.dart
 │     │  └─ src/
+│     │     ├─ generator_version.dart  # the version a save records with its puzzle ids
 │     │     ├─ rng.dart             # hand-rolled PRNG, frozen once written
 │     │     ├─ hash.dart            # fnv1a
 │     │     ├─ sudoku_spec.dart     # 9x9 / 6x6 shape
@@ -393,11 +402,12 @@ game-station/
 └─ app/
    ├─ lib/
    │  ├─ main.dart
-   │  ├─ app.dart                   # router, theme
+   │  ├─ app.dart                   # MaterialApp, theme mode, onGenerateRoute table
+   │  ├─ routes.dart                # route names, importable without the app root
    │  ├─ core/
    │  │  ├─ storage/                # ProgressRepository, atomic write, migrations
    │  │  ├─ audio/                  # soloud wrapper, mute-aware
-   │  │  └─ ui/                     # BigButton, ScreenScaffold, design tokens
+   │  │  └─ ui/                     # BigButton, ScreenScaffold, design tokens, avatars
    │  ├─ features/
    │  │  ├─ home/
    │  │  ├─ profiles/
@@ -441,7 +451,7 @@ The guard grew past a grep into `tool/check_offline.dart`, which also audits the
 graph, the release manifest and the macOS entitlements — see §2. Comments are stripped before the URL
 scan, so a link in a doc comment passes while the same text in a string literal fails.
 
-### Phase 1 — app skeleton (3–4 days)
+### Phase 1 — app skeleton (3–4 days) — done
 
 - Router and a home screen with two large cards: Sudoku and Arcade.
 - Design tokens for colour, spacing and type scale. Day and night themes. Large default tap targets.
@@ -450,9 +460,43 @@ scan, so a link in a doc comment passes while the same text in a string literal 
 - Settings: sound, haptics, timer visibility, theme, reduced motion.
 - **Done when:** killing and reopening the app preserves the profile and settings on all six targets.
 
+Planned as seven pull requests in [`PLAN-phase-1.md`](PLAN-phase-1.md), which stays as the record of
+why each piece is shaped the way it is — around thirty comments in `app/lib` and `app/test` cite its
+section numbers.
+
+**Verified on Android only.** On a physical Android device, the app runs and progress survives a
+force-quit. Offline behaviour needs no manual pass there: the package requests no `INTERNET`
+permission, so the OS blocks the network whether or not the device is in airplane mode. iOS, Windows,
+macOS and Linux compile in CI but were not run on a device, so the six-target half of the
+done-criterion above is *not* met. It is carried into §9 rather than implied by silence — nothing in
+phase 1 is platform-specific except the directory `path_provider` returns and the `rename` in the
+atomic write, but "probably fine" is not a check. A tablet form factor was not checked separately
+either; tablet layout is phase 5 work.
+
+What differed from the plan, decided while building it:
+
+- **The theme choice gained a `system` value**, now the default, and §5.2 above records it. Following
+  the device is what the rest of a child's tablet already does.
+- **Reduced motion is added into the ambient `MediaQuery` rather than or-ed at each reading site**, so
+  a phase-4 animation asks one question and gets both the stored answer and the device's. It also
+  switches off the screen-to-screen slide, which is the only animation phase 1 has — otherwise the
+  setting would have been a promise until phase 4.
+- **`flutter_riverpod` is pinned to `^2.6.1`.** Riverpod 3 declares `package:test` as a runtime
+  dependency, which puts `web_socket_channel` in the app's resolved graph, and `tool/check_offline.dart`
+  reads the graph rather than trusting that nothing calls it. Narrowing that check to admit a state
+  library is the wrong way round.
+- **The profile picker is one scrolling column, not a grid.** A `GridView` tile has a fixed aspect
+  ratio, so at 200% text scale a wrapped name is clipped in a box that cannot grow.
+- **`main` falls back to an in-memory store when `path_provider` cannot resolve a directory.** The app
+  then runs and forgets rather than failing to start, which is the §8 boot-loop rule applied to the
+  one call that happens before any UI exists.
+- Route names live in `app/lib/routes.dart` rather than in `app.dart`, so a screen can name a route
+  without importing the app root, which imports every screen.
+
 ### Phase 2 — Sudoku engine (5–7 days)
 
-The critical path.
+The critical path, and worth its own `PLAN-phase-2.md` as phase 1 had: the determinism rules in §3.1
+and §3.6 are easier to hold to when the order they are built in is written down first.
 
 - `Rng`, `fnv1a`, `SudokuSpec`, bitmask `SudokuBoard`.
 - Solver: brute-force count-to-2, plus the technique-tier solver.
@@ -532,6 +576,7 @@ complete app.
 | Gesture arena claims the second pointer | Medium | Raw `Listener` per button, not `GestureDetector` |
 | Game speed tied to frame rate | Medium | Fixed logic step, verified at 60 and 144 Hz |
 | Corrupt save causes a boot loop | High | Catch, move aside, start fresh, never crash |
+| Behaviour is only ever hand-checked on Android, so a platform-specific bug ships | Medium | CI builds all five platforms on `main`, which catches a compile break but not a behaviour one. The save layer's two platform-sensitive parts are the directory `path_provider` returns and the `rename` in the atomic write; both are exercised by the temp-directory suite, which today runs on the Ubuntu job only — see §9. Force-quitting and reopening is a per-target manual check either way |
 | iOS needs a Mac, $99/year and review | Medium | Plan early; Android and desktop can ship first |
 | Linux audio flakiness | Low | `flutter_soloud`; audio is optional anyway |
 | Kids-category store rules | Low | Already met: no ads, no network, no data collection |
@@ -541,7 +586,13 @@ complete app.
 
 ## 9. Release checklist
 
-- [ ] In airplane mode, every screen works with no errors.
+- [ ] In airplane mode, every screen works with no errors. *(Android, phase 1.)*
+- [ ] Profile and settings survive a force-quit on iOS, Windows, macOS and Linux. Android was checked
+      when phase 1 closed; the other four were not, so this is the phase-1 done-criterion finishing
+      here rather than being dropped.
+- [ ] The storage suite runs on a Windows and a macOS runner, not only on Ubuntu. `File.rename` over
+      an existing file is the one part of the save path that can behave differently per platform (§8),
+      and the CI jobs for those two targets build without testing today.
 - [ ] The built Android APK manifest contains no internet permission (verified in the artifact).
 - [ ] The daily puzzle is byte-identical on Android, iOS, Windows, macOS and Linux.
 - [ ] Golden determinism tests pass in CI.
@@ -557,9 +608,14 @@ complete app.
 
 ## 10. Starting order
 
-1. Phase 0: scaffold the app and engine package, CI, and the no-network guard.
+1. Phase 0: scaffold the app and engine package, CI, and the no-network guard. **Done**, and so is
+   phase 1 — the next work is steps 2 and 3, which are phase 2's first two.
 2. Write `Rng` and `fnv1a`, and write the determinism test **before** the generator, so the sequence
    is locked before anything depends on it.
 3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it.
+
+Phase 2 touches nothing in `app/`: the engine is a pure-Dart package with its own tests, so the phase
+can be built and reviewed without opening the Flutter app. Schema v1 already declares the `sudoku`
+fields phase 3 will fill (§5.2), so phase 2 owes the save file nothing either.
 
 Space Invaders is the easier and more enjoyable half, so it makes a better reward than a warm-up.

@@ -21,6 +21,11 @@ For work already covered by `PLAN.md`, follow the phase rather than re-planning 
 out to differ from the plan, update the plan in the same change — a plan that no longer matches the
 code is worse than none, because it is still believed.
 
+A finished phase plan stays in place with a banner marking it closed, and `PLAN.md` carries the
+outcome and anything that differed — see [`PLAN-phase-1.md`](PLAN-phase-1.md). Code comments cite the
+phase plan's sections for the reasoning behind a decision, so deleting the file would leave those
+citations pointing at nothing, and moving it would rewrite them all.
+
 **2. Build the phase, not the project.** Phases exist so that each one is finishable and reviewable.
 Do not pull work forward from a later phase: adding a dependency three phases early means carrying it
 through every intervening review. Do not leave a phase half-done either; if part of it is blocked,
