@@ -69,6 +69,10 @@ abstract final class AppBorders {
   /// 3 dp — thick enough to read as a state change on its own, which is what
   /// lets a selected control avoid signalling selection by colour.
   static const double selected = 3;
+
+  /// 1 dp — an outline that says "this is a control" without competing with
+  /// [selected] for attention.
+  static const double hairline = 1;
 }
 
 /// Icon sizes.
@@ -127,6 +131,7 @@ final class AppPalette {
     required this.sudoku,
     required this.arcade,
     required this.notice,
+    required this.avatarSwatches,
   });
 
   /// App chrome, primary buttons, and the seed for the whole colour scheme.
@@ -143,6 +148,17 @@ final class AppPalette {
   /// child caused.
   final Color notice;
 
+  /// One seed per avatar, assigned by position: the avatar at index `i` of the
+  /// saved enum takes the swatch at index `i` (`avatars.dart` owns that
+  /// mapping, and asserts the two lengths agree).
+  ///
+  /// Hues spaced around the wheel rather than chosen to look like the animal —
+  /// the icons are not likenesses either (`avatars.dart`), and what a child
+  /// needs is to tell their own profile from the one beside it at arm's length.
+  /// The name and the glyph carry the same distinction for a player who cannot
+  /// use the colour.
+  final List<Color> avatarSwatches;
+
   /// Day palette. Mid-tone seeds, so Material's tonal derivation has room to
   /// go both lighter and darker.
   static const AppPalette day = AppPalette(
@@ -150,6 +166,16 @@ final class AppPalette {
     sudoku: Color(0xFF2E7D6B),
     arcade: Color(0xFF8E3FBF),
     notice: Color(0xFFB4690E),
+    avatarSwatches: <Color>[
+      Color(0xFFD24B2E),
+      Color(0xFFC98A12),
+      Color(0xFF7A9E1F),
+      Color(0xFF2E8B57),
+      Color(0xFF1F9C9C),
+      Color(0xFF3A66C4),
+      Color(0xFF7A4FC0),
+      Color(0xFFC0417F),
+    ],
   );
 
   /// Night palette. Lifted and slightly desaturated: the same hues at day
@@ -159,6 +185,16 @@ final class AppPalette {
     sudoku: Color(0xFF67C0AC),
     arcade: Color(0xFFC08FE0),
     notice: Color(0xFFE0A85C),
+    avatarSwatches: <Color>[
+      Color(0xFFE8907B),
+      Color(0xFFE0BB63),
+      Color(0xFFB7CE72),
+      Color(0xFF74C79B),
+      Color(0xFF6ED0D0),
+      Color(0xFF8FA9E8),
+      Color(0xFFB79BE4),
+      Color(0xFFE08FB4),
+    ],
   );
 
   /// The palette that goes with [brightness].
