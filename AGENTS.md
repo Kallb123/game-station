@@ -51,11 +51,12 @@ A change is not done because it compiles. It is done when the checks pass and, f
 visible behaviour, when it has been run. Report what was actually verified and what was not — "CI
 will tell us" is a gap to state, not to hide.
 
-The toolchain is already there: `.claude/hooks/session-start.sh` installs the pinned Flutter SDK and
-resolves both packages before an agent session starts, so the commands above work from the first
-one. It reads the version from `.github/workflows/ci.yml` rather than keeping a second copy of the
-pin, and it does nothing outside Claude Code on the web, where `CLAUDE_CODE_REMOTE` is set. If a
-session starts without `flutter` on `PATH`, run it by hand rather than installing an unpinned
+The toolchain is already there: `.claude/hooks/session-start.sh` puts the pinned Flutter SDK on
+`PATH` and resolves both packages before the session starts, so the commands above work from the
+first one. The SDK itself comes from `tool/install_flutter.sh`, which reads the version from
+`.github/workflows/ci.yml` rather than keeping a second copy of the pin — see
+[README.md](README.md#the-toolchain-in-cloud-sessions) for how the two fit together. If a session
+starts without `flutter` on `PATH`, run the hook by hand rather than installing an unpinned
 toolchain:
 
 ```sh
