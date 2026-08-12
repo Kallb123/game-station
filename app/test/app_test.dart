@@ -1,25 +1,122 @@
+// The app as a whole: what it boots into, where its routes go, and that it
+// writes what it holds when the platform takes it away.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/app.dart';
-import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:game_station/core/storage/providers.dart';
+import 'package:game_station/core/storage/save_data.dart';
+import 'package:game_station/core/storage/save_store.dart';
+
+import 'app_harness.dart';
 
 void main() {
-  testWidgets('app boots to the scaffold screen', (tester) async {
-    await tester.pumpWidget(const GameStationApp());
+  testWidgets('the app boots to the home screen', (tester) async {
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
     expect(find.text('Game Station'), findsOneWidget);
-    expect(find.text('No ads. No network. No tracking.'), findsOneWidget);
+    expect(find.text('Sudoku'), findsOneWidget);
+    expect(find.text('Arcade'), findsOneWidget);
   });
 
-  testWidgets('the engine package resolves through the path dependency', (
+  // The PR's done-criterion: every card leads somewhere, and every somewhere
+  // leads back. A card that opened a screen with no way out would strand a
+  // child on it.
+  for (final (label, title) in const [
+    ('Sudoku', 'Sudoku'),
+    ('Arcade', 'Arcade'),
+  ]) {
+    testWidgets('$label opens its screen and comes back', (tester) async {
+      await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      expect(find.text('Coming soon!'), findsOneWidget);
+      expect(find.text(title), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sudoku'), findsOneWidget);
+      expect(find.text('Arcade'), findsOneWidget);
+      expect(find.text('Coming soon!'), findsNothing);
+    });
+  }
+
+  testWidgets('the settings button opens the settings route', (tester) async {
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsOneWidget);
+  });
+
+  testWidgets('the profile chip opens the profile route', (tester) async {
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+
+    await tester.tap(find.text('Playing as Player 1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Players'), findsOneWidget);
+  });
+
+  testWidgets('the home screen has no back control', (tester) async {
+    // There is nothing under it to go back to, and a back arrow that does
+    // nothing is worse than no arrow (`screen_scaffold.dart`).
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+
+    expect(find.byTooltip('Back'), findsNothing);
+  });
+
+  testWidgets('the active profile is the one shown', (tester) async {
+    final store = MemorySaveStore(initial: freshSave());
+    final container = await pumpApp(tester, store: store);
+    final repository = container.read(progressRepositoryProvider);
+
+    repository.createProfile(name: 'Bo', avatar: AvatarId.owl);
+    // Awaited rather than pumped past: a test that pumped the 500 ms debounce
+    // would be testing the timer, and a test that left it pending fails on the
+    // binding's own invariant check.
+    await repository.flush();
+    await tester.pump();
+
+    expect(find.text('Playing as Bo'), findsOneWidget);
+    expect((await store.load()).data.activeProfile.name, 'Bo');
+  });
+
+  testWidgets('a route name with no screen fails loudly', (tester) async {
+    // Only a typo in this repository can produce one — nothing outside the app
+    // can name a route — so it has to fail where the typo is, in a test run,
+    // rather than reach a child as a grey error page. The release fallback to
+    // home sits behind this assert and cannot be reached in a debug test.
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+
+    expect(() => navigator.pushNamed('/nope'), throwsAssertionError);
+  });
+
+  testWidgets('a pause writes what is still in the debounce window', (
     tester,
   ) async {
-    await tester.pumpWidget(const GameStationApp());
+    // Without this the last 500 ms of a session — the debounce window — die
+    // with the process, which is exactly the settings toggle a child made just
+    // before handing the tablet back.
+    final store = MemorySaveStore(initial: freshSave());
+    final container = await pumpApp(tester, store: store);
 
-    expect(
-      find.text('Scaffold — puzzle engine v$generatorVersion'),
-      findsOneWidget,
-    );
+    container
+        .read(progressRepositoryProvider)
+        .updateSettings(const AppSettings(sound: false));
+    expect(store.writes, 0, reason: 'still inside the debounce window');
+
+    // The full transition the platform makes, because `AppLifecycleListener`
+    // asserts on a state change that skips a step.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+
+    expect(store.writes, 1);
+    expect((await store.load()).data.settings.sound, isFalse);
   });
 
   // One test per brightness rather than a loop inside one: `MediaQuery.fromView`
@@ -27,11 +124,11 @@ void main() {
   // already built, so a second iteration would keep the first brightness and
   // the assertion would be testing the harness rather than the app.
   for (final brightness in Brightness.values) {
-    testWidgets('the scaffold screen follows $brightness', (tester) async {
+    testWidgets('the app follows $brightness', (tester) async {
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
 
-      await tester.pumpWidget(const GameStationApp());
+      await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
       // Not just "it did not throw": assert the theme actually followed, so a
       // missing darkTheme would fail here rather than pass silently.

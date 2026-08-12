@@ -203,6 +203,9 @@ class FileSaveStore implements SaveStore {
 /// store with no filesystem, no temp directory to clean up, and a [writes]
 /// counter for asserting that the debounce actually coalesces.
 ///
+/// `main` also falls back to it when no save directory can be resolved, so that
+/// a device the app cannot write on still gets an app that runs.
+///
 /// The save is held as encoded text rather than as a [SaveData], so a test
 /// running against this store exercises encode and decode exactly as the file
 /// store does. A model that fails to round trip fails here too.

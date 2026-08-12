@@ -17,6 +17,26 @@ abstract final class AppTheme {
   /// The night theme.
   static ThemeData night() => _build(Brightness.dark, AppPalette.night);
 
+  /// A colour scheme built around one palette role, for a control that is
+  /// meant to read as that role — the two home cards, so far.
+  ///
+  /// Derived rather than applied directly so that the foreground colour comes
+  /// out of the same tonal palette as the background: a role colour dropped
+  /// onto a button as-is keeps the theme's `onPrimary`, which is contrast the
+  /// role never agreed to.
+  ///
+  /// Memoised because `fromSeed` builds a full tonal palette. The cache is
+  /// bounded by the number of roles times the two brightnesses, both of which
+  /// are compile-time constants.
+  static ColorScheme roleScheme(Color role, Brightness brightness) =>
+      _roleSchemes.putIfAbsent((
+        role,
+        brightness,
+      ), () => ColorScheme.fromSeed(seedColor: role, brightness: brightness));
+
+  static final Map<(Color, Brightness), ColorScheme> _roleSchemes =
+      <(Color, Brightness), ColorScheme>{};
+
   static ThemeData _build(Brightness brightness, AppPalette palette) {
     final colors = ColorScheme.fromSeed(
       seedColor: palette.brand,

@@ -19,6 +19,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # State and dependency injection (PLAN.md §2). Pinned to 2.x rather than 3.x:
+  # riverpod 3 depends on `package:test`, which drags shelf, web_socket_channel
+  # and web_socket into the resolved graph. They are unreachable at runtime, but
+  # `tool/check_offline.dart` reads the graph rather than trusting reachability,
+  # and weakening that check to admit a state library is the wrong trade.
+  flutter_riverpod: ^2.6.1
   # Resolves the per-platform application support directory, which is where
   # `save.json` lives. It is the only way to get that path without hard-coding
   # five platform conventions, and it reaches no network: the plugin is a thin
