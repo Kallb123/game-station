@@ -53,10 +53,23 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Flutter $version"
 
+      # `cache: gradle` keeps ~/.gradle/wrapper and ~/.gradle/caches between
+      # runs, which is hardening rather than a speed-up: this job's only two
+      # failures were both fetches from other people's servers before a line of
+      # the app was compiled — a 429 from Maven Central on a docs-only commit,
+      # and a dropped connection while the wrapper downloaded Gradle itself. A
+      # cache hit skips both.
+      #
+      # It narrows the window rather than closing it. A cold cache still
+      # fetches, and the cache is cold whenever a Gradle file changes (the key
+      # hashes them), or after seven days without a hit, or when the
+      # repository's cache allowance evicts it. What is left is a rare flake
+      # instead of a regular one, and re-running the job clears it.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ steps.pin.outputs.version }}
