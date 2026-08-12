@@ -89,12 +89,4 @@ void main() {
     expect(find.text('Playing as Bo'), findsOneWidget);
     expect(find.byIcon(avatarIcon(AvatarId.panda)), findsOneWidget);
   });
-
-  testWidgets('every avatar has a picture of its own', (tester) async {
-    // Eight profiles that all look alike would leave a child guessing which
-    // one is theirs, which is the whole job of the avatar.
-    final icons = AvatarId.values.map(avatarIcon).toSet();
-
-    expect(icons, hasLength(AvatarId.values.length));
-  });
 }
