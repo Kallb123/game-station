@@ -55,6 +55,15 @@ jobs:
         run: dart test
         working-directory: packages/puzzle_engine
 
+      # The PRNG and the hash mask every operation to 32 bits so that a
+      # JavaScript number — exact only to 53 bits — produces the same puzzles as
+      # a 64-bit VM. Compiling those two files with dart2js and running them in
+      # Chrome is what checks that; review cannot. ubuntu-latest ships Chrome,
+      # so no browser setup step is needed. See PLAN-phase-2.md §1.
+      - name: Test the engine on the web platform
+        run: dart test -p chrome test/rng_test.dart test/hash_test.dart
+        working-directory: packages/puzzle_engine
+
       - name: Test app
         run: flutter test
         working-directory: app
@@ -72,6 +81,18 @@ jobs:
 
       - name: Check the offline, no-ads, no-tracking constraints
         run: dart tool/check_offline.dart
+
+      # Saves store puzzle IDs rather than grids, so a generator that reads a
+      # clock, draws from dart:math or iterates a map produces a different
+      # puzzle for the same ID later — quietly, on someone else's device. The
+      # golden files (phase 2 PR 6) catch the effect; this catches the cause at
+      # the line that introduced it. Its own scanner is tested first, for the
+      # same reason the offline check's is.
+      - name: Test the determinism check
+        run: dart tool/check_determinism.dart --self-test
+
+      - name: Check the engine determinism rules
+        run: dart tool/check_determinism.dart
 
   # The Android leg lives in its own workflow so the same build can be run on
   # demand, and so the APK CI checks is the one people install. It asserts that
