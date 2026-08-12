@@ -49,6 +49,7 @@ steps directly — each is the command CI runs, so a step that passes here passe
 | `dart analyze --fatal-infos --fatal-warnings tool` | The build scripts themselves. |
 | `cd packages/puzzle_engine && dart test` | Engine tests, about a second. Add a path for one file, `-n <substring>` for one test. |
 | `cd app && flutter test` | App tests, about five seconds. Same path and `-n` narrowing. |
+| `cd packages/puzzle_engine && dart test -p chrome test/rng_test.dart test/hash_test.dart` | That the engine's 32-bit masking holds where numbers are doubles. Needs a Chrome; `verify.sh` skips it when there is none, and says so. |
 | `dart tool/check_offline.dart --self-test` | That the offline scanner still detects what it claims to. |
 | `dart tool/check_offline.dart` | The no-network, no-ads, no-tracking constraints. |
 | `dart tool/check_determinism.dart --self-test` | That the determinism scanner still detects what it claims to. |

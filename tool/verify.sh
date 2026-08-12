@@ -30,6 +30,22 @@ dart analyze --fatal-infos --fatal-warnings tool
 step 'Testing puzzle_engine'
 (cd packages/puzzle_engine && dart test)
 
+# The PRNG and the hash mask every operation to 32 bits so that a JavaScript
+# number, which is exact only to 53 bits, produces the same puzzles as a 64-bit
+# VM. Running those two files in a browser is the only thing that checks it.
+#
+# CI always runs this. Locally it needs a Chrome, which not every machine has,
+# so a missing browser is reported and skipped rather than failing the run —
+# the one place this script is knowingly a subset of CI.
+step 'Testing the engine on the web platform'
+chrome="${CHROME_EXECUTABLE:-$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)}"
+if [ -n "$chrome" ]; then
+  (cd packages/puzzle_engine &&
+    CHROME_EXECUTABLE="$chrome" dart test -p chrome test/rng_test.dart test/hash_test.dart)
+else
+  printf 'skipped: no Chrome found. CI runs this step; set CHROME_EXECUTABLE to run it here.\n'
+fi
+
 step 'Testing app'
 (cd app && flutter test)
 

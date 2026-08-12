@@ -55,6 +55,15 @@ jobs:
         run: dart test
         working-directory: packages/puzzle_engine
 
+      # The PRNG and the hash mask every operation to 32 bits so that a
+      # JavaScript number — exact only to 53 bits — produces the same puzzles as
+      # a 64-bit VM. Compiling those two files with dart2js and running them in
+      # Chrome is what checks that; review cannot. ubuntu-latest ships Chrome,
+      # so no browser setup step is needed. See PLAN-phase-2.md §1.
+      - name: Test the engine on the web platform
+        run: dart test -p chrome test/rng_test.dart test/hash_test.dart
+        working-directory: packages/puzzle_engine
+
       - name: Test app
         run: flutter test
         working-directory: app

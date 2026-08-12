@@ -434,7 +434,8 @@ Commits:
    which is the same clock behind a different name, and allows `SomeType.values`, which is
    declaration-ordered rather than hash-ordered.
 4. A CI step running `dart test -p chrome test/rng_test.dart test/hash_test.dart` in the engine
-   package.
+   package. `tool/verify.sh` runs it too, but skips it with a printed note when the machine has no
+   Chrome — the one place the local script is knowingly a subset of CI, stated rather than hidden.
 
 **Done when:** `rng_test.dart` asserts the first 20 `nextUint32()` values of `Rng(0)`, `Rng(1)` and
 `Rng(0xFFFFFFFF)` against literals; a 1 000 000-draw `nextInt(3)` test shows each outcome within 0.5%
