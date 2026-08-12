@@ -495,8 +495,11 @@ What differed from the plan, decided while building it:
 
 ### Phase 2 — Sudoku engine (5–7 days)
 
-The critical path, and worth its own `PLAN-phase-2.md` as phase 1 had: the determinism rules in §3.1
-and §3.6 are easier to hold to when the order they are built in is written down first.
+The critical path, and planned as seven pull requests in [`PLAN-phase-2.md`](PLAN-phase-2.md) as phase
+1 had: the determinism rules in §3.1 and §3.6 are easier to hold to when the order they are built in
+is written down first. That file also carries the decisions this section leaves open — which PRNG,
+what a golden file holds — and states where it departs from §3.1, §3.3 and §3.6 above, which its
+closing PR reconciles.
 
 - `Rng`, `fnv1a`, `SudokuSpec`, bitmask `SudokuBoard`.
 - Solver: brute-force count-to-2, plus the technique-tier solver.
