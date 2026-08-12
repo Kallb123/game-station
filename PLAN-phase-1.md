@@ -393,6 +393,25 @@ Commits:
 **Done when:** switching theme to night, restarting the app in a test over the same store, and
 reading `Theme.of(context).brightness` gives `Brightness.dark`.
 
+Differed from the plan, decided while building it:
+
+- **Reduced motion also switches the screen-to-screen slide off**, which §4.1 did not ask for. A
+  setting that changes nothing until phase 4 is a promise rather than a mechanism, and the page
+  transition is the only animation phase 1 has.
+- **The **or** in §4.1 is not a branch in the app.** Only the stored half needs anything doing: the
+  device's half is already in the ambient `MediaQuery`, and Flutter acts on it by itself — an
+  `AnimationController` cuts its duration to a twentieth when the platform asks for less motion. The
+  app therefore adds its own half into the same `MediaQuery` flag, so that a phase-4 animation reads
+  one value and gets both answers. The tests assert what the app *does*, because a test that read the
+  flag back would have passed whether or not the app had looked at it.
+- **The theme choice is three buttons, not a dropdown or a segmented control.** The chosen one is
+  visible without opening anything, each clears the primary tap target, and selection is a border and
+  a check as well as a colour. It makes the screen taller than a phone, so it scrolls.
+- **`pumpApp` in the test harness now tears the previous tree down first.** `pumpWidget` updates an
+  element tree in place when the root widget matches, so a second call kept the first launch's
+  navigator and route stack — a "relaunch" that had not relaunched. Every test that restarts the app
+  over the same store depends on this, PR 5's included.
+
 ### PR 7 — Phase 1 close (0.5–1 day)
 
 Commits:
