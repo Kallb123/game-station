@@ -361,6 +361,25 @@ Commits:
 **Done when:** a widget test creates a second profile, selects it, rebuilds the app over the same
 store, and finds the second profile still active.
 
+Differed from the plan, decided while building it:
+
+- **A single column, not a grid.** A `GridView` tile has a fixed aspect ratio, so at 200% text scale
+  a wrapped name is clipped inside a box that cannot grow. There are at most a handful of profiles,
+  so one scrolling column costs nothing and never cuts a name off.
+- **Selecting or creating a player returns to the home screen.** Picking a player is the question the
+  screen was opened to answer; a child who has answered it should not have to find the back arrow to
+  start playing. Renaming, changing the picture and deleting leave the picker open, because they are
+  adjustments rather than answers.
+- **Rename, picture and delete sit behind one edit control per row**, not beside the name. The row
+  itself is what a child taps to play, so everything that changes or loses a profile is one
+  deliberate step away from it, and deleting takes a second confirmation on top — with *Keep* as the
+  emphasised button, since losing a profile's games is the one thing in the app that cannot be
+  undone.
+- **The avatar mapping grew a colour and a name.** §2 already said avatars are "Material icons plus a
+  token colour", so `tokens.dart` gained one swatch per avatar and `avatars.dart` the enum-to-swatch
+  mapping. `avatarLabel` came with it: the pictures are icon-only controls, and without a name a
+  screen reader reads the picker as a row of unlabelled buttons.
+
 ### PR 6 — Settings (0.5 day)
 
 Commits:

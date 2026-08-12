@@ -8,6 +8,7 @@ import 'core/storage/providers.dart';
 import 'core/ui/theme.dart';
 import 'features/home/home_screen.dart';
 import 'features/placeholders/coming_soon_screen.dart';
+import 'features/profiles/profile_screen.dart';
 import 'routes.dart';
 
 /// The application root.
@@ -94,16 +95,12 @@ Route<void> _generateRoute(RouteSettings settings) {
 
 /// The screen behind each route name, or null for a name with no screen.
 ///
-/// `/profiles` and `/settings` are placeholders until the next two pull
-/// requests fill them in; the route names are already the ones those screens
-/// will answer to, so wiring them is a one-line change there rather than a
-/// change here as well.
+/// `/settings` is a placeholder until the next pull request fills it in; the
+/// route name is already the one that screen will answer to, so wiring it is a
+/// one-line change there rather than a change here as well.
 WidgetBuilder? _screenFor(String? name) => switch (name) {
   AppRoutes.home => (context) => const HomeScreen(),
-  AppRoutes.profiles => (context) => const ComingSoonScreen(
-    title: 'Players',
-    icon: Icons.face,
-  ),
+  AppRoutes.profiles => (context) => const ProfileScreen(),
   AppRoutes.settings => (context) => const ComingSoonScreen(
     title: 'Settings',
     icon: Icons.settings,
