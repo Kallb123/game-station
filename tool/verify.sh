@@ -39,4 +39,10 @@ dart tool/check_offline.dart --self-test
 step 'Checking the offline, no-ads, no-tracking constraints'
 dart tool/check_offline.dart
 
+step 'Testing the determinism check'
+dart tool/check_determinism.dart --self-test
+
+step 'Checking the engine determinism rules'
+dart tool/check_determinism.dart
+
 printf '\n\033[32mAll checks passed.\033[0m\n'

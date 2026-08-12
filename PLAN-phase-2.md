@@ -430,7 +430,9 @@ Commits:
 3. `tool/check_determinism.dart` plus its `--self-test`: fails on an `import 'dart:math'`,
    `DateTime.now`, `Stopwatch`, or iteration over `.keys`/`.values`/`.entries` anywhere in
    `packages/puzzle_engine/lib`, with a `// determinism: ok` opt-out for a reviewed case. Wired into
-   `tool/verify.sh` and `.github/workflows/ci.yml`.
+   `tool/verify.sh` and `.github/workflows/ci.yml`. As built it also rejects `DateTime.timestamp`,
+   which is the same clock behind a different name, and allows `SomeType.values`, which is
+   declaration-ordered rather than hash-ordered.
 4. A CI step running `dart test -p chrome test/rng_test.dart test/hash_test.dart` in the engine
    package.
 

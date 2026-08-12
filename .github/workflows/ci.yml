@@ -73,6 +73,18 @@ jobs:
       - name: Check the offline, no-ads, no-tracking constraints
         run: dart tool/check_offline.dart
 
+      # Saves store puzzle IDs rather than grids, so a generator that reads a
+      # clock, draws from dart:math or iterates a map produces a different
+      # puzzle for the same ID later — quietly, on someone else's device. The
+      # golden files (phase 2 PR 6) catch the effect; this catches the cause at
+      # the line that introduced it. Its own scanner is tested first, for the
+      # same reason the offline check's is.
+      - name: Test the determinism check
+        run: dart tool/check_determinism.dart --self-test
+
+      - name: Check the engine determinism rules
+        run: dart tool/check_determinism.dart
+
   # The Android leg lives in its own workflow so the same build can be run on
   # demand, and so the APK CI checks is the one people install. It asserts that
   # the built package requests no platform permission — the source-level check

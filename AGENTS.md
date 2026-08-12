@@ -51,6 +51,8 @@ steps directly — each is the command CI runs, so a step that passes here passe
 | `cd app && flutter test` | App tests, about five seconds. Same path and `-n` narrowing. |
 | `dart tool/check_offline.dart --self-test` | That the offline scanner still detects what it claims to. |
 | `dart tool/check_offline.dart` | The no-network, no-ads, no-tracking constraints. |
+| `dart tool/check_determinism.dart --self-test` | That the determinism scanner still detects what it claims to. |
+| `dart tool/check_determinism.dart` | No clock, no `dart:math`, no map-order iteration in the engine's `lib/`. |
 
 A change is not done because it compiles. It is done when the checks pass and, for anything with
 visible behaviour, when it has been run. Report what was actually verified and what was not — "CI
