@@ -78,10 +78,15 @@ Code is MIT ([`LICENSE`](LICENSE)). Assets are licensed per file, with rules and
 
 ## Repository tooling
 
-`.claude/` is committed so the tooling travels with the repo:
+`.claude/` is committed so the tooling travels with the repo.
 
-Vendored from [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (MIT) — provenance
-and licence in [`.claude/skills/NOTICE.md`](.claude/skills/NOTICE.md):
+`hooks/session-start.sh` installs the pinned Flutter SDK and resolves both packages when a Claude
+Code on the web session starts, so an agent can run `tool/verify.sh` immediately instead of spending
+its first minutes downloading a toolchain. It reads the version from the CI workflow, and exits
+without touching anything on a local checkout.
+
+Skills vendored from [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (MIT) —
+provenance and licence in [`.claude/skills/NOTICE.md`](.claude/skills/NOTICE.md):
 
 | Skill | Use |
 |---|---|
