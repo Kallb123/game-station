@@ -19,6 +19,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Resolves the per-platform application support directory, which is where
+  # `save.json` lives. It is the only way to get that path without hard-coding
+  # five platform conventions, and it reaches no network: the plugin is a thin
+  # call into each platform's own path API.
+  path_provider: ^2.1.5
   puzzle_engine:
     path: ../packages/puzzle_engine
 
