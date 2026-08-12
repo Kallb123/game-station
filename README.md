@@ -3,8 +3,11 @@
 A local, offline, ad-free games app for kids. Android, iOS, Windows, macOS, and Linux from one
 codebase.
 
-**Status:** phase 0 done — app and engine packages scaffolded, strict lints, CI, and the offline
-constraints enforced by a build check. No games yet. See [PLAN.md](PLAN.md) §7 for the phase order.
+**Status:** phase 1 done — the app shell runs: home screen, local profiles, settings, day/night/system
+theme, and progress saved to an atomically written JSON file that survives a force-quit and recovers
+from a corrupt one. No games yet; the Sudoku and Arcade cards open "coming soon" screens until phases
+2–4. Checked by hand on Android; the other four targets build in CI but have not been run on a device.
+Next is phase 2, the Sudoku engine. See [PLAN.md](PLAN.md) §7 for the phase order.
 
 ## What it is
 
