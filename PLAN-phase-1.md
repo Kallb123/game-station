@@ -336,6 +336,20 @@ Commits:
 test with a `MemorySaveStore`; and a `MemorySaveStore` seeded with `recovery: corrupt` shows the
 banner exactly once.
 
+Differed from the plan, decided while building it:
+
+- `flutter_riverpod` is pinned to `^2.6.1`. Riverpod 3 declares `package:test` as a *runtime*
+  dependency, which puts `web_socket_channel` and `web_socket` in the app's resolved graph;
+  `tool/check_offline.dart` reads the graph rather than trusting reachability, and narrowing that
+  check to admit a state library is the wrong way round.
+- `/profiles` and `/settings` route to `ComingSoonScreen` here rather than being added in PR 5 and
+  PR 6. The home screen's profile chip and settings button exist in this PR, and a control that does
+  nothing reads to a child as a broken app; PR 5 and PR 6 change the target, not the call site.
+- The `AppLifecycleListener` flush from §4.3 landed here, since it is the wiring that gives the
+  repository somewhere to be flushed from.
+- `main` falls back to a `MemorySaveStore` when `path_provider` cannot resolve a directory (§7's
+  Linux-desktop risk). The app then runs and forgets rather than failing to start.
+
 ### PR 5 — Profiles (0.5 day)
 
 Commits:

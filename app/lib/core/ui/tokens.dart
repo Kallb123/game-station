@@ -7,7 +7,7 @@
 // scales through `MediaQuery.textScaler`, which Flutter applies at paint time,
 // so a token multiplied by a scale factor would apply it twice.
 
-import 'dart:ui' show Color;
+import 'dart:ui' show Brightness, Color;
 
 /// The spacing scale. Every gap and padding in the app is one of these.
 ///
@@ -160,4 +160,11 @@ final class AppPalette {
     arcade: Color(0xFFC08FE0),
     notice: Color(0xFFE0A85C),
   );
+
+  /// The palette that goes with [brightness].
+  ///
+  /// A widget takes its palette from the theme it is being built in rather
+  /// than from the stored setting, so a screen is correct under `system` too.
+  static AppPalette of(Brightness brightness) =>
+      brightness == Brightness.dark ? night : day;
 }
