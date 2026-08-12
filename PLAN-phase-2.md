@@ -217,7 +217,13 @@ non-termination risk into a bounded result.
 ```dart
 enum Difficulty { easy, medium, hard, expert }   // index + 1 == tier T1..T4
 
-class SolveStep { final Technique technique; final int index, digit; ... }
+class Elimination { final int index, digit; }    // added in PR 4
+class SolveStep {
+  final Technique technique;
+  final int index, digit;                        // -1 and 0 for an elimination step
+  final List<Elimination> eliminations;          // empty for a placement
+  bool get isPlacement;
+}
 class SolveReport { final bool solved; final Difficulty tier; final List<SolveStep> steps; }
 
 SolveReport solveWithTechniques(SudokuBoard board);
@@ -226,6 +232,25 @@ SolveStep? nextStep(SudokuBoard board);   // phase 3's hint; unused here outside
 
 One enum carries both the difficulty label and the tier — `Difficulty.hard.index + 1 == 3` — so there
 is no label-to-tier table to keep in step with itself.
+
+**A step is a placement or an elimination**, which this section originally left implicit by giving
+`SolveStep` an index and a digit. Only the two singles place anything; the other seven narrow other
+cells and leave the grid otherwise as it was, so a step type that could only say "this cell is a 5"
+had nothing to report for seven of the nine. Phase 3 reads `isPlacement` to decide whether a hint
+reveals an answer or explains a reason.
+
+**`Technique` carries its own tier and its own function**, rather than the solver holding a table of
+either. The enum's declaration order is the tier order, so `solveWithTechniques` walks
+`Technique.values` and the first entry that makes progress is by construction the cheapest available.
+A parallel table would be a second list to keep in step, on the value that decides a puzzle's
+difficulty; `technique_test.dart` asserts the declaration order is non-decreasing by tier, since
+nothing else enforces it.
+
+**Eliminations need state the board cannot hold.** `SudokuBoard.candidateMask` answers what the rules
+allow, which is where a solve starts and not where it stays: ruling a 4 out of a cell because of a
+naked pair elsewhere places nothing, so the board would forget it. `techniques/candidates.dart` holds
+a `CandidateGrid` — the board plus the narrowed masks, plus the unit lists in their fixed scan order —
+and it is what lets the techniques compose, a pointing pair setting up the naked single that follows.
 
 Techniques, in the tier order of `PLAN.md` §3.4:
 
@@ -372,13 +397,16 @@ packages/puzzle_engine/
 │  └─ src/
 │     ├─ generator_version.dart   # exists
 │     ├─ uint32.dart              # mask, 2^32, split multiply — not exported
+│     ├─ digit_mask.dart          # the candidate bitmask helpers — added in PR 4
 │     ├─ rng.dart                 # not exported
 │     ├─ hash.dart                # not exported
+│     ├─ difficulty.dart          # the tier enum — added in PR 4
 │     ├─ sudoku_spec.dart
 │     ├─ sudoku_board.dart
 │     ├─ solver.dart              # countSolutions
 │     ├─ techniques/
 │     │  ├─ technique.dart        # enum + the step type
+│     │  ├─ candidates.dart       # CandidateGrid and the units — added in PR 4
 │     │  ├─ singles.dart
 │     │  ├─ subsets.dart          # naked/hidden pairs and triples
 │     │  ├─ intersections.dart    # pointing pair, box-line reduction
@@ -412,6 +440,14 @@ Boundaries:
   answer every stored puzzle ID depends on.
 - **`techniques/` is one file per family, not one per technique.** Naked and hidden pairs share their
   unit scan; splitting them would duplicate it.
+- **`difficulty.dart` is its own file rather than part of the technique enum's.** `Technique` names its
+  tier, so the two cannot live in one file without the app-facing type sitting inside `techniques/`,
+  which is the wrong way round: `Difficulty` is what phase 3 shows a child, and `Technique` is an
+  implementation detail of judging.
+- **`digit_mask.dart` was added in PR 4**, holding the candidate bitmask's bit numbering, its
+  population count and the digit of a single-bit mask. `solver.dart` had a private copy of the count
+  and every technique needs it; a bit numbered from the wrong end produces a plausible grid rather
+  than an error, which is exactly the kind of thing to write once.
 - **`solver.dart` (counting) is separate from `technique_solver.dart` (judging).** The first is called
   once per dug cell and is the hot path; the second is called once per attempt. Keeping them apart
   keeps an optimisation in one from quietly changing the other's step order.
@@ -491,6 +527,25 @@ Commits:
 board solvable by singles alone reports `Difficulty.easy`; a board needing an x-wing reports
 `Difficulty.hard`; a board no technique advances reports `Difficulty.expert` with `solved: false`; and
 a test asserts the input board is byte-identical after `solveWithTechniques` returns.
+
+Three things about the fixtures, all found while building them:
+
+- **They are checked by search, not by assertion of what the solver said.** Every elimination is put
+  back on the board and handed to `countSolutions`, which must then report no solution at all; every
+  placement is the only digit that leaves one. A technique that ruled out a digit the puzzle needs
+  fails there rather than merely disagreeing with a number typed into the test file.
+- **A hidden triple cannot be the first available technique below a nine-cell unit.** If the unit has
+  six or fewer empty cells, the three the triple does not occupy hold exactly the unit's remaining
+  digits — a naked subset of three or fewer, which is tried first. So there is no 6x6 hidden-triple
+  fixture, and the 9x9 one needed a position with a wide-open box; it was built by adding solved cells
+  to a dug position until the rest of the grid fell to T1–T3, since no natural one turned up in about
+  20 000 dug puzzles.
+- **"A board no technique advances" is the empty grid, plus a real Expert puzzle for the tier.** Every
+  one of 5000 minimal grids dug while building this test offered at least one *elimination* on its
+  opening position, so a committed puzzle fixture with no step at all is not something this search
+  found. The empty grid is the case in its pure form — every digit possible everywhere, so nothing is
+  a single and nothing is confined — and a 25-clue Expert puzzle covers `tier: expert` with
+  `solved: false` on a grid that is a puzzle.
 
 ### PR 5 — Generator and `PuzzleId` (1–1.5 day)
 

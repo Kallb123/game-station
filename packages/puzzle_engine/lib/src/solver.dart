@@ -1,3 +1,4 @@
+import 'digit_mask.dart';
 import 'sudoku_board.dart';
 
 /// What [countSolutions] returns when it ran out of nodes before it could
@@ -97,7 +98,7 @@ class _Search {
     for (var index = 0; index < board.spec.cells; index++) {
       if (board.digitAt(index) != 0) continue;
       final mask = board.candidateMask(index);
-      final count = _bitCount(mask);
+      final count = bitCount(mask);
       if (count < bestCount) {
         bestCount = count;
         bestIndex = index;
@@ -129,16 +130,4 @@ class _Search {
     }
     return false;
   }
-}
-
-/// The number of set bits in [mask], by Kernighan's method — one iteration per
-/// candidate rather than one per digit.
-int _bitCount(int mask) {
-  var remaining = mask;
-  var count = 0;
-  while (remaining != 0) {
-    remaining &= remaining - 1;
-    count++;
-  }
-  return count;
 }
