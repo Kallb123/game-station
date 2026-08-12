@@ -108,10 +108,14 @@ Decisions:
   and pass the usual statistical batteries; the sketch's two-word xorshift is weaker for no saving.
   Its words are natively 32-bit, so nothing needs splitting to stay under 53 bits. `PLAN.md` §3.1 is
   updated in the closing PR.
-- **Seeding is SplitMix32 applied four times to `seed`**, and if all four words come out zero, `s0` is
-  set to 1 — an all-zero state never advances. `PLAN.md` §3.1's "discard eight early outputs" is not
-  needed with a SplitMix-expanded seed, and dropping it keeps the constructor free of a loop whose
-  count would itself be frozen.
+- **Seeding is SplitMix32 applied four times to `seed`.** `PLAN.md` §3.1's "discard eight early
+  outputs" is not needed with a SplitMix-expanded seed, and dropping it keeps the constructor free of
+  a loop whose count would itself be frozen.
+- **No all-zero-state guard, contrary to what this section first specified.** SplitMix32 is a
+  bijection on 32 bits — xor-shift and odd-constant multiply both are — so exactly one input maps to
+  zero and at most one of the four words can be zero. The guard would be a branch no test could
+  enter, which is worse than its absence; `rng.dart` carries the argument next to the seeding. Built
+  in PR 1.
 - **`nextInt` rejects rather than folds.** `limit = 2^32 - (2^32 % bound)`; draw until the value is
   below `limit`, then take the remainder. `bound == 1` returns 0 without drawing, so a Fisher-Yates
   pass over a one-element list consumes nothing.
@@ -357,6 +361,7 @@ packages/puzzle_engine/
 │  ├─ puzzle_engine.dart          # exports the app-facing API only
 │  └─ src/
 │     ├─ generator_version.dart   # exists
+│     ├─ uint32.dart              # mask, 2^32, split multiply — not exported
 │     ├─ rng.dart                 # not exported
 │     ├─ hash.dart                # not exported
 │     ├─ sudoku_spec.dart
@@ -391,6 +396,10 @@ Boundaries:
 
 - **`rng.dart` and `hash.dart` stay unexported.** Freezing a sequence is only meaningful if nothing
   outside the package can start a different one.
+- **`uint32.dart` was added in PR 1**, holding the 32-bit mask, 2^32 as a literal and the split
+  multiply of §4.2. The PRNG's SplitMix32 seeding needs that multiply as much as the hash does, and
+  two copies of a subtle masked multiply is two chances to fix only one of them — on a function whose
+  answer every stored puzzle ID depends on.
 - **`techniques/` is one file per family, not one per technique.** Naked and hidden pairs share their
   unit scan; splitting them would duplicate it.
 - **`solver.dart` (counting) is separate from `technique_solver.dart` (judging).** The first is called
