@@ -224,8 +224,13 @@ void main() {
 
   group('the clue string', () {
     test('round-trips unchanged', () {
-      for (final clues in [solved6x6, puzzle6x6, solved9x9, puzzle9x9]) {
-        final spec = clues.length == 36 ? SudokuSpec.s6x6 : SudokuSpec.s9x9;
+      const fixtures = [
+        (SudokuSpec.s6x6, solved6x6),
+        (SudokuSpec.s6x6, puzzle6x6),
+        (SudokuSpec.s9x9, solved9x9),
+        (SudokuSpec.s9x9, puzzle9x9),
+      ];
+      for (final (spec, clues) in fixtures) {
         expect(SudokuBoard.fromClues(spec, clues).toClueString(), clues);
       }
     });
@@ -275,9 +280,12 @@ void main() {
 
     test('rejects a grid that already breaks the rules', () {
       const spec = SudokuSpec.s9x9;
-      final sameRow = cluesFrom('11', 81);
-      final sameColumn = cluesFrom('1........1', 81);
-      final sameBox = cluesFrom('1.........1', 81);
+      // One conflict each, and each in one unit only: the column pair sits
+      // three rows down so it is not also a box conflict, which would let a
+      // board that had forgotten about columns pass this.
+      final sameRow = cluesAt(spec, [(0, 1), (1, 1)]);
+      final sameColumn = cluesAt(spec, [(0, 1), (spec.indexAt(3, 0), 1)]);
+      final sameBox = cluesAt(spec, [(0, 1), (spec.indexAt(1, 1), 1)]);
       for (final clues in [sameRow, sameColumn, sameBox]) {
         expect(
           () => SudokuBoard.fromClues(spec, clues),
@@ -285,9 +293,9 @@ void main() {
           reason: clues,
         );
       }
-      // Two cells away from each other in all three units is fine.
+      // The same digit sharing no row, column or box is fine.
       expect(
-        () => SudokuBoard.fromClues(spec, cluesFrom('1...........1', 81)),
+        () => SudokuBoard.fromClues(spec, cluesAt(spec, [(0, 1), (30, 1)])),
         returnsNormally,
       );
     });
@@ -340,6 +348,15 @@ int bitFor(int digit) => 1 << (digit - 1);
 
 /// [prefix], padded with dots to a whole grid of [cells].
 String cluesFrom(String prefix, int cells) => prefix.padRight(cells, '.');
+
+/// An otherwise empty grid holding each digit at its index.
+String cluesAt(SudokuSpec spec, List<(int index, int digit)> placements) {
+  final chars = List<String>.filled(spec.cells, '.');
+  for (final (index, digit) in placements) {
+    chars[index] = '$digit';
+  }
+  return chars.join();
+}
 
 /// The first empty cell of [board].
 int firstEmpty(SudokuBoard board) {
