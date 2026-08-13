@@ -25,6 +25,7 @@ SaveData fullSave() => SaveData(
       name: 'Ana',
       avatar: AvatarId.fox,
       createdAt: DateTime.utc(2026, 8, 11, 10),
+      mistakeFeedback: MistakeFeedback.atCompletion,
       sudoku: SudokuProgress(
         solved: {
           'sudoku:9x9:easy:0': SolvedPuzzle(

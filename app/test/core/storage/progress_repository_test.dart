@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:game_station/core/storage/progress_repository.dart';
 import 'package:game_station/core/storage/save_data.dart';
 import 'package:game_station/core/storage/save_store.dart';
+import 'package:puzzle_engine/puzzle_engine.dart';
 
 void main() {
   DateTime clock() => DateTime.utc(2026, 8, 12, 9);
@@ -281,6 +282,361 @@ void main() {
 
       expect((await store.load()).data.activeProfileId, 'p1');
     });
+
+    test('mistake feedback is set per profile', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      repository.createProfile(name: 'Bo', avatar: AvatarId.owl);
+
+      repository.setMistakeFeedback('p2', MistakeFeedback.atCompletion);
+
+      expect(
+        repository.profiles.firstWhere((p) => p.id == 'p1').mistakeFeedback,
+        MistakeFeedback.immediate,
+      );
+      expect(
+        repository.activeProfile.mistakeFeedback,
+        MistakeFeedback.atCompletion,
+      );
+    });
+  });
+
+  group('sudoku', () {
+    PuzzleId puzzleAt(int index, {Difficulty difficulty = Difficulty.easy}) =>
+        PuzzleId(SudokuSpec.s9x9, difficulty, index);
+
+    test('saveInProgress stores an entry and clearInProgress removes it', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final id = puzzleAt(3);
+
+      repository.saveInProgress(id, PuzzleInProgress(grid: '.' * 81));
+      expect(
+        repository.activeProfile.sudoku.inProgress[id.value]?.grid,
+        '.' * 81,
+      );
+
+      repository.clearInProgress(id);
+      expect(repository.activeProfile.sudoku.inProgress, isEmpty);
+    });
+
+    test('clearing an id with no entry changes nothing', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      var notifications = 0;
+      repository.addListener(() => notifications++);
+
+      repository.clearInProgress(puzzleAt(9));
+
+      expect(notifications, 0);
+    });
+
+    test(
+      'recordSolved clears the matching inProgress entry, in one mutation',
+      () {
+        final repository = repositoryOver(
+          MemorySaveStore(initial: freshSave()),
+        );
+        final id = puzzleAt(5);
+        repository.saveInProgress(id, PuzzleInProgress(grid: '.' * 81));
+
+        var notifications = 0;
+        repository.addListener(() => notifications++);
+        repository.recordSolved(id, const SolvedPuzzle(timeMs: 60000));
+
+        expect(
+          notifications,
+          1,
+          reason:
+              'a save cannot hold a puzzle both finished and in progress, '
+              'even for the instant between two mutations',
+        );
+        expect(repository.activeProfile.sudoku.solved[id.value]?.timeMs, 60000);
+        expect(repository.activeProfile.sudoku.inProgress, isEmpty);
+      },
+    );
+
+    test('recordSolved keeps the faster of the times seen so far', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      repository.recordSolved(
+        puzzleAt(1, difficulty: Difficulty.medium),
+        const SolvedPuzzle(timeMs: 90000),
+      );
+      repository.recordSolved(
+        puzzleAt(2, difficulty: Difficulty.medium),
+        const SolvedPuzzle(timeMs: 40000),
+      );
+      repository.recordSolved(
+        puzzleAt(3, difficulty: Difficulty.medium),
+        const SolvedPuzzle(timeMs: 120000),
+      );
+
+      expect(repository.activeProfile.sudoku.bestTimeMs['9x9:medium'], 40000);
+    });
+
+    test('a burst of sudoku mutations costs one write', () async {
+      final store = MemorySaveStore(initial: freshSave());
+      final repository = repositoryOver(store);
+      final id = puzzleAt(0);
+
+      for (var i = 0; i < 5; i++) {
+        repository.saveInProgress(
+          id,
+          PuzzleInProgress(grid: '.' * 81, elapsedMs: i * 1000),
+        );
+      }
+      await repository.flush();
+
+      expect(store.writes, 1);
+    });
+  });
+
+  group('daily streak', () {
+    // Day indices rather than real dates, so the arithmetic is exercised
+    // without depending on `dayIndexFor`'s epoch elsewhere in the suite
+    // (`PLAN-phase-3.md` §4.7).
+    DateTime dayN(int n) => DateTime.utc(2026, 1, 1).add(Duration(days: n));
+
+    ProgressRepository repositoryAt(DateTime Function() now) {
+      final repository = ProgressRepository(
+        MemorySaveStore(initial: freshSave()),
+        initial: freshSave(),
+        now: now,
+      );
+      addTearDown(repository.dispose);
+      return repository;
+    }
+
+    test('solving the daily puzzle twice in one day changes nothing the '
+        'second time', () {
+      late DateTime today;
+      final repository = repositoryAt(() => today);
+      today = dayN(10);
+
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s9x9, Difficulty.easy, 10),
+        const SolvedPuzzle(timeMs: 1),
+      );
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s6x6, Difficulty.hard, 10),
+        const SolvedPuzzle(timeMs: 1),
+      );
+
+      expect(repository.activeProfile.sudoku.dailyStreak.current, 1);
+    });
+
+    test('solving it the next day increments the streak', () {
+      late DateTime today;
+      final repository = repositoryAt(() => today);
+
+      today = dayN(10);
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s9x9, Difficulty.easy, 10),
+        const SolvedPuzzle(timeMs: 1),
+      );
+      today = dayN(11);
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s9x9, Difficulty.easy, 11),
+        const SolvedPuzzle(timeMs: 1),
+      );
+
+      expect(repository.activeProfile.sudoku.dailyStreak.current, 2);
+      expect(repository.activeProfile.sudoku.dailyStreak.best, 2);
+    });
+
+    test('missing a day resets the streak but keeps the best', () {
+      late DateTime today;
+      final repository = repositoryAt(() => today);
+
+      today = dayN(10);
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s9x9, Difficulty.easy, 10),
+        const SolvedPuzzle(timeMs: 1),
+      );
+      today = dayN(11);
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s9x9, Difficulty.easy, 11),
+        const SolvedPuzzle(timeMs: 1),
+      );
+      today = dayN(13); // Day 12 was skipped.
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s9x9, Difficulty.easy, 13),
+        const SolvedPuzzle(timeMs: 1),
+      );
+
+      expect(repository.activeProfile.sudoku.dailyStreak.current, 1);
+      expect(repository.activeProfile.sudoku.dailyStreak.best, 2);
+    });
+
+    test('solving a puzzle that is not the daily one leaves the streak '
+        'untouched', () {
+      late DateTime today;
+      final repository = repositoryAt(() => today);
+
+      today = dayN(10);
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s9x9, Difficulty.easy, 10),
+        const SolvedPuzzle(timeMs: 1),
+      );
+      today = dayN(11);
+      repository.recordSolved(
+        PuzzleId(SudokuSpec.s9x9, Difficulty.hard, 999),
+        const SolvedPuzzle(timeMs: 1),
+      );
+
+      expect(repository.activeProfile.sudoku.dailyStreak.current, 1);
+      expect(repository.activeProfile.sudoku.dailyStreak.lastDayIndex, 10);
+    });
+  });
+
+  group('puzzle cache', () {
+    PuzzleId puzzleAt(int index) =>
+        PuzzleId(SudokuSpec.s9x9, Difficulty.easy, index);
+
+    test('caches up to the cap with no eviction', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      for (var i = 0; i < puzzleCacheCap; i++) {
+        repository.cachePuzzle(puzzleAt(i), 'record-$i');
+      }
+
+      expect(repository.data.puzzleCache, hasLength(puzzleCacheCap));
+    });
+
+    test('the least-recently-used entry is evicted over the cap', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      for (var i = 0; i < puzzleCacheCap; i++) {
+        repository.cachePuzzle(puzzleAt(i), 'record-$i');
+      }
+
+      repository.cachePuzzle(puzzleAt(puzzleCacheCap), 'record-new');
+
+      expect(repository.data.puzzleCache, hasLength(puzzleCacheCap));
+      expect(
+        repository.data.puzzleCache.containsKey(puzzleAt(0).value),
+        isFalse,
+        reason: 'the oldest untouched entry is the one dropped',
+      );
+      expect(
+        repository.data.puzzleCache.containsKey(puzzleAt(puzzleCacheCap).value),
+        isTrue,
+      );
+    });
+
+    test('re-caching an id refreshes it, so it is not the next eviction', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      for (var i = 0; i < puzzleCacheCap; i++) {
+        repository.cachePuzzle(puzzleAt(i), 'record-$i');
+      }
+
+      repository.cachePuzzle(puzzleAt(0), 'record-0-refreshed');
+      repository.cachePuzzle(puzzleAt(puzzleCacheCap), 'record-new');
+
+      expect(
+        repository.data.puzzleCache.containsKey(puzzleAt(0).value),
+        isTrue,
+      );
+      expect(
+        repository.data.puzzleCache.containsKey(puzzleAt(1).value),
+        isFalse,
+        reason: 'index 1 is now the oldest untouched entry',
+      );
+    });
+
+    test('eviction never drops an id the active profile is resuming', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final pinned = puzzleAt(0);
+      repository.saveInProgress(pinned, PuzzleInProgress(grid: '.' * 81));
+
+      for (var i = 0; i < puzzleCacheCap; i++) {
+        repository.cachePuzzle(puzzleAt(i), 'record-$i');
+      }
+      repository.cachePuzzle(puzzleAt(puzzleCacheCap), 'record-new');
+
+      expect(repository.data.puzzleCache.containsKey(pinned.value), isTrue);
+      expect(
+        repository.data.puzzleCache.containsKey(puzzleAt(1).value),
+        isFalse,
+        reason: 'the pin skips to the next-oldest unpinned entry',
+      );
+    });
+
+    test('a pin in another profile still protects the entry', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      repository.createProfile(name: 'Bo', avatar: AvatarId.owl); // Now active.
+      final pinned = puzzleAt(0);
+      repository.saveInProgress(pinned, PuzzleInProgress(grid: '.' * 81));
+      repository.selectProfile(
+        'p1',
+      ); // The pin stays on p2, not the active one.
+
+      for (var i = 0; i < puzzleCacheCap; i++) {
+        repository.cachePuzzle(puzzleAt(i), 'record-$i');
+      }
+      repository.cachePuzzle(puzzleAt(puzzleCacheCap), 'record-new');
+
+      expect(repository.data.puzzleCache.containsKey(pinned.value), isTrue);
+    });
+  });
+
+  group('fromLoad', () {
+    test(
+      'a stale generator version drops the cache and adopts the current one',
+      () {
+        final stale = freshSave().copyWith(
+          generatorVersion: generatorVersion + 1000,
+          puzzleCache: {'sudoku:9x9:easy:0': 'stale'},
+        );
+        final repository = ProgressRepository.fromLoad(
+          MemorySaveStore(initial: stale),
+          SaveLoad(stale),
+          now: clock,
+        );
+        addTearDown(repository.dispose);
+
+        expect(repository.data.puzzleCache, isEmpty);
+        expect(repository.data.generatorVersion, generatorVersion);
+      },
+    );
+
+    test('a matching generator version keeps the cache as it was', () {
+      final current = freshSave().copyWith(
+        puzzleCache: {'sudoku:9x9:easy:0': 'clues'},
+      );
+      final repository = ProgressRepository.fromLoad(
+        MemorySaveStore(initial: current),
+        SaveLoad(current),
+        now: clock,
+      );
+      addTearDown(repository.dispose);
+
+      expect(repository.data.puzzleCache, {'sudoku:9x9:easy:0': 'clues'});
+    });
+  });
+
+  group('round trip', () {
+    test(
+      'mistake feedback, a cached record and the streak survive a reload',
+      () async {
+        final store = MemorySaveStore(initial: freshSave());
+        final repository = repositoryOver(store);
+        final today = dayIndexFor(clock());
+        final dailyId = PuzzleId(SudokuSpec.s9x9, Difficulty.easy, today);
+
+        repository.setMistakeFeedback('p1', MistakeFeedback.atCompletion);
+        repository.cachePuzzle(dailyId, 'clues|solution');
+        repository.recordSolved(dailyId, const SolvedPuzzle(timeMs: 1));
+        await repository.flush();
+
+        final reloaded = (await store.load()).data;
+        expect(reloaded.schemaVersion, currentSchemaVersion);
+        expect(
+          reloaded.activeProfile.mistakeFeedback,
+          MistakeFeedback.atCompletion,
+        );
+        expect(reloaded.puzzleCache[dailyId.value], 'clues|solution');
+        expect(reloaded.activeProfile.sudoku.dailyStreak.current, 1);
+        expect(reloaded.activeProfile.sudoku.dailyStreak.lastDayIndex, today);
+      },
+    );
   });
 
   group('over a real directory', () {

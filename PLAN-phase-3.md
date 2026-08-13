@@ -252,13 +252,15 @@ at least `AppTapTargets.min` (56 dp). Beside the digits: erase, pencil toggle, u
 Every path through 2 and 3 increments `hints`, which clears `clean` on the `SolvedPuzzle` (`PLAN.md`
 §3.7). Path 1 does not: pointing at a mistake gives nothing away.
 
-**Mistake feedback** is a new setting, `AppSettings.mistakeFeedback`, one of `immediate` (the
-default, per `PLAN.md` §3.7) and `atCompletion`. It is an additive optional field: `save_codec.dart`
-ignores unknown keys and defaults missing ones, so a v1 file written by phase 1 reads back with the
-default and no migration step is needed. `schemaVersion` stays 1, which is what it is for — it marks
-a shape change that needs a migration, and this is not one. `PLAN-phase-1.md` §4.2 declared v1 "in
-full" and missed this field; the closing PR records that in `PLAN.md` §5.2 rather than leaving the
-two disagreeing.
+**Mistake feedback** is a new setting, `Profile.mistakeFeedback`, one of `immediate` (the default, per
+`PLAN.md` §3.7) and `atCompletion`. §9 left this open for the owner to decide before PR 2; the answer
+is per profile, not device-wide — a younger sibling wants to know at once, an older one may not want
+to be told before the grid is full — so it is a field on `Profile` rather than on `AppSettings`. It is
+still additive: `save_codec.dart` ignores unknown keys and defaults missing ones, so a v1 file written
+by phase 1 reads back with the default and no migration step is needed. `schemaVersion` stays 1, which
+is what it is for — it marks a shape change that needs a migration, and adding an optional field to an
+existing object is not one. `PLAN-phase-1.md` §4.2 declared v1 "in full" and missed this field; the
+closing PR records that in `PLAN.md` §5.2 rather than leaving the two disagreeing.
 
 `mistakes` counts every wrong digit entered, in both modes, because it is what
 `SolvedPuzzle.mistakes` stores and what decides `clean`.
@@ -412,7 +414,7 @@ Commits:
 1. `saveInProgress`, `clearInProgress`, `recordSolved`, `cachePuzzle` on `ProgressRepository`, with
    `bestTimeMs` and the streak updated inside `recordSolved`.
 2. The 30-entry LRU with in-progress ids pinned; the generator-version cache drop at load.
-3. `AppSettings.mistakeFeedback` with its codec default (§4.6).
+3. `Profile.mistakeFeedback` with its codec default (§4.6).
 4. Tests: streak arithmetic across same-day, next-day and gap cases; `recordSolved` clearing
    `inProgress` atomically; eviction never dropping a pinned id; a v1 file with no `mistakeFeedback`
    decoding to `immediate`; one debounced write per burst of mutations.
@@ -574,10 +576,10 @@ file is recorded in both files rather than in a commit message.
 | Question | Current assumption | What resolves it |
 |---|---|---|
 | Should the daily card offer one fixed size and difficulty rather than the last played? | Assumed last played, defaulting to 9x9 Easy (§4.7): a child who plays 6x6 should not be handed a 9x9 every morning. | PR 8's review, on the device. Changing it is a line in the menu's provider. |
-| Is one streak across all sizes and difficulties right, or should it be per size? | Assumed one (§4.7). Seven streaks is a scoreboard. | Owner's call before PR 2, since `DailyStreak` is one object in the schema and per-size would be a shape change. |
+| ~~Is one streak across all sizes and difficulties right, or should it be per size?~~ | **Resolved before PR 2: one streak.** `DailyStreak` stays the single object §4.7 already assumed; `ProgressRepository.recordSolved` counts any size and difficulty against it. | Decided; PR 2 built it this way. |
 | Should CI gain an Android emulator job so `integration_test/` runs on merges? | Assumed no for phase 3: an emulator job is several minutes per run and the widget-level resume test covers the same path. | A phase-6 decision, when release checks need device evidence anyway (`PLAN.md` §9). |
 | Does the completion card need a *Next puzzle* that respects the difficulty the puzzle actually came out as, when `widened` is set? | Assumed no: *Next puzzle* is index + 1 at the requested difficulty, and `widened` stays invisible (§2). | PR 7. Nothing stored depends on it. |
-| Should `mistakeFeedback` be per profile rather than device-wide? | Assumed device-wide, like every other setting — `save_data.dart` says settings describe the room, not the child. It is the first setting where that is arguable, since a younger sibling wants `immediate` and an older one may not. | Owner's call before PR 2. Per profile means the field moves into `Profile`, which is a schema change and therefore cheaper to decide now than later. |
+| ~~Should `mistakeFeedback` be per profile rather than device-wide?~~ | **Resolved before PR 2: per profile.** The field lives on `Profile`, not `AppSettings`; §4.6 is updated to match. | Decided; PR 2 built it this way. |
 
 ---
 

@@ -225,6 +225,13 @@ Profile _readProfile(Map<String, Object?> raw, String path) => Profile(
   ),
   sudoku: _readSudoku(_optMap(raw, 'sudoku', path), _at(path, 'sudoku')),
   arcade: _readArcade(_optMap(raw, 'arcade', path), _at(path, 'arcade')),
+  mistakeFeedback: raw['mistakeFeedback'] == null
+      ? MistakeFeedback.immediate
+      : _enum(
+          MistakeFeedback.values,
+          _string(raw['mistakeFeedback'], _at(path, 'mistakeFeedback')),
+          _at(path, 'mistakeFeedback'),
+        ),
 );
 
 SudokuProgress _readSudoku(Map<String, Object?> raw, String path) =>
@@ -333,6 +340,7 @@ Map<String, Object?> _writeProfile(Profile profile) => {
   'createdAt': _writeDateTime(profile.createdAt),
   'sudoku': _writeSudoku(profile.sudoku),
   'arcade': _sorted(profile.arcade.games, _writeArcadeGame),
+  'mistakeFeedback': profile.mistakeFeedback.name,
 };
 
 Map<String, Object?> _writeSudoku(SudokuProgress sudoku) => {
