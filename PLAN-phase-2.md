@@ -39,7 +39,7 @@ its own.
 | Hint UI, mistake modes, pencil marks, undo | Phase 3 (`PLAN.md` §3.7). The solver exposes `nextStep()` so phase 3 has something to call; nothing in this phase calls it outside tests. |
 | Save migration or a `generatorVersion` bump | `generatorVersion` stays 1. It is only bumped when output of a *shipped* generator changes; nothing has shipped, so goldens are simply written once and then frozen. |
 | 4x4 and 12x12 sizes | The spec is size-generic, so they cost nothing later, but only `9x9` and `6x6` are constructible IDs — the parser rejects the rest, so an unsupported size fails at the boundary rather than deep in a solver. |
-| Chain, colouring, swordfish and other techniques beyond `PLAN.md` §3.4's list | Not needed. T4 is defined as "no technique in T1–T3 makes progress", which is detected by exclusion, so implementing more techniques would refine the T4 label without changing which puzzles are generated. |
+| Chain, colouring, swordfish and other techniques beyond `PLAN.md` §3.4's list | Still out. **This row's reasoning was wrong**, and PR 5 corrected it: "more techniques only refine the T4 label" holds for the label and not for the generator, because a tier is only reachable if the solver can *finish* a puzzle with it. Measured in PR 5, T3 was reached about once in a hundred attempts, so Hard was mostly a widened Medium. Adding the XY-wing — one technique, in T3 — fixed it; the rest stay out because the four tiers now populate. |
 | Numeric difficulty scoring, star ratings, ELO | `PLAN.md` §3.4 judges by technique tier. A second scoring scheme would need its own goldens. |
 | A puzzle-of-the-day *schedule* — notifications, streak arithmetic | Phase 3. This phase provides `dayIndexFor(DateTime)` and nothing that decides what to do with it. |
 | Localised difficulty labels | Phase 5's i18n. The engine returns an enum, never a display string. |
@@ -258,7 +258,7 @@ Techniques, in the tier order of `PLAN.md` §3.4:
 |---|---|
 | T1 | naked single, hidden single |
 | T2 | naked pair, hidden pair, pointing pair, box-line reduction |
-| T3 | naked triple, hidden triple, X-wing |
+| T3 | naked triple, hidden triple, X-wing, XY-wing (added in PR 5) |
 | T4 | none — assigned when no T1–T3 technique makes progress on an unsolved board |
 
 The solver loops: try techniques in tier order, apply the first that makes progress, record the
@@ -297,6 +297,13 @@ Decisions:
   strings that name one puzzle would be two `solved` keys in the save for one puzzle.
 - **6x6 expert does not parse.** `PLAN.md` §3.4: 6x6 has too little room for a genuine Expert tier, so
   the ID is rejected rather than generating something mislabelled.
+- **`const DateTime puzzleEpoch` is `final`, not `const`.** [DateTime] has no const constructor, so the
+  epoch is built once at load. Nothing else changes.
+- **The index stops at `PuzzleId.maxPuzzleIndex`, 999 999 999.** "Whatever an int holds" is not the
+  same everywhere: on the web an int is a double and stops being exact at 2^53, so a longer index
+  would name one puzzle in a browser and another on a tablet — the failure this package exists to
+  prevent, arriving through the parser rather than the generator. Nine digits is a puzzle a day for
+  two and a half million years.
 - **`dayIndexFor` clamps at 0 rather than throwing.** A tablet with its clock set to 2019 would
   otherwise crash on the daily card, and `AGENTS.md` forbids surfacing an internal error to a child.
   Every date before the epoch gets day 0's puzzle, which is wrong in a way nobody can see.
@@ -328,19 +335,38 @@ attempt n : seed = fnv1a32('${id.value}#$n')
 complete grid always exists, so this backtracks but never fails.
 
 **Dig.** Shuffle the cell index list with `Rng`, walk it once, remove one digit at a time, and keep the
-hole only when `countSolutions(board, max: 2) == 1`. Stop early when `filledCount` reaches the floor of
-the requested tier's band in `PLAN.md` §3.4 — otherwise digging always runs to near-minimal and the
-band becomes unreachable from above.
+hole only when `countSolutions(board, max: 2) == 1` **and the grid is still no harder than the tier
+asked for**. Stop once the tier has been reached and `filledCount` is down to the recipe's floor.
 
-**Judge.** `solveWithTechniques` on the dug board. Keep the puzzle when the reported tier equals the
-requested difficulty and the clue count is inside the band; otherwise advance the attempt counter and
-start again from grow.
+Both halves of that were rebuilt in PR 5 against measurements, because the rule this section first
+gave — dig blindly to the floor, then judge — aims at a clue count and hopes for a tier:
 
-**Retry.** Up to 40 attempts. On the 40th failure, accept the closest attempt seen and widen: the
-result carries `widened: true` with the tier actually achieved in `tier` and the request in
-`requested`. Nothing throws, and phase 3 shows the puzzle. The widening rate is measured, not assumed —
-the golden run fails if more than 5 of any 100 indices widened, which turns "expert is unreachable at
-6x6-like clue counts" into a red build instead of a silently easier game.
+- Without the tier ceiling, 9x9 Hard came out Expert 30 times in 50: a hole that jumps the grid two
+  tiers is taken and never given back. Tier never falls as clues come out, so refusing that hole and
+  carrying on with the next cell costs nothing and keeps the grid inside the label.
+- Stopping at the floor *regardless* of tier throws away grids that three more holes would have made
+  right. Hard is reached at 24 to 26 clues far more often than at 26 exactly, so the dig now passes
+  the floor while the grid is still too easy, and the band moved to where puzzles actually land.
+
+Judging after each accepted removal costs one technique solve per hole rather than one per attempt,
+and pays for itself several times over in attempts not made.
+
+**Judge.** `solveWithTechniques` on the dug board, against the *recipe* for that size and label rather
+than against the label alone. A recipe is a tier range and a clue band: `PuzzleRecipe` in
+`generator.dart`, tabulated in `recipeFor`. Six of the seven combinations name a single tier; 6x6
+Medium names Easy over 12 clues, because a 6x6 has no room for a tier between "singles finish it" and
+"needs a triple or a wing" — needing a pair and nothing more is about one dug 6x6 in three hundred.
+`PLAN.md` §3.4 records that decision and the measurement behind it.
+
+**Retry.** Up to `generatorMaxAttempts` — **250, not 40**. The number is a budget for a search whose
+hit rate is a property of Sudoku rather than of this code: at 40 attempts, 9x9 Hard widened 2 in 50
+and 6x6 Hard 40 in 50; at 250 both are inside 1 in 100, and the slowest single puzzle measured is
+still under the `PLAN.md` §3.5 target multiplied by the benchmark's 3x ceiling. On the last failure,
+accept the closest attempt seen and widen: the result carries `widened: true` with the tier actually
+achieved in `tier` and the request in `requested`. Nothing throws, and phase 3 shows the puzzle. The
+widening rate is measured, not assumed — the golden run fails if more than 5 of any 100 indices
+widened, which turns "expert is unreachable at 6x6-like clue counts" into a red build instead of a
+silently easier game.
 
 ### 4.8 Determinism tests and goldens
 
@@ -410,7 +436,8 @@ packages/puzzle_engine/
 │     │  ├─ singles.dart
 │     │  ├─ subsets.dart          # naked/hidden pairs and triples
 │     │  ├─ intersections.dart    # pointing pair, box-line reduction
-│     │  └─ fish.dart             # x-wing
+│     │  ├─ fish.dart             # x-wing
+│     │  └─ wings.dart            # xy-wing — added in PR 5
 │     ├─ technique_solver.dart    # tier judgement, nextStep
 │     ├─ generator.dart           # grow / dig / judge / retry
 │     └─ puzzle_id.dart
