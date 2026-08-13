@@ -607,6 +607,11 @@ What differed from the plan, decided while building it:
 - **Done when:** 9x9 and 6x6 can be solved end to end; a force-quit mid-puzzle resumes the exact
   board; solved state persists across a restart.
 
+Planned as nine pull requests in [`PLAN-phase-3.md`](PLAN-phase-3.md), as phases 1 and 2 were. It
+records the two formats this phase freezes — the `puzzleCache` value and the in-progress board
+encoding — because both become a save migration once a child's file holds them, and the decisions
+that reach back into `PLAN.md` §3.7 and §5.2 are named there before they are built rather than after.
+
 What phase 2 hands over, so phase 3 does not have to read the engine to find out:
 
 - `generateSudoku(PuzzleId)` returns a `GeneratedPuzzle` — clue string, solution, tier, clue count,

@@ -4,9 +4,34 @@ on:
   # Pushes to main and pull requests, not every branch push: a branch with an
   # open PR would otherwise run the whole workflow twice for one commit, and the
   # two runs differ only in which ref they check out.
+  #
+  # Documentation is skipped because nothing below reads it. check_offline.dart
+  # scans .dart files, the platform manifests and the resolved dependency graph;
+  # check_determinism.dart scans the engine's lib/; the Flutter pin is read from
+  # this file rather than from a document. A commit touching only Markdown or
+  # the licence cannot turn any of them red, and it costs five build jobs to
+  # find that out — two of them on macOS and Windows minutes.
+  #
+  # Two consequences, both deliberate. A docs-only push to main leaves main's
+  # last CI run pointing at the last commit that carried code, which is the
+  # commit it was measuring anyway. And a pull request that changes only docs
+  # gets no checks at all: fine while main is unprotected, but if these jobs
+  # ever become required checks, a skipped one stays pending forever and blocks
+  # the merge — at which point this needs a companion workflow reporting the
+  # same job names, not the deletion of the filter.
+  #
+  # Paths are repeated rather than shared through a YAML anchor: the Actions
+  # parser does not expand anchors, so an alias here would silently filter
+  # nothing.
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
   workflow_dispatch:
 
 # A newer push to the same branch makes the older run irrelevant.

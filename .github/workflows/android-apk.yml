@@ -15,6 +15,10 @@ on:
   # in: the Flutter pin is read from ci.yml below, because `env` is not in scope
   # for a called workflow's inputs and a second copy of the pin is a second
   # thing to forget.
+  #
+  # No paths filter here, and adding one would do nothing: this workflow never
+  # triggers on a push, so what decides whether it runs is the caller's filter —
+  # ci.yml skips documentation, and this leg skips with it.
   workflow_call:
     outputs:
       apk:
