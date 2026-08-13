@@ -4,6 +4,7 @@ import 'fish.dart';
 import 'intersections.dart';
 import 'singles.dart';
 import 'subsets.dart';
+import 'wings.dart';
 
 /// The techniques the solver knows, in the order it tries them, each paired
 /// with the tier it costs and the function that applies it.
@@ -54,7 +55,11 @@ enum Technique {
 
   /// A digit whose only places in two rows are the same two columns, or the
   /// transpose.
-  xWing(Difficulty.hard, applyXWing);
+  xWing(Difficulty.hard, applyXWing),
+
+  /// Three cells holding `xy`, `xz` and `yz`, ruling `z` out of whatever sees
+  /// both ends.
+  xyWing(Difficulty.hard, applyXyWing);
 
   const Technique(this.tier, this.apply);
 

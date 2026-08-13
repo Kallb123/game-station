@@ -183,6 +183,10 @@ const List<Fixture> fixtures = [
       Elimination(48, 3),
     ],
   ),
+  // The X-wing and the XY-wing share a tier and differ in shape: one reasons
+  // about a digit's places across two lines, the other about three cells that
+  // chain together. Both are needed for T3 to be a tier a puzzle can land in
+  // at all — see the note on `applyXyWing`.
   Fixture.eliminates(
     Technique.xWing,
     '681492753'
@@ -195,6 +199,19 @@ const List<Fixture> fixtures = [
     '43...95.1'
     '.1652394.',
     [Elimination(54, 7), Elimination(62, 7)],
+  ),
+  Fixture.eliminates(
+    Technique.xyWing,
+    '317628549'
+    '8..3.7162'
+    '2.6..5378'
+    '93..76285'
+    '62.8.94.7'
+    '.782..69.'
+    '1895..726'
+    '.637829..'
+    '7.29618..',
+    [Elimination(49, 1)],
   ),
 ];
 
@@ -215,7 +232,11 @@ const String expert9x9 =
 const String medium6x6 = '..652...........1.3....4164...5.3...';
 
 /// A 6x6 with one solution that the techniques cannot finish.
-const String expert6x6 = '......2....1....5...43....6...3.156.';
+///
+/// This one replaced an earlier fixture that the XY-wing solves: adding a
+/// technique moves the T4 boundary, which is exactly what
+/// `PLAN-phase-2.md` §2 assumed it would not do.
+const String expert6x6 = '.2......45....3...1..3.5......46..1.';
 
 void main() {
   group('each technique on the fixture where it is the only progress', () {
