@@ -51,9 +51,16 @@ jobs:
       - name: Analyze tool scripts
         run: dart analyze --fatal-infos --fatal-warnings tool
 
+      # FUZZ_SEEDS is how many puzzles the fuzz generates across every size and
+      # difficulty; tool/verify.sh sets the same 2000, so what blocks a merge
+      # and what people run locally are one check rather than two. The goldens
+      # in the same suite are compared unconditionally: they are the promise
+      # that a saved puzzle ID still names the grid it named when it was saved.
       - name: Test puzzle_engine
         run: dart test
         working-directory: packages/puzzle_engine
+        env:
+          FUZZ_SEEDS: 2000
 
       # The PRNG and the hash mask every operation to 32 bits so that a
       # JavaScript number — exact only to 53 bits — produces the same puzzles as

@@ -27,8 +27,13 @@ step 'Analyzing app'
 step 'Analyzing tool scripts'
 dart analyze --fatal-infos --fatal-warnings tool
 
+# FUZZ_SEEDS is how many puzzles test/fuzz_test.dart generates, across every
+# size and difficulty. It defaults to 200 so a bare `dart test` stays usable
+# while iterating; this and CI both set 2000, so the check that blocks a merge
+# and the check people run here are the same one rather than two that drift.
+# It is most of this script's runtime — see AGENTS.md's table.
 step 'Testing puzzle_engine'
-(cd packages/puzzle_engine && dart test)
+(cd packages/puzzle_engine && FUZZ_SEEDS=2000 dart test)
 
 # The PRNG and the hash mask every operation to 32 bits so that a JavaScript
 # number, which is exact only to 53 bits, produces the same puzzles as a 64-bit
