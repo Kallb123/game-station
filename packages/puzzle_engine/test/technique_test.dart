@@ -454,6 +454,58 @@ void main() {
     });
   });
 
+  group('nextPlacement', () {
+    test('a position whose cheapest step is an elimination still yields a '
+        'placement', () {
+      final fixture = fixtures.firstWhere(
+        (f) => f.technique == Technique.nakedPair,
+      );
+      final board = SudokuBoard.fromClues(SudokuSpec.s9x9, fixture.clues);
+      expect(
+        nextStep(board)!.isPlacement,
+        isFalse,
+        reason: 'the fixture is chosen because its cheapest step eliminates',
+      );
+
+      final step = nextPlacement(board);
+      expect(step, isNotNull);
+      expect(step!.isPlacement, isTrue);
+      expect(step.digit, _forcedDigitAt(fixture.clues, step.index));
+    });
+
+    test('a T4 board yields null once technique stalls', () {
+      // expert9x9 is the case technique cannot finish (the 'tiers' group
+      // above). Driving it forward the way a run of hints would — place
+      // whatever nextPlacement returns, then ask again — has to hit that same
+      // wall before every cell is filled.
+      final board = SudokuBoard.fromClues(SudokuSpec.s9x9, expert9x9);
+      SolveStep? step;
+      while ((step = nextPlacement(board)) != null) {
+        board.place(step!.index, step.digit);
+      }
+
+      expect(
+        board.isFull,
+        isFalse,
+        reason: 'an Expert board should stall before it is finished',
+      );
+    });
+
+    test('the placed digit always matches the puzzle\'s solution', () {
+      for (final fixture in fixtures) {
+        final board = SudokuBoard.fromClues(SudokuSpec.s9x9, fixture.clues);
+        final step = nextPlacement(board);
+
+        expect(step, isNotNull, reason: fixture.clues);
+        expect(
+          step!.digit,
+          _forcedDigitAt(fixture.clues, step.index),
+          reason: fixture.clues,
+        );
+      }
+    });
+  });
+
   group('determinism', () {
     test('two solves of the same board make the same steps in order', () {
       // A technique that scanned units or digits in an unspecified order could
