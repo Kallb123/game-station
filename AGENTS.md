@@ -37,11 +37,11 @@ finish everything else and say plainly what was left and why.
 tool/verify.sh
 ```
 
-It takes about a minute and a half on a warm container, which is cheaper than a red build, so run it
-whole before every commit rather than choosing which checks to skip. Most of that is the engine
-suite: comparing the golden puzzles means generating 700 of them, and the fuzz generates 2000 more.
-While iterating, run the individual steps directly — each is the command CI runs, so a step that
-passes here passes there:
+It takes about two minutes on a warm container, which is cheaper than a red build, so run it whole
+before every commit rather than choosing which checks to skip. Most of that is the engine: comparing
+the golden puzzles means generating 700 of them, the fuzz generates 2000 more, and the benchmark
+generates 350. While iterating, run the individual steps directly — each is the command CI runs, so a
+step that passes here passes there:
 
 | Command | Covers |
 |---|---|
@@ -51,6 +51,7 @@ passes here passes there:
 | `dart analyze --fatal-infos --fatal-warnings tool` | The build scripts themselves. |
 | `cd packages/puzzle_engine && FUZZ_SEEDS=2000 dart test` | Engine tests as CI runs them, about a minute. Add a path for one file, `-n <substring>` for one test. |
 | `cd packages/puzzle_engine && dart test` | The same, with the fuzz at its default 200 puzzles instead of 2000: about 25 s, nearly all of it the goldens. What to run while iterating. |
+| `cd packages/puzzle_engine && dart run tool/benchmark.dart` | Generation speed against `PLAN.md` §3.5, about ten seconds. Fails at three times a target on the median. |
 | `cd app && flutter test` | App tests, about five seconds. Same path and `-n` narrowing. |
 | `cd packages/puzzle_engine && dart test -p chrome test/rng_test.dart test/hash_test.dart` | That the engine's 32-bit masking holds where numbers are doubles. Needs a Chrome; `verify.sh` skips it when there is none, and says so. |
 | `dart tool/check_offline.dart --self-test` | That the offline scanner still detects what it claims to. |

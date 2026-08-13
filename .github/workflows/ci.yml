@@ -62,6 +62,16 @@ jobs:
         env:
           FUZZ_SEEDS: 2000
 
+      # PLAN.md §3.5's targets, measured rather than asserted in review. The
+      # ceiling is three times the target and applies to the median, because a
+      # shared runner varies by more than a factor of two and a check that goes
+      # red when the runner is busy is a check somebody deletes. An
+      # order-of-magnitude regression is what this catches; the tail is the
+      # fuzz's 2 s per-puzzle ceiling above.
+      - name: Benchmark the generator
+        run: dart run tool/benchmark.dart
+        working-directory: packages/puzzle_engine
+
       # The PRNG and the hash mask every operation to 32 bits so that a
       # JavaScript number — exact only to 53 bits — produces the same puzzles as
       # a 64-bit VM. Compiling those two files with dart2js and running them in

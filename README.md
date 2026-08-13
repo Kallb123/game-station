@@ -3,11 +3,16 @@
 A local, offline, ad-free games app for kids. Android, iOS, Windows, macOS, and Linux from one
 codebase.
 
-**Status:** phase 1 done — the app shell runs: home screen, local profiles, settings, day/night/system
-theme, and progress saved to an atomically written JSON file that survives a force-quit and recovers
-from a corrupt one. No games yet; the Sudoku and Arcade cards open "coming soon" screens until phases
-2–4. Checked by hand on Android; the other four targets build in CI but have not been run on a device.
-Next is phase 2, the Sudoku engine. See [PLAN.md](PLAN.md) §7 for the phase order.
+**Status:** phases 1 and 2 done. The app shell runs: home screen, local profiles, settings,
+day/night/system theme, and progress saved to an atomically written JSON file that survives a
+force-quit and recovers from a corrupt one. The Sudoku engine is finished behind it — 9x9 and 6x6
+generated deterministically from an ID, four difficulty tiers judged by technique, hints, and 700
+golden puzzles that turn CI red if any of it drifts.
+
+Still no games to play: nothing in the app imports the engine yet, so the Sudoku and Arcade cards open
+"coming soon" screens. Next is phase 3, which draws the grid and wires generation into an isolate.
+Checked by hand on Android; the other four targets build in CI but have not been run on a device. See
+[PLAN.md](PLAN.md) §7 for the phase order.
 
 ## What it is
 
@@ -42,6 +47,7 @@ See [PLAN.md](PLAN.md) for the reasoning, alternatives considered, phase breakdo
 app/                    # the Flutter application (UI, storage, audio, arcade games)
 packages/puzzle_engine/ # pure-Dart Sudoku generation and solving
 tool/check_offline.dart # enforces no network, no ads, no tracking
+tool/check_determinism.dart # enforces the engine's no-clock, no-dart:math rules
 tool/verify.sh          # everything CI runs, in the same order
 tool/install_flutter.sh # installs the pinned SDK, for cloud sessions
 tool/check_apk_permissions.sh # asserts a built APK requests no permissions
@@ -97,6 +103,15 @@ the build rather than surviving to a release:
 | Android release manifest | Requests `INTERNET`. CI also asserts the built release APK requests no platform permission — the only one present is the signature-level `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` that AndroidX grants the app over itself. |
 | macOS release entitlements | Grant a network entitlement. |
 | `puzzle_engine` purity | Imports Flutter, `dart:io`, `dart:ui` or `dart:isolate`. |
+
+Puzzle determinism is enforced the same way, by two checks rather than by care. A save file stores
+puzzle IDs and not grids, so a generator that read a clock or drew from `dart:math` would turn a
+solved puzzle into a different unsolved one on someone else's device, months later.
+[`tool/check_determinism.dart`](tool/check_determinism.dart) catches the cause — a clock, `Random`, or
+iterating a `Set` or `Map` in the engine's `lib/` — and the golden puzzle files catch the effect, by
+holding 700 generated puzzles that CI compares against on every run. The scanner has its own
+self-test, because a scanner that silently stops scanning looks exactly like one that found nothing;
+the goldens were checked the other way round, by breaking a PRNG constant and watching them go red.
 
 Code is MIT ([`LICENSE`](LICENSE)). Assets are licensed per file, with rules and an inventory in
 [`app/assets/LICENSE-ASSETS.md`](app/assets/LICENSE-ASSETS.md).

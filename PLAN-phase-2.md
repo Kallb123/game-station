@@ -1,8 +1,19 @@
 # Phase 2 — Sudoku engine
 
+**Closed. Kept as the record of a finished phase, not as current plan.** [`PLAN.md`](PLAN.md) is the
+source of truth for what the project is doing now; §7 there carries the phase-2 outcome and everything
+that differed from this file, and §3.1, §3.3, §3.4, §3.5 and §3.6 have been reconciled with what was
+built. Read this one for *why* a piece of `packages/puzzle_engine` is shaped the way it is — the
+engine and its tests cite these section numbers throughout, which is why it stays here under its
+original name rather than being deleted or moved.
+
+Below, "will" and "is" describe the plan as it was written before the phase started, except where a
+paragraph says otherwise: the sections that were rebuilt against measurements say so in place, since a
+plan that no longer matches the code is worse than none.
+
 The plan for `packages/puzzle_engine`: the PRNG, hash, board, solvers, generator and puzzle IDs, with
 the determinism tests that freeze their output. [`PLAN.md`](PLAN.md) §3 is the design this expands and
-§7 is the phase order; where the two disagree, this file states the reason and the closing PR updates
+§7 is the phase order; where the two disagreed, this file stated the reason and PR 7 updated
 `PLAN.md`.
 
 Phase 2 ships no user-visible behaviour. It touches nothing in `app/` except the closing
@@ -628,6 +639,17 @@ no golden file has more than 5 widened entries in 100; the 2000-seed fuzz passes
 2 s; and perturbing one Xoshiro constant is shown to turn the goldens red before being reverted —
 recorded in the PR body, per `AGENTS.md`'s rule that a guard is checked against the broken version.
 
+Met: 1 of 700 golden puzzles is widened, and changing `rotl32(_s[3], 11)` to `12` turned eleven tests
+red — all seven golden comparisons, each naming 100 of 100 changed puzzles, plus four `rng_test.dart`
+literals. Differed from the plan, decided while building it:
+
+- **A golden line gained a fourth field, `ok` or `widened`** (§4.8), so the widening rate is committed
+  rather than recomputed.
+- **`FUZZ_SEEDS` counts puzzles in total rather than per combination** (§4.8), because per combination
+  it is five minutes of fuzz and a five-minute check is the check people stop running.
+- **The suite is about 25 s at the default rather than §1's "under 10 s"**, because comparing goldens
+  means generating them. §1 says so now, and `AGENTS.md`'s runtimes moved with it.
+
 ### PR 7 — Benchmark and phase close (0.5–0.75 day)
 
 Commits:
@@ -640,6 +662,27 @@ Commits:
 **Done when:** `dart tool/benchmark.dart` prints p50/p95/max per combination on the development
 machine, the numbers are recorded in the PR body against the `PLAN.md` §3.5 targets with any miss
 named, and the CI step passes at the 3× ceiling.
+
+Met. Differed from the plan, decided while closing it:
+
+- **The command is `dart run tool/benchmark.dart`**, and it is in `tool/verify.sh` as well as in CI —
+  `AGENTS.md` says `verify.sh` is everything CI runs, and a benchmark that only ran on a merge would
+  make that sentence false for the sake of ten seconds.
+- **The ceiling applies to the median, not to the max**, which §4.9 did not pin down. One slow puzzle
+  in fifty is a property of Sudoku rather than of this code, and the tail already has a guard in the
+  fuzz's 2 s per-puzzle ceiling over 2000 puzzles. p95 and max are printed so a tail that moves is
+  visible without failing a build.
+- **It warms up three puzzles per combination before timing.** The VM compiles a method properly only
+  after it has run a few times, so without that the first puzzle of each combination lands in the
+  `max` column at ten to twenty times its own median — which is the column somebody reads to decide
+  whether the tail moved.
+- **Every median is inside the plain §3.5 target, not merely inside the 3× ceiling**, but two p95s are
+  not: 9x9 Medium at 138 ms against 100 ms, and 6x6 Hard at 54 ms against 30 ms. Named rather than
+  averaged away. `PLAN.md` §3.5 records them and answers them with the cache and the pre-warm, which
+  is phase 3's work: a puzzle is generated once and read from the save file thereafter.
+- **`PLAN-phase-2.md` is not deleted.** `PLAN-phase-1.md`'s PR 7 said "delete or archive this file";
+  the convention that settled instead — a banner marking it closed, in place, under its original name
+  — is what `AGENTS.md` now describes, and it is what the engine's comments depend on.
 
 ---
 
@@ -662,25 +705,32 @@ named, and the CI step passes at the 3× ceiling.
 
 ## 8. Verification checklist
 
-- [ ] `tool/verify.sh` passes from a clean checkout.
-- [ ] `dart tool/check_determinism.dart --self-test` fails against each banned construct and passes
-      against `packages/puzzle_engine/lib`.
-- [ ] `dart tool/check_offline.dart` reports no violations, including engine purity.
-- [ ] `cd packages/puzzle_engine && dart test` passes at the default `FUZZ_SEEDS`, in about 25 s —
+- [x] `tool/verify.sh` passes from a clean checkout.
+- [x] `dart tool/check_determinism.dart --self-test` fails against each banned construct and passes
+      against `packages/puzzle_engine/lib` — 25 self-test cases, 20 files clean.
+- [x] `dart tool/check_offline.dart` reports no violations, including engine purity.
+- [x] `cd packages/puzzle_engine && dart test` passes at the default `FUZZ_SEEDS`, in about 25 s —
       the goldens are 19 s of that, and `dart test test/<file>` is what stays fast while iterating.
-- [ ] `cd packages/puzzle_engine && dart test -p chrome test/rng_test.dart test/hash_test.dart` passes.
-- [ ] `FUZZ_SEEDS=2000 dart test test/fuzz_test.dart` passes with no generate over 2 s.
-- [ ] The 2000-puzzle fuzz's widening rate and slowest generate are recorded in PR 6's body.
-- [ ] All seven `test/golden/*.golden` files exist, carry `generatorVersion: 1`, and cover indices
+- [x] `cd packages/puzzle_engine && dart test -p chrome test/rng_test.dart test/hash_test.dart` passes.
+      Run against the container's Chromium; `verify.sh` skips it locally for want of a Chrome on
+      `PATH`, and CI runs it on every push.
+- [x] `FUZZ_SEEDS=2000 dart test test/fuzz_test.dart` passes with no generate over 2 s.
+- [x] The 2000-puzzle fuzz's widening rate and slowest generate are recorded in PR 6's body: 4 in 2000
+      widened, all 6x6 Hard, and 547 ms.
+- [x] All seven `test/golden/*.golden` files exist, carry `generatorVersion: 1`, and cover indices
       0–99.
-- [ ] Editing one Xoshiro constant turns the goldens red; reverted, with the run recorded in PR 6's
+- [x] Editing one Xoshiro constant turns the goldens red; reverted, with the run recorded in PR 6's
       body.
-- [ ] `grep -rn "dart:math\|DateTime.now\|Stopwatch" packages/puzzle_engine/lib` returns nothing.
-- [ ] `grep -rn "Rng\|fnv1a32" app/lib` returns nothing — neither is exported.
-- [ ] Every golden file has 5 or fewer widened entries per 100.
-- [ ] `dart tool/benchmark.dart` output recorded in PR 7's body against the `PLAN.md` §3.5 targets,
+- [x] No banned construct in `packages/puzzle_engine/lib`. The grep this item first named —
+      `grep -rn "dart:math\|DateTime.now\|Stopwatch"` — returns three hits and always will: they are
+      doc comments in `rng.dart` and `puzzle_engine.dart` explaining why those constructs are banned.
+      `tool/check_determinism.dart` is the check that answers the question, because it strips comments
+      before scanning, which is the same reason `check_offline.dart` does.
+- [x] `grep -rn "Rng\|fnv1a32" app/lib` returns nothing — neither is exported.
+- [x] Every golden file has 5 or fewer widened entries per 100: one file has 1, the other six have 0.
+- [x] `dart run tool/benchmark.dart` output recorded in PR 7's body against the `PLAN.md` §3.5 targets,
       with any miss named rather than omitted.
-- [ ] `PLAN.md` §3.1, §3.3, §3.6 and §7 match what was built.
+- [x] `PLAN.md` §3.1, §3.3, §3.4, §3.5, §3.6, §7 and §10 match what was built.
 
 ---
 
@@ -690,7 +740,7 @@ named, and the CI step passes at the 3× ceiling.
 |---|---|---|
 | Xoshiro128+ instead of `PLAN.md` §3.1's two-word sketch? | Assumed yes; the sketch is illustrative and the four-word generator is stronger for the same code size. | Owner's call before PR 1 merges. After it merges and goldens exist, changing it costs a `generatorVersion` bump. |
 | ~~Golden files store the clue string rather than `PLAN.md` §3.6's sha256?~~ **Resolved: yes.** | Built in PR 6: no `crypto` dependency, and a failure names the puzzles that changed. The seven files are 76 KB, close to the ~70 KB estimated. | PR 6's diff. Changing it later costs nothing but the diff, since nothing reads a golden but its own test. |
-| ~~Should `tool/verify.sh` carry the 2000-seed fuzz, taking it from about one minute to about three?~~ **Resolved: yes, and it costs less than that.** | Built in PR 6: `verify.sh` is about a minute and a half, because `FUZZ_SEEDS` counts puzzles across the matrix rather than per combination (§4.8). `verify.sh` stays "everything CI runs" with no note about being a subset. | PR 6's measurement. If it ever becomes the reason people skip the script, the fallback is unchanged: a CI-only job and a line in `AGENTS.md` saying so. |
+| ~~Should `tool/verify.sh` carry the 2000-seed fuzz, taking it from about one minute to about three?~~ **Resolved: yes, and it costs less than that.** | Built in PR 6: `verify.sh` is about a minute and a half, and about two once PR 7's benchmark joined it — rather than the five-plus minutes it would have been, because `FUZZ_SEEDS` counts puzzles across the matrix rather than per combination (§4.8). `verify.sh` stays "everything CI runs" with no note about being a subset. | PR 6's measurement. If it ever becomes the reason people skip the script, the fallback is unchanged: a CI-only job and a line in `AGENTS.md` saying so. |
 | ~~Is `dart test -p chrome` available on the CI runner without extra setup?~~ **Resolved: yes.** | `ubuntu-latest` ships Chrome and the step needs no browser setup. | PR 1's first CI run, green, and PR 2's after it. §7's masking risk keeps its residual note: the two frozen test files are covered, the generator's own arithmetic is not. |
 | Should 9x9 Expert (T4, "needs guessing") be offered to children at all? | Assumed yes, as `PLAN.md` §3.4 specifies. The engine generates it either way. | A phase-3 decision about which difficulties the picker shows. Nothing here blocks it. |
 | Does phase 3 need a "generate the next N indices" batch API for pre-warming? | Assumed no: `PLAN.md` §3.5 pre-warms one puzzle when the menu opens, which is one call. | Phase 3, when the isolate wiring is written. Adding it later is additive. |

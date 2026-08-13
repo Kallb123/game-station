@@ -100,24 +100,32 @@ versions. If it changes, every previously generated puzzle changes with it, whic
 saved progress: the save file stores puzzle IDs, not grids, so a solved puzzle would come back as a
 different unsolved one.
 
-Implement the PRNG in-repo instead — `Xoshiro128+` or `PCG32`, roughly twenty lines of integer
-arithmetic, frozen once written.
+The PRNG is implemented in-repo instead, and frozen once written. **Xoshiro128+**, built in phase 2:
 
 ```dart
-// packages/puzzle_engine/lib/src/rng.dart
+// packages/puzzle_engine/lib/src/rng.dart — not exported from the package
 class Rng {
-  int _s0, _s1;
-  Rng(int seed) : _s0 = seed ^ 0x9E3779B9, _s1 = (seed * 0x85EBCA6B) & 0xFFFFFFFF {
-    if (_s0 == 0 && _s1 == 0) _s0 = 1;      // all-zero state never advances
-    for (var i = 0; i < 8; i++) nextInt(2); // discard early low-entropy output
-  }
-  int nextInt(int bound) { /* xorshift128, mask to 32 bit, mod bound */ }
-  void shuffle<T>(List<T> list) { /* Fisher-Yates using nextInt */ }
+  Rng(int seed);                 // four 32-bit words, seeded by SplitMix32 expansion
+  int nextUint32();              // the raw step
+  int nextInt(int bound);        // 1 <= bound <= 2^32, unbiased by rejection
+  void shuffle<T>(List<T> list); // Fisher-Yates, descending
 }
 ```
 
+Three things differ from the two-word sketch this section first carried, each for a reason recorded
+in `PLAN-phase-2.md` §4.1. Four 32-bit words give a 2^128−1 period for the same twenty lines, and are
+natively 32-bit so nothing needs splitting. SplitMix32 avalanches the seed before it reaches the
+state, which does the job the "discard eight outputs" loop was there for — and that loop's iteration
+count would itself have been a frozen constant. The all-zero-state guard is gone because SplitMix32
+is a bijection on 32 bits, so at most one of the four words can be zero and the guard would be a
+branch no test could enter.
+
+`nextInt` rejects rather than folds: modulo is biased for bounds that do not divide 2^32, and the
+value is frozen either way, so there is no reason to freeze the biased one.
+
 Mask to 32 bits at every step. JavaScript numbers only hold 53 bits exactly, so unmasked 64-bit
-arithmetic would diverge if a web target is ever added.
+arithmetic would diverge if a web target is ever added. `test/rng_test.dart` and `test/hash_test.dart`
+run under `dart test -p chrome` in CI, which is what checks it.
 
 ### 3.2 Puzzle identity
 
@@ -140,8 +148,15 @@ Two ways to reach a puzzle:
 | 9x9 | 1–9 | 3 rows x 3 cols | 81 |
 | 6x6 | 1–6 | 2 rows x 3 cols | 36 |
 
-The engine is size-generic — one `SudokuSpec { rows, cols, boxRows, boxCols }` rather than two
-near-duplicate implementations. 4x4 and 12x12 then cost nothing.
+The engine is size-generic — one `SudokuSpec` rather than two near-duplicate implementations, so 4x4
+and 12x12 cost nothing later. It holds **the box shape only**, `SudokuSpec { boxRows, boxCols }`,
+rather than the four fields this section first named: rows and columns are `boxRows * boxCols`, so
+storing all four is storing a record that can be built inconsistent. Deriving them removes that state
+instead of validating it away.
+
+Only `9x9` and `6x6` are named, because those are the sizes a puzzle ID can spell — an unsupported
+size is refused when the ID is parsed rather than reaching a solver that would handle it perfectly
+well.
 
 ### 3.4 Generation
 
@@ -172,8 +187,16 @@ attempts. See `PLAN-phase-2.md` §4.7.
 
 Run the technique solver in tier order; the highest tier it must reach is the puzzle's difficulty. If
 the result misses the requested tier, discard it, advance a sub-counter on the seed and regenerate,
-up to about 40 attempts. On 40 failures, widen the accepted tier by one notch and log a warning —
-never surface a generation failure to a child.
+**up to 250 attempts** — 40 when this section was written, and raised in phase 2 because the hit rate
+is a property of Sudoku rather than of the code: at 40, 6x6 Hard widened 40 times in 50. On the last
+failure the generator keeps the closest attempt it saw rather than widening by a fixed notch, and says
+so in `widened` on the result. Nothing throws; never surface a generation failure to a child.
+
+Two more things the dig learned in phase 2, both in `PLAN-phase-2.md` §4.7. It refuses a hole that
+would push the grid past the tier asked for and carries on with the next cell, because without that
+9x9 Hard came out Expert 30 times in 50. And it passes the clue-count floor while the grid is still
+too easy, stopping only once the tier is reached, because a grid that is still Medium at 26 clues is
+often the Hard puzzle that was wanted three holes later.
 
 Clue counts serve only as guard rails:
 
@@ -204,6 +227,15 @@ Uniqueness checking dominates. Targets:
 - 9x9 Hard and Expert: under 400 ms
 - 6x6: under 30 ms
 
+**Measured in phase 2, and met at the median on every combination** —
+`packages/puzzle_engine/tool/benchmark.dart` prints the table and CI fails at three times a target.
+On the development container, medians were 1.0 ms for 9x9 Easy, 28.2 ms Medium, 65.3 ms Hard and
+24.0 ms Expert; 0.3 ms for 6x6 Easy, 0.2 ms for Medium and 11.7 ms for 6x6 Hard. The tail is where the
+targets are read generously: 9x9 Medium's p95 is 138 ms against a 100 ms target and 6x6 Hard's is
+54 ms against 30 ms, because a retry costs a whole attempt and some seeds need several. That is
+answered by the cache and the pre-warm below rather than by moving the numbers — a puzzle is
+generated once and then read from the save file.
+
 To hit them:
 
 - Bitmask candidates — one integer per row, column and box, using `&`, `|` and popcount rather than
@@ -217,22 +249,32 @@ To hit them:
 The most important tests in the repository.
 
 ```
-test/golden/sudoku_9x9_easy.golden     # 100 rows of id -> sha256 of the clue string
-test/golden/sudoku_9x9_medium.golden
+test/golden/sudoku_9x9_easy.golden     # generatorVersion header + 100 lines
+test/golden/sudoku_9x9_medium.golden   # index clueCount tier widened clues
 ...                                    # one file per size x difficulty
 ```
 
-For indices 0–99, generate, hash and compare against the golden file. Any change to `Rng`, the hash
-or generator ordering turns CI red. When such a change is intentional, bump `generatorVersion` and
-keep the old generator reachable behind that switch so existing saves stay valid.
+For indices 0–99, generate and compare against the golden file. Any change to `Rng`, the hash or
+generator ordering turns CI red. When such a change is intentional, bump `generatorVersion` and keep
+the old generator reachable behind that switch so existing saves stay valid.
+
+**Each line holds the clue string verbatim, not the sha256 this section first specified.** A hash
+would mean a `crypto` dependency in a package that has none, and its failure says "the hash differs"
+where a clue string says which puzzles changed. The seven files come to 76 KB, which is the whole of
+what that costs. Regeneration is `dart run tool/regen_goldens.dart`, and nothing prevents it being
+run to turn a red build green: the control is that the diff names every puzzle that moved, which is a
+review control and is written down as one (`PLAN-phase-2.md` §4.8).
 
 Also test:
 
 - Every generated puzzle has exactly one solution (brute-force count == 1).
 - The assigned tier matches what the technique solver reports (round trip).
 - 6x6 boxes are 2 rows x 3 cols, not 3 x 2.
-- The same seed produces byte-identical output across runs and across isolates.
-- Fuzz 2000 seeds: no crashes, no non-termination, with a hard per-puzzle timeout.
+- The same seed produces byte-identical output across runs. Across *isolates* is not tested and needs
+  no test: the engine holds no mutable top-level state, so an isolate is another process's worth of
+  the same pure function — the cross-run half is what the goldens already prove.
+- Fuzz 2000 puzzles across the seven size-and-difficulty combinations: no crashes, no non-termination,
+  and none over 2 s. `FUZZ_SEEDS` sets the count; CI and `tool/verify.sh` both set 2000.
 
 ### 3.7 Sudoku UI
 
@@ -507,13 +549,13 @@ What differed from the plan, decided while building it:
 - Route names live in `app/lib/routes.dart` rather than in `app.dart`, so a screen can name a route
   without importing the app root, which imports every screen.
 
-### Phase 2 — Sudoku engine (5–7 days)
+### Phase 2 — Sudoku engine (5–7 days) — done
 
 The critical path, and planned as seven pull requests in [`PLAN-phase-2.md`](PLAN-phase-2.md) as phase
 1 had: the determinism rules in §3.1 and §3.6 are easier to hold to when the order they are built in
-is written down first. That file also carries the decisions this section leaves open — which PRNG,
-what a golden file holds — and states where it departs from §3.1, §3.3 and §3.6 above, which its
-closing PR reconciles.
+is written down first. That file stays as the record of why each piece of the engine is shaped the way
+it is — the code cites its section numbers — and §3.1, §3.3, §3.4, §3.5 and §3.6 above now say what
+was built rather than what was sketched.
 
 - `Rng`, `fnv1a`, `SudokuSpec`, bitmask `SudokuBoard`.
 - Solver: brute-force count-to-2, plus the technique-tier solver.
@@ -523,6 +565,35 @@ closing PR reconciles.
 - A benchmark script meeting the §3.5 targets.
 - **Done when:** `dart test` is green, goldens are locked, the 2000-seed fuzz is clean, and the
   benchmark is within target.
+
+**Met in full, and checked rather than asserted.** The engine suite is green; seven golden files hold
+indices 0–99 of every size and label and are compared on every run; the 2000-puzzle fuzz is clean with
+no generate over 2 s; and the benchmark is inside every §3.5 target at the median, with CI failing at
+three times one. The phase ships no user-visible behaviour and touches nothing in `app/`, so there is
+nothing to check on a device — the six-target gap carried out of phase 1 is unchanged and still sits
+in §9.
+
+What differed from the plan, decided while building it:
+
+- **The XY-wing had to be added to T3**, which §3.4 records. Without it a grid that singles and pairs
+  cannot finish nearly always needs guessing too, so Hard was reachable about once in a hundred
+  attempts and nearly every "Hard" puzzle was a widened Medium or Expert. It is the one place where
+  the technique list decides which puzzles exist rather than only what they are called.
+- **6x6 Medium is defined by sparseness, not by technique** (§3.4). A 6x6 that needs a pair and
+  nothing more is about one dug grid in three hundred.
+- **The retry budget is 250 attempts, not 40**, and the generator settles for its closest attempt
+  rather than widening by a notch (§3.4).
+- **The clue bands moved to where puzzles actually land** (§3.4), and the dig aims at the tier rather
+  than at a clue count.
+- **Goldens store the clue string, not a sha256** (§3.6), and **`SudokuSpec` holds the box shape
+  only** (§3.3).
+- **The engine suite costs about 25 s rather than the 10 s `PLAN-phase-2.md` §1 budgeted**, because
+  comparing 700 golden puzzles means generating them. `tool/verify.sh` is about two minutes with the
+  benchmark in it, and `AGENTS.md` says so.
+- **`Difficulty` is one enum for both the label and the tier**, so no table pairs them and neither can
+  fall out of step with the other.
+- **Nothing in `app/lib` imports the engine yet.** `nextStep()` exists for phase 3's hints with a test
+  and no caller, which is where the phase boundary was drawn.
 
 ### Phase 3 — Sudoku UI (5–7 days)
 
@@ -535,6 +606,21 @@ closing PR reconciles.
 - Generation in an isolate, with a spinner and pre-warming.
 - **Done when:** 9x9 and 6x6 can be solved end to end; a force-quit mid-puzzle resumes the exact
   board; solved state persists across a restart.
+
+What phase 2 hands over, so phase 3 does not have to read the engine to find out:
+
+- `generateSudoku(PuzzleId)` returns a `GeneratedPuzzle` — clue string, solution, tier, clue count,
+  and `widened`. It never throws for a puzzle it could not make well; it settles and sets `widened`,
+  which the UI shows like any other puzzle rather than reporting. It *does* throw `ArgumentError` for
+  6x6 Expert, which `PuzzleId.parse` also refuses to spell, so the picker must not offer it.
+- `SudokuBoard.fromClues(spec, clues)` reads the clue string back, and `nextStep(board)` is the hint:
+  the cheapest available deduction, or null when technique has run out. Both are exported; `Rng`,
+  `fnv1a32`, `countSolutions` and `CandidateGrid` deliberately are not.
+- The engine is synchronous and holds no mutable top-level state, so `compute()` is all the isolate
+  wiring it needs. A 9x9 Hard is 65 ms at the median and occasionally half a second (§3.5), which is
+  why the spinner and the pre-warm are in this list rather than optional.
+- `puzzleCache` in the schema (§5.2) is still unwritten, and `generatorVersion` is 1. A cached grid is
+  only valid for the version that made it, so the cache is keyed by both or dropped on a bump.
 
 ### Phase 4 — arcade shell and Space Invaders (5–7 days)
 
@@ -625,14 +711,19 @@ complete app.
 
 ## 10. Starting order
 
-1. Phase 0: scaffold the app and engine package, CI, and the no-network guard. **Done**, and so is
-   phase 1 — the next work is steps 2 and 3, which are phase 2's first two.
+1. Phase 0: scaffold the app and engine package, CI, and the no-network guard. **Done**, and so are
+   phases 1 and 2 — steps 2 and 3 below were phase 2's first two and are done with it.
 2. Write `Rng` and `fnv1a`, and write the determinism test **before** the generator, so the sequence
-   is locked before anything depends on it.
-3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it.
+   is locked before anything depends on it. **Done:** the sequence is frozen against literals in
+   `rng_test.dart` and against 700 golden puzzles.
+3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it. **Done.**
 
-Phase 2 touches nothing in `app/`: the engine is a pure-Dart package with its own tests, so the phase
-can be built and reviewed without opening the Flutter app. Schema v1 already declares the `sudoku`
-fields phase 3 will fill (§5.2), so phase 2 owes the save file nothing either.
+The next work is phase 3, and it starts in `app/` rather than in the engine: the engine is finished
+for what phase 3 needs, and the first thing that has to exist is the isolate wiring and a grid widget
+to draw a clue string into. Phase 3's list in §7 names what phase 2 hands over.
+
+Phase 2 touched nothing in `app/`: the engine is a pure-Dart package with its own tests, so the phase
+was built and reviewed without opening the Flutter app. Schema v1 already declares the `sudoku`
+fields phase 3 will fill (§5.2), so phase 2 owed the save file nothing either.
 
 Space Invaders is the easier and more enjoyable half, so it makes a better reward than a warm-up.
