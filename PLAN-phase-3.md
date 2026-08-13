@@ -307,8 +307,13 @@ so the 500 ms debounce and the one-write-at-a-time queue apply unchanged
 void saveInProgress(PuzzleId id, PuzzleInProgress state);
 void clearInProgress(PuzzleId id);
 void recordSolved(PuzzleId id, SolvedPuzzle result);   // also bestTimeMs and the streak
-void cachePuzzle(PuzzleId id, PuzzleRecord record);    // 30-entry cap
+void cachePuzzle(PuzzleId id, String record);          // 30-entry cap
 ```
+
+`cachePuzzle` takes the encoded record rather than the `PuzzleRecord` of §4.1, which is what PR
+2 built and PR 3 kept: `PuzzleRecord` lives in `features/sudoku/data`, and a `core/storage` method
+that named it would make the storage layer depend on a feature. The repository stores an opaque
+string for the same reason the codec does (§3), and the one parser is on the feature side.
 
 `recordSolved` clears the matching `inProgress` entry in the same mutation, so a save cannot hold a
 puzzle that is both finished and in progress.
