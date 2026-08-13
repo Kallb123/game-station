@@ -162,8 +162,13 @@ techniques a solver needs:
 |---|---|---|
 | T1 | Naked single, hidden single | Easy |
 | T2 | + naked/hidden pair, pointing pair, box-line reduction | Medium |
-| T3 | + triples, X-wing | Hard |
+| T3 | + triples, X-wing, XY-wing | Hard |
 | T4 | Needs guessing or deep chains | Expert |
+
+The XY-wing is in T3 because measurement in phase 2 showed T3 is otherwise
+almost empty: without it, a grid that singles and pairs cannot finish nearly
+always needs guessing as well, and Hard was reachable about once in a hundred
+attempts. See `PLAN-phase-2.md` §4.7.
 
 Run the technique solver in tier order; the highest tier it must reach is the puzzle's difficulty. If
 the result misses the requested tier, discard it, advance a sub-counter on the seed and regenerate,
@@ -175,12 +180,21 @@ Clue counts serve only as guard rails:
 | | 9x9 | 6x6 |
 |---|---|---|
 | Easy | 36–45 | 18–24 |
-| Medium | 30–35 | 15–17 |
-| Hard | 26–29 | 12–14 |
-| Expert | 22–25 | 10–11 |
+| Medium | 28–35 | 12–14 |
+| Hard | 24–29 | 9–12 |
+| Expert | 22–25 | — |
+
+These bands were measured in phase 2 rather than estimated, and several moved: a 9x9 grid reaches T3
+at 24 or 25 clues far more often than at 26, and every 6x6 tier lives well below where this table
+first put it. The generator digs towards the band floor and stops there once the tier is reached, so
+the floor is where puzzles land.
 
 6x6 has too little room for a genuine Expert tier, so it ships Easy, Medium and Hard only rather than
-mislabelling a Hard puzzle.
+mislabelling a Hard puzzle. It has too little room for a technique-defined Medium either: needing a
+pair and nothing more is about one dug 6x6 in three hundred, so **6x6 Medium is defined by sparseness
+instead** — the same T1 techniques over 12 clues rather than 18 — and 6x6 Hard is the tier that asks
+for anything beyond singles. This is the only place where a label is not purely a statement about
+technique, and it is confined to the size that cannot express one.
 
 ### 3.5 Performance
 
