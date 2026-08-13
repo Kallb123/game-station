@@ -4,12 +4,14 @@
 // answer *something* — a child cannot act on "could not generate a puzzle".
 //
 // These tests check the properties that make that true for a handful of indices
-// per size and difficulty. The volume run is PR 6's fuzz, and the frozen output
-// is PR 6's goldens; what is here is the contract they will freeze.
+// per size and difficulty. The volume run is `fuzz_test.dart` and the frozen
+// output is `determinism_test.dart`'s goldens; what is here is the contract
+// those two hold the generator to at scale.
 //
 // `GENERATOR_INDICES` raises the count per size and difficulty from the default
-// 3, which is what keeps this file inside the ten seconds `PLAN-phase-2.md` §1
-// budgets for the whole engine suite. The sweep at 200, which §6's PR 5
+// 3, which is what keeps this file to about a second — the goldens are where
+// the suite spends its time, and this one stays cheap enough to re-run on every
+// edit to the generator. The sweep at 200, which `PLAN-phase-2.md` §6's PR 5
 // criteria ask for, is run by hand and reported in the pull request.
 
 import 'dart:io';
@@ -22,16 +24,7 @@ import 'package:puzzle_engine/src/sudoku_spec.dart';
 import 'package:puzzle_engine/src/technique_solver.dart';
 import 'package:test/test.dart';
 
-/// Every size and label the engine builds.
-const List<(SudokuSpec, Difficulty)> combinations = [
-  (SudokuSpec.s9x9, Difficulty.easy),
-  (SudokuSpec.s9x9, Difficulty.medium),
-  (SudokuSpec.s9x9, Difficulty.hard),
-  (SudokuSpec.s9x9, Difficulty.expert),
-  (SudokuSpec.s6x6, Difficulty.easy),
-  (SudokuSpec.s6x6, Difficulty.medium),
-  (SudokuSpec.s6x6, Difficulty.hard),
-];
+import 'combinations.dart';
 
 /// How many indices of each combination to generate.
 final int indices =
