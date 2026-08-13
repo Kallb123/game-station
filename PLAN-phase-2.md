@@ -23,9 +23,9 @@ its own.
 | Every integer operation masked to 32 bits | JavaScript numbers hold 53 bits exactly. Unmasked 32-bit multiplication in `fnv1a32` reaches 2^56 and would diverge the moment a web target exists. Enforced by running `test/rng_test.dart` and `test/hash_test.dart` under `dart test -p chrome` in CI, not by review. |
 | No new runtime dependency | The engine's `pubspec.yaml` has `lints` and `test` as dev dependencies and nothing else. Everything in this phase is integer arithmetic and `dart:typed_data`, which is in the SDK. |
 | `packages/puzzle_engine/lib` imports no `dart:io`, `dart:isolate`, `dart:ui` or `package:flutter` | Already enforced by `checkEnginePurity()` in `tool/check_offline.dart`. Generation runs in an isolate in phase 3, spawned by the app through `compute()`; the engine stays a plain function so its tests need no bindings. |
-| Generation never fails visibly | A child cannot act on "could not generate a puzzle" (`AGENTS.md`). The generator widens the accepted tier by one notch after 40 attempts and reports the widening in its result rather than throwing. |
+| Generation never fails visibly | A child cannot act on "could not generate a puzzle" (`AGENTS.md`). After 250 attempts — 40 when this row was written, raised in PR 5 against measurements in §4.7 — the generator settles for the closest attempt it saw and reports the widening in its result rather than throwing. |
 | `tool/verify.sh` green before every commit | It is what CI runs, in the same order. |
-| Test suites stay affordable | The fast engine suite stays under about 10 s so it can run per file while iterating. The 2000-seed fuzz is opt-in by `FUZZ_SEEDS`, and both CI and `verify.sh` set it to 2000 so the two remain the same list of checks. |
+| Test suites stay affordable | Narrowing is what keeps iteration fast: `dart test test/<file>` runs one file, and every file but the goldens' is about a second. **The whole suite is about 25 s at the default `FUZZ_SEEDS`, not the "under 10 s" this row first claimed** — comparing the goldens means generating all 700 puzzles, which PR 6 measured at 19 s and which is the price of the row above. The fuzz scales by `FUZZ_SEEDS`, and both CI and `verify.sh` set it to 2000 so the two remain the same list of checks; that run is about a minute. |
 
 ---
 
@@ -380,26 +380,51 @@ test/golden/sudoku_6x6_medium.golden
 test/golden/sudoku_6x6_hard.golden
 ```
 
-Line format: `index clueCount tier clues`, with a first line recording `generatorVersion: 1`. The
-version line is asserted against the engine constant, so regenerating goldens without deciding about
-the version fails the run that produced them.
+Line format: `index clueCount tier widened clues`, with a first line recording `generatorVersion: 1`.
+The version line is asserted against the engine constant, so regenerating goldens without deciding
+about the version fails the run that produced them.
 
-Regeneration is `dart tool/regen_goldens.dart` inside the package, and the failure message names it.
-There is no automated defence against regenerating goldens to make a red build green — the control is
-that the diff lists every puzzle that changed, which is unmissable in review. Stating it plainly is
-better than implying a mechanism that does not exist.
+The `widened` field — `ok` or `widened` — is a fourth column this section did not originally have.
+Built in PR 6, because §7's guard-rail wants the widening rate committed rather than recomputed: it
+is the one fact about a line that is not derivable from the grid, `grep -c ' widened '` answers "is
+this label reachable" from the file itself, and a puzzle that starts widening shows up as a changed
+line rather than as a game that is quietly easier than its label. The clue count and tier stay too,
+though a re-solve could derive both: a diff moving a puzzle from `hard` to `medium` says what
+happened, where two changed rows of digits do not.
+
+Regeneration is `dart run tool/regen_goldens.dart` inside the package, and the failure message names
+it. There is no automated defence against regenerating goldens to make a red build green — the
+control is that the diff lists every puzzle that changed, which is unmissable in review. Stating it
+plainly is better than implying a mechanism that does not exist.
 
 Beyond goldens, per `PLAN.md` §3.6:
 
 - Every generated puzzle has exactly one solution (`countSolutions(..., max: 2) == 1`).
 - Round trip: `solveWithTechniques` on the emitted clues reports the tier the generator recorded.
 - 6x6 boxes are 2 rows x 3 columns, checked by placing a digit and asserting which cells lose it.
-- The same seed generates byte-identical output twice in one process, and across two `dart test`
-  invocations (the goldens are that second check).
-- Fuzz: `FUZZ_SEEDS` indices (default 200, CI and `verify.sh` set 2000) across every size and
-  difficulty — no throw, no `-1` from the node cap, and no single generate over 2 s. Non-termination is
-  caught by `dart test`'s own per-test timeout; the 2 s assertion catches slow-but-terminating, which
-  is the failure a timeout alone would let through as an occasional flake.
+- The same seed generates byte-identical output twice in one process — `generator_test.dart`, since
+  PR 5 — and across two `dart test` invocations, which is what the goldens check. Both halves are
+  needed: the first catches state left between calls, the second catches output that depends on the
+  build, the platform or the day.
+- Fuzz: `FUZZ_SEEDS` puzzles (default 200, CI and `verify.sh` set 2000) dealt round-robin across
+  every size and difficulty — no throw, no `-1` from the node cap, and no single generate over 2 s.
+  Non-termination is caught by `dart test`'s own per-test timeout; the 2 s assertion catches
+  slow-but-terminating, which is the failure a timeout alone would let through as an occasional flake.
+
+  **`FUZZ_SEEDS` counts puzzles in total, not indices per combination**, which is what this section
+  first meant. Measured in PR 6, the seven combinations differ in cost by two orders of magnitude — a
+  6x6 Easy is 0.1 ms at the median and a 9x9 Hard is 51 ms — so 2000 indices *each* is about five
+  minutes of fuzz, against the "about three minutes" §7 promised for the whole of `verify.sh`. A
+  3-minute check that could have been 40 s is the check people stop running, which is the risk §7
+  already names. 2000 across the matrix is 285 or 286 indices of each, which still walks every
+  combination well past the 100 the goldens freeze.
+
+Measured on the development container, and the reason `PLAN.md` §3.5's targets have room: over those
+2000 puzzles, 4 were widened (all 6x6 Hard, none anywhere else) and the slowest single generate was
+547 ms, against the 2 s ceiling. Per combination, p50/p95/max in ms: 9x9 Easy 0.9/1.5/22.8, Medium
+34.8/161.8/547.0, Hard 51.1/244.2/483.1, Expert 25.1/78.7/186.0; 6x6 Easy 0.1/0.4/2.1, Medium
+0.2/0.3/1.8, Hard 9.6/52.4/79.8. PR 7's benchmark is what holds these to a ceiling; this is what they
+were when the goldens were written.
 
 ### 4.9 Benchmark
 
@@ -449,8 +474,10 @@ packages/puzzle_engine/
 │  ├─ technique_test.dart         # one fixture per technique
 │  ├─ generator_test.dart
 │  ├─ puzzle_id_test.dart
-│  ├─ determinism_test.dart       # goldens + same-seed equality
+│  ├─ determinism_test.dart       # the goldens; same-seed equality is generator_test's
 │  ├─ fuzz_test.dart              # FUZZ_SEEDS
+│  ├─ combinations.dart           # the seven size-and-label pairs, shared by four files
+│  ├─ golden_format.dart          # the golden line format, shared with regen_goldens.dart
 │  └─ golden/*.golden
 └─ tool/
    ├─ benchmark.dart
@@ -626,8 +653,8 @@ named, and the CI step passes at the 3× ceiling.
 | Uniqueness counting misses `PLAN.md` §3.5's targets on Expert | Medium | Bitmask board and MRV from PR 2 and PR 3; PR 7's benchmark measures it. If Expert misses, the isolate in phase 3 keeps the UI responsive and the cache makes it once-per-puzzle — the target slips, the app does not. |
 | A `Map`/`Set` iteration sneaks into `lib/` and output drifts between runs | Medium | `tool/check_determinism.dart` from PR 1, in `verify.sh` and CI, with its own self-test. It is a textual scan, so it can be evaded; the golden files are the backstop that catches the effect rather than the cause. |
 | The technique solver disagrees with the generator about a puzzle's tier | Medium | The round-trip assertion in PR 5 re-judges the emitted clue string and compares with the recorded tier, so the two cannot drift apart unnoticed. |
-| Generation loops forever on some seed | Medium | `maxNodes` caps the counting solver deterministically, the retry loop caps at 40 attempts, and the fuzz asserts a 2 s per-puzzle ceiling. Non-termination inside one solver call is bounded by `maxNodes`, not by a timer. |
-| The 2000-seed fuzz makes `verify.sh` slow enough that people skip it | Medium | `FUZZ_SEEDS` defaults to 200 for a per-file run while iterating; `verify.sh` and CI both set 2000, so the two never diverge into "the check CI runs" and "the check we run". PR 6 updates `AGENTS.md`'s stated runtime rather than leaving the claim wrong. |
+| Generation loops forever on some seed | Medium | `maxNodes` caps the counting solver deterministically, the retry loop caps at `generatorMaxAttempts` (250 since PR 5, 40 when this row was written), and the fuzz asserts a 2 s per-puzzle ceiling. Non-termination inside one solver call is bounded by `maxNodes`, not by a timer. |
+| The 2000-seed fuzz makes `verify.sh` slow enough that people skip it | Medium | `FUZZ_SEEDS` defaults to 200 for a per-file run while iterating; `verify.sh` and CI both set 2000, so the two never diverge into "the check CI runs" and "the check we run". PR 6 measured it: the engine suite is about a minute at 2000 and `verify.sh` about a minute and a half, so `AGENTS.md`'s "about a minute" moved with it rather than being left wrong. The five-minute version of this — 2000 indices of *each* combination — is what §4.8's total-rather-than-per-combination reading avoids. |
 | The clue-string format is wrong for phase 3's `puzzleCache` | Low | It is a fixed-length row-major string with `.` for empty, which is what `PLAN.md` §5.2 already stores, and `fromClues` validates it. Changing it later is a save migration, not a generator change. |
 | Scope creep into phase 3 while building the hint API | Medium | `nextStep()` is one function with a test and no caller. A widget in this phase's diff is in the wrong directory. |
 
@@ -639,9 +666,11 @@ named, and the CI step passes at the 3× ceiling.
 - [ ] `dart tool/check_determinism.dart --self-test` fails against each banned construct and passes
       against `packages/puzzle_engine/lib`.
 - [ ] `dart tool/check_offline.dart` reports no violations, including engine purity.
-- [ ] `cd packages/puzzle_engine && dart test` passes in under 10 s at the default `FUZZ_SEEDS`.
+- [ ] `cd packages/puzzle_engine && dart test` passes at the default `FUZZ_SEEDS`, in about 25 s —
+      the goldens are 19 s of that, and `dart test test/<file>` is what stays fast while iterating.
 - [ ] `cd packages/puzzle_engine && dart test -p chrome test/rng_test.dart test/hash_test.dart` passes.
 - [ ] `FUZZ_SEEDS=2000 dart test test/fuzz_test.dart` passes with no generate over 2 s.
+- [ ] The 2000-puzzle fuzz's widening rate and slowest generate are recorded in PR 6's body.
 - [ ] All seven `test/golden/*.golden` files exist, carry `generatorVersion: 1`, and cover indices
       0–99.
 - [ ] Editing one Xoshiro constant turns the goldens red; reverted, with the run recorded in PR 6's
@@ -660,8 +689,8 @@ named, and the CI step passes at the 3× ceiling.
 | Question | Current assumption | What resolves it |
 |---|---|---|
 | Xoshiro128+ instead of `PLAN.md` §3.1's two-word sketch? | Assumed yes; the sketch is illustrative and the four-word generator is stronger for the same code size. | Owner's call before PR 1 merges. After it merges and goldens exist, changing it costs a `generatorVersion` bump. |
-| Golden files store the clue string rather than `PLAN.md` §3.6's sha256? | Assumed yes: no `crypto` dependency, and a failure names the puzzles that changed. Costs ~70 KB in the repository. | Owner's call before PR 6. |
-| Should `tool/verify.sh` carry the 2000-seed fuzz, taking it from about one minute to about three? | Assumed yes, so `verify.sh` stays "everything CI runs". | Owner's call in PR 6; the alternative is a CI-only job and a note in `AGENTS.md` that the local script is a subset. |
+| ~~Golden files store the clue string rather than `PLAN.md` §3.6's sha256?~~ **Resolved: yes.** | Built in PR 6: no `crypto` dependency, and a failure names the puzzles that changed. The seven files are 76 KB, close to the ~70 KB estimated. | PR 6's diff. Changing it later costs nothing but the diff, since nothing reads a golden but its own test. |
+| ~~Should `tool/verify.sh` carry the 2000-seed fuzz, taking it from about one minute to about three?~~ **Resolved: yes, and it costs less than that.** | Built in PR 6: `verify.sh` is about a minute and a half, because `FUZZ_SEEDS` counts puzzles across the matrix rather than per combination (§4.8). `verify.sh` stays "everything CI runs" with no note about being a subset. | PR 6's measurement. If it ever becomes the reason people skip the script, the fallback is unchanged: a CI-only job and a line in `AGENTS.md` saying so. |
 | ~~Is `dart test -p chrome` available on the CI runner without extra setup?~~ **Resolved: yes.** | `ubuntu-latest` ships Chrome and the step needs no browser setup. | PR 1's first CI run, green, and PR 2's after it. §7's masking risk keeps its residual note: the two frozen test files are covered, the generator's own arithmetic is not. |
 | Should 9x9 Expert (T4, "needs guessing") be offered to children at all? | Assumed yes, as `PLAN.md` §3.4 specifies. The engine generates it either way. | A phase-3 decision about which difficulties the picker shows. Nothing here blocks it. |
 | Does phase 3 need a "generate the next N indices" batch API for pre-warming? | Assumed no: `PLAN.md` §3.5 pre-warms one puzzle when the menu opens, which is one call. | Phase 3, when the isolate wiring is written. Adding it later is additive. |
