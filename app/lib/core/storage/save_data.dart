@@ -42,6 +42,19 @@ enum ThemeChoice { day, night, system }
 /// picture, not by reading the name.
 enum AvatarId { fox, bear, cat, dog, frog, owl, panda, rabbit }
 
+/// When a wrong Sudoku digit is flagged.
+///
+/// Per profile rather than device-wide, unlike every other setting
+/// (`AppSettings`'s own rationale): a younger sibling wants to know at once,
+/// an older one may not want to be told before they have finished the grid.
+enum MistakeFeedback {
+  /// Flagged the moment it is entered. The default (`PLAN.md` §3.7).
+  immediate,
+
+  /// Flagged only once the grid is full.
+  atCompletion,
+}
+
 /// The settings shared by every profile.
 ///
 /// Settings are device-wide rather than per-profile on purpose: sound and
@@ -247,6 +260,18 @@ class SudokuProgress {
   /// stored, so the menu can show a best time without walking every entry.
   final Map<String, int> bestTimeMs;
 
+  SudokuProgress copyWith({
+    Map<String, SolvedPuzzle>? solved,
+    Map<String, PuzzleInProgress>? inProgress,
+    DailyStreak? dailyStreak,
+    Map<String, int>? bestTimeMs,
+  }) => SudokuProgress(
+    solved: solved ?? this.solved,
+    inProgress: inProgress ?? this.inProgress,
+    dailyStreak: dailyStreak ?? this.dailyStreak,
+    bestTimeMs: bestTimeMs ?? this.bestTimeMs,
+  );
+
   @override
   bool operator ==(Object other) =>
       other is SudokuProgress &&
@@ -358,6 +383,7 @@ class Profile {
     required this.createdAt,
     this.sudoku = const SudokuProgress(),
     this.arcade = const ArcadeProgress(),
+    this.mistakeFeedback = MistakeFeedback.immediate,
   }) : assert(createdAt.isUtc, 'createdAt must be UTC');
 
   /// `"p1"`, `"p2"`, … — a counter, never random and never a clock reading, so
@@ -379,11 +405,15 @@ class Profile {
   /// Arcade history.
   final ArcadeProgress arcade;
 
+  /// When a wrong Sudoku digit is flagged. Per profile — see [MistakeFeedback].
+  final MistakeFeedback mistakeFeedback;
+
   Profile copyWith({
     String? name,
     AvatarId? avatar,
     SudokuProgress? sudoku,
     ArcadeProgress? arcade,
+    MistakeFeedback? mistakeFeedback,
   }) => Profile(
     id: id,
     name: name ?? this.name,
@@ -391,6 +421,7 @@ class Profile {
     createdAt: createdAt,
     sudoku: sudoku ?? this.sudoku,
     arcade: arcade ?? this.arcade,
+    mistakeFeedback: mistakeFeedback ?? this.mistakeFeedback,
   );
 
   @override
@@ -401,10 +432,12 @@ class Profile {
       other.avatar == avatar &&
       other.createdAt == createdAt &&
       other.sudoku == sudoku &&
-      other.arcade == arcade;
+      other.arcade == arcade &&
+      other.mistakeFeedback == mistakeFeedback;
 
   @override
-  int get hashCode => Object.hash(id, name, avatar, createdAt, sudoku, arcade);
+  int get hashCode =>
+      Object.hash(id, name, avatar, createdAt, sudoku, arcade, mistakeFeedback);
 }
 
 /// The whole save file.

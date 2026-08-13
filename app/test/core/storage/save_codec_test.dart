@@ -133,6 +133,7 @@ void main() {
       expect(save.puzzleCache, isEmpty);
       expect(save.activeProfile.sudoku, const SudokuProgress());
       expect(save.activeProfile.arcade, const ArcadeProgress());
+      expect(save.activeProfile.mistakeFeedback, MistakeFeedback.immediate);
     });
 
     test('timestamps are read back as UTC whatever zone they carry', () {

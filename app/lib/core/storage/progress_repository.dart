@@ -19,8 +19,10 @@
 // library cannot be tested without it.
 
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
+import 'package:puzzle_engine/puzzle_engine.dart' as engine;
 
 import 'save_data.dart';
 import 'save_store.dart';
@@ -31,6 +33,10 @@ import 'save_store.dart';
 /// and a child picks the profile by the picture anyway.
 const int maxProfileNameLength = 12;
 
+/// How many puzzles [ProgressRepository.cachePuzzle] keeps at once
+/// (`PLAN.md` §5.2, `PLAN-phase-3.md` §4.1).
+const int puzzleCacheCap = 30;
+
 /// Holds the save in memory and writes it back on a debounce.
 class ProgressRepository extends ChangeNotifier {
   ProgressRepository(
@@ -39,7 +45,8 @@ class ProgressRepository extends ChangeNotifier {
     this.debounce = const Duration(milliseconds: 500),
     DateTime Function()? now,
   }) : _data = initial,
-       _now = now ?? DateTime.now;
+       _now = now ?? DateTime.now,
+       _cacheRecency = LinkedHashSet.of(initial.puzzleCache.keys);
 
   /// Builds a repository from what [SaveStore.load] returned.
   ///
@@ -52,13 +59,33 @@ class ProgressRepository extends ChangeNotifier {
     DateTime Function()? now,
   }) => ProgressRepository(
     store,
-    initial: load.data,
+    initial: _withCurrentGenerator(load.data),
     debounce: debounce,
     now: now,
   );
 
+  /// Drops [data]'s puzzle cache wholesale when it was written by a different
+  /// generator (`PLAN-phase-3.md` §4.1).
+  ///
+  /// A per-entry key would let a stale entry outlive the generator that made
+  /// it, and there is nothing in a cache worth a migration — the puzzle
+  /// source regenerates on the next miss.
+  static SaveData _withCurrentGenerator(SaveData data) =>
+      data.generatorVersion == engine.generatorVersion
+      ? data
+      : data.copyWith(
+          generatorVersion: engine.generatorVersion,
+          puzzleCache: const {},
+        );
+
   final SaveStore _store;
   final DateTime Function() _now;
+
+  /// [_data.puzzleCache]'s keys, oldest access first. Seeded on load in
+  /// whatever order the file gives, because the codec sorts keys on write and
+  /// recency is not recoverable from disk (`PLAN-phase-3.md` §4.8) — the cost
+  /// of that is the occasional wrong eviction, not a wrong one every time.
+  final LinkedHashSet<String> _cacheRecency;
 
   /// How long after a mutation the write starts. A mutation inside the window
   /// restarts it.
@@ -139,6 +166,12 @@ class ProgressRepository extends ChangeNotifier {
   void setProfileAvatar(String id, AvatarId avatar) =>
       _replaceProfile(id, (profile) => profile.copyWith(avatar: avatar));
 
+  /// Changes when the profile with [id] is told about a wrong digit.
+  void setMistakeFeedback(String id, MistakeFeedback value) => _replaceProfile(
+    id,
+    (profile) => profile.copyWith(mistakeFeedback: value),
+  );
+
   /// Makes the profile with [id] the active one.
   void selectProfile(String id) {
     _requireProfile(id);
@@ -170,6 +203,112 @@ class ProgressRepository extends ChangeNotifier {
       ),
     );
   }
+
+  // --- sudoku ------------------------------------------------------------
+
+  /// Stores [state] as the active profile's in-progress board for [id],
+  /// replacing whatever was there.
+  void saveInProgress(engine.PuzzleId id, PuzzleInProgress state) =>
+      _updateActiveSudoku(
+        (sudoku) => sudoku.copyWith(
+          inProgress: {...sudoku.inProgress, id.value: state},
+        ),
+      );
+
+  /// Removes the active profile's in-progress entry for [id], if it has one.
+  void clearInProgress(engine.PuzzleId id) => _updateActiveSudoku(
+    (sudoku) => sudoku.copyWith(
+      inProgress: {
+        for (final entry in sudoku.inProgress.entries)
+          if (entry.key != id.value) entry.key: entry.value,
+      },
+    ),
+  );
+
+  /// Records [result] as how the active profile finished [id]: adds it to
+  /// `solved`, clears the matching `inProgress` entry in the same mutation so
+  /// a save cannot hold a puzzle that is both finished and in progress, and
+  /// updates `bestTimeMs` and the daily streak (`PLAN-phase-3.md` §4.7, §4.8).
+  void recordSolved(engine.PuzzleId id, SolvedPuzzle result) =>
+      _updateActiveSudoku((sudoku) {
+        final key = _bestTimeKey(id);
+        final best = sudoku.bestTimeMs[key];
+
+        return sudoku.copyWith(
+          solved: {...sudoku.solved, id.value: result},
+          inProgress: {
+            for (final entry in sudoku.inProgress.entries)
+              if (entry.key != id.value) entry.key: entry.value,
+          },
+          dailyStreak: _nextStreak(sudoku.dailyStreak, id),
+          bestTimeMs: {
+            ...sudoku.bestTimeMs,
+            if (best == null || result.timeMs < best) key: result.timeMs,
+          },
+        );
+      });
+
+  /// Caches [record] — the puzzle source's encoded form — against [id],
+  /// evicting the least-recently-used entry once the cache would hold more
+  /// than [puzzleCacheCap]. An id with an `inProgress` entry, in any profile,
+  /// is never evicted: dropping the puzzle a child is halfway through would
+  /// make resume regenerate it behind a spinner (`PLAN-phase-3.md` §4.8).
+  ///
+  /// Device-wide rather than per profile, matching [SaveData.puzzleCache]: two
+  /// profiles playing the same puzzle id share one generation.
+  void cachePuzzle(engine.PuzzleId id, String record) {
+    final key = id.value;
+    _cacheRecency
+      ..remove(key)
+      ..add(key);
+
+    var cache = {..._data.puzzleCache, key: record};
+    while (cache.length > puzzleCacheCap) {
+      final victim = _cacheRecency.firstWhere(
+        (candidate) => candidate != key && !_isPinned(candidate),
+        orElse: () => key,
+      );
+      if (victim == key) break; // Nothing left that is safe to drop.
+
+      cache = {
+        for (final entry in cache.entries)
+          if (entry.key != victim) entry.key: entry.value,
+      };
+      _cacheRecency.remove(victim);
+    }
+
+    _apply(_data.copyWith(puzzleCache: cache));
+  }
+
+  /// Whether some profile has an `inProgress` entry for [puzzleId].
+  bool _isPinned(String puzzleId) => _data.profiles.any(
+    (profile) => profile.sudoku.inProgress.containsKey(puzzleId),
+  );
+
+  /// `"9x9:easy"`, the key [SudokuProgress.bestTimeMs] uses (`PLAN.md` §5.2).
+  String _bestTimeKey(engine.PuzzleId id) =>
+      '${id.spec.label}:${id.difficulty.name}';
+
+  /// The streak after solving [id], or [streak] unchanged when [id] is not
+  /// today's daily puzzle — any size and difficulty counts, so a solve is only
+  /// ever compared against today's day index (`PLAN-phase-3.md` §4.7).
+  DailyStreak _nextStreak(DailyStreak streak, engine.PuzzleId id) {
+    final today = engine.dayIndexFor(_now());
+    if (id.index != today || streak.lastDayIndex == today) return streak;
+
+    final current = streak.lastDayIndex == today - 1 ? streak.current + 1 : 1;
+    return DailyStreak(
+      current: current,
+      best: current > streak.best ? current : streak.best,
+      lastDayIndex: today,
+    );
+  }
+
+  void _updateActiveSudoku(SudokuProgress Function(SudokuProgress) update) =>
+      _replaceProfile(
+        _data.activeProfileId,
+        (profile) => profile.copyWith(sudoku: update(profile.sudoku)),
+      );
 
   // --- writing ---------------------------------------------------------------
 
