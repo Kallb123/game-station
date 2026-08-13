@@ -83,6 +83,26 @@ SolveReport solveWithTechniques(SudokuBoard board) {
 /// gain.
 SolveStep? nextStep(SudokuBoard board) => _stepOn(CandidateGrid(board));
 
+/// The next cell technique can decide on [board], or null when technique runs
+/// out before deciding one.
+///
+/// [nextStep] can return an elimination — most of the catalogue narrows
+/// candidates without deciding a cell — but "4 is ruled out of three cells" is
+/// not a hint a child can act on (`PLAN-phase-3.md` §3). So this runs the same
+/// loop [solveWithTechniques] does, on its own [CandidateGrid], until a step
+/// places a digit, and gives up only once the loop runs out of technique
+/// first. It touches no generation path: the generator judges a grid by
+/// [solveWithTechniques] alone, and this is additive beside it.
+SolveStep? nextPlacement(SudokuBoard board) {
+  final grid = CandidateGrid(board);
+  while (!grid.board.isFull) {
+    final step = _stepOn(grid);
+    if (step == null) return null;
+    if (step.isPlacement) return step;
+  }
+  return null;
+}
+
 /// The first technique that makes progress, tried cheapest first.
 ///
 /// [Technique.values] is in tier order by declaration, so this both applies the
