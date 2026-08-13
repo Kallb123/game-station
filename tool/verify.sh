@@ -35,6 +35,12 @@ dart analyze --fatal-infos --fatal-warnings tool
 step 'Testing puzzle_engine'
 (cd packages/puzzle_engine && FUZZ_SEEDS=2000 dart test)
 
+# PLAN.md §3.5's generation targets. About ten seconds, and it fails only at
+# three times the target on a median, so what it catches is a regression of the
+# order of magnitude rather than a busy machine.
+step 'Benchmarking the generator'
+(cd packages/puzzle_engine && dart run tool/benchmark.dart)
+
 # The PRNG and the hash mask every operation to 32 bits so that a JavaScript
 # number, which is exact only to 53 bits, produces the same puzzles as a 64-bit
 # VM. Running those two files in a browser is the only thing that checks it.
