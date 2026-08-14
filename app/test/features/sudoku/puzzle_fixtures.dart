@@ -29,6 +29,16 @@ final Map<String, PuzzleRecord> _fixtures = {};
 SudokuSession fixtureSession(PuzzleId id) =>
     SudokuSession.start(id: id, record: fixtureRecord(id));
 
+/// Every cell of [session] a child could type into, in index order.
+///
+/// Which cells those are depends on the generated puzzle, so a test that wants
+/// an empty cell asks for one rather than naming an index that a
+/// `generatorVersion` bump could turn into a clue.
+List<int> emptyCells(SudokuSession session) => [
+  for (var index = 0; index < session.spec.cells; index++)
+    if (!session.isGiven(index)) index,
+];
+
 /// A [PuzzleSource] that answers from [fixtureRecord] without an isolate, a
 /// cache or a delay, and records what it was asked for.
 class FakePuzzleSource implements PuzzleSource {

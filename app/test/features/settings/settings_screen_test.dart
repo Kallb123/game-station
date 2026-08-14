@@ -78,9 +78,13 @@ void main() {
   /// Opens a screen from the home cards and reports whether it was already in
   /// place partway through the transition, rather than still sliding in.
   ///
+  /// The arcade card rather than the Sudoku one: what this needs is a screen
+  /// with a landmark that is in place the moment the route builds, and phase
+  /// 3's Sudoku screens start on a puzzle that is loaded rather than drawn.
+  ///
   /// Leaves that screen open: a caller that needs the home screen again pops it.
   Future<bool> arrivesWithoutMoving(WidgetTester tester) async {
-    await tester.tap(find.text('Sudoku'));
+    await tester.tap(find.text('Arcade'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     final partway = tester.getTopLeft(find.text('Coming soon!'));

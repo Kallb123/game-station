@@ -33,10 +33,7 @@ void main() {
   );
 
   /// The first cell of [session] a child could type into.
-  int firstEmpty(SudokuSession session) => [
-    for (var index = 0; index < session.spec.cells; index++)
-      if (!session.isGiven(index)) index,
-  ].first;
+  int firstEmpty(SudokuSession session) => emptyCells(session).first;
 
   /// The control labelled [tooltip].
   ///

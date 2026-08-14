@@ -19,6 +19,10 @@ abstract final class AppRoutes {
   /// Sudoku, from phase 3.
   static const String sudoku = '/sudoku';
 
+  /// One Sudoku puzzle, being played. Pushed with a `SudokuPlayArgs`, which is
+  /// the only route in the app that takes arguments at all.
+  static const String sudokuPlay = '/sudoku/play';
+
   /// The arcade, from phase 4.
   static const String arcade = '/arcade';
 }
