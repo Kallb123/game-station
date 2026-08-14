@@ -1,0 +1,317 @@
+// One puzzle being played: the digits, the pencil marks, what is selected, and
+// enough history to walk back out of it.
+//
+// It is a [ChangeNotifier] rather than a Riverpod type, matching
+// `ProgressRepository`: a model that already depends on the state library
+// cannot be tested without it, and the grid subscribes per cell rather than
+// rebuilding eighty-one of them per keystroke (`PLAN-phase-3.md` §3, §4.5).
+// Nothing here imports Flutter beyond `foundation.dart`, so its tests are plain
+// `test()` calls with no `pumpWidget` and the whole file runs in milliseconds.
+//
+// **The session holds its own list of digits rather than a `SudokuBoard`.**
+// `SudokuBoard.place` refuses a digit that repeats one in its row, column or
+// box, and `SudokuBoard.fromClues` throws on one, so a board holding a child's
+// wrong digit cannot be built at all (`PLAN-phase-3.md` §4.3). A `SudokuBoard`
+// is constructed only where one is needed — for hints, in a later pull request
+// — and only from the clues plus the entries that match the solution.
+
+import 'package:flutter/foundation.dart';
+import 'package:puzzle_engine/puzzle_engine.dart';
+
+import '../../../core/storage/save_data.dart';
+import '../data/puzzle_record.dart';
+import 'session_codec.dart';
+
+/// A puzzle in play (`PLAN-phase-3.md` §4.3).
+///
+/// Built either [start]ed from a generated puzzle or [resume]d from what a
+/// previous run stored, and the two produce the same object: everything the
+/// board draws comes from here, so a resumed puzzle is not a special case
+/// anywhere above this class.
+class SudokuSession extends ChangeNotifier {
+  /// A fresh puzzle: the clues, nothing entered, the clock at zero.
+  factory SudokuSession.start({
+    required PuzzleId id,
+    required PuzzleRecord record,
+  }) {
+    final clues = decodeGrid(id.spec, record.clues);
+    return SudokuSession._(
+      id: id,
+      clues: clues,
+      solution: decodeGrid(id.spec, record.solution),
+      // A copy, not the clue list itself: the board is played on, and a session
+      // whose givens moved with its entries would call every cell a given.
+      digits: [...clues],
+      notes: List<int>.filled(id.spec.cells, 0),
+    );
+  }
+
+  /// The puzzle as [saved] left it.
+  ///
+  /// Throws a [FormatException] when [saved] does not describe a board of this
+  /// puzzle: a wrong length, a character that is not a digit of this size, an
+  /// undo entry naming a cell outside the grid, or a grid that contradicts a
+  /// clue — the last of which catches a save paired with the wrong id, where
+  /// every length still checks out. The caller's answer to all of them is the
+  /// same and it is not an error message in front of a child (`AGENTS.md`):
+  /// drop the entry and start the puzzle fresh.
+  ///
+  /// The redo stack is not restored, because it is not stored: `undoStack` is
+  /// the schema's only history field (`PLAN.md` §5.2), and a redo stack after a
+  /// restart is not something a child reaches for.
+  factory SudokuSession.resume({
+    required PuzzleId id,
+    required PuzzleRecord record,
+    required PuzzleInProgress saved,
+  }) {
+    final spec = id.spec;
+    final clues = decodeGrid(spec, record.clues);
+    final digits = decodeGrid(spec, saved.grid);
+    for (var index = 0; index < spec.cells; index++) {
+      if (clues[index] != 0 && digits[index] != clues[index]) {
+        throw FormatException(
+          'the saved grid disagrees with the clue at cell $index',
+          saved.grid,
+          index,
+        );
+      }
+    }
+
+    return SudokuSession._(
+      id: id,
+      clues: clues,
+      solution: decodeGrid(spec, record.solution),
+      digits: digits,
+      notes: decodeNotes(spec, saved.notes),
+      undoStack: [
+        for (final move in saved.undoStack) SudokuMove.decode(spec, move),
+      ],
+      elapsed: Duration(milliseconds: saved.elapsedMs),
+      hints: saved.hints,
+    );
+  }
+
+  SudokuSession._({
+    required this.id,
+    required this._clues,
+    required this._solution,
+    required this._digits,
+    required this._notes,
+    this.elapsed = Duration.zero,
+    this._hints = 0,
+    List<SudokuMove> undoStack = const [],
+  }) : _undo = _capped(undoStack) {
+    // Wrong digits already on the board are counted as mistakes made, because
+    // they are the only evidence a save carries: `PuzzleInProgress` has no
+    // mistake field, and starting a resumed puzzle at zero would let a
+    // force-quit launder a wrong digit into a clean star. A mistake that was
+    // corrected before the quit is lost, which is the price of not widening the
+    // schema for a counter (`PLAN-phase-3.md` §4.4).
+    for (var index = 0; index < _digits.length; index++) {
+      if (isWrong(index)) _mistakes++;
+    }
+  }
+
+  /// Which puzzle this is. The board is a pure function of it, so this is what
+  /// the save stores and what a resume is keyed by.
+  final PuzzleId id;
+
+  /// Time on the clock.
+  ///
+  /// A plain field the screen writes, because the model has no clock to read: a
+  /// session that called `DateTime.now` could not be tested without waiting.
+  /// Writing it deliberately does **not** notify listeners — it changes once a
+  /// second, and the widget that draws the clock is the one that set it, so
+  /// notifying would repaint the whole board every second to move one digit.
+  Duration elapsed;
+
+  /// The grid's shape, for a widget that draws boxes from it.
+  SudokuSpec get spec => id.spec;
+
+  final List<int> _clues;
+  final List<int> _solution;
+  final List<int> _digits;
+  final List<int> _notes;
+
+  /// Cell states to restore, oldest first (`SudokuMove`).
+  final List<SudokuMove> _undo;
+
+  /// The states undone, newest last. Never stored; cleared by a new move.
+  final List<SudokuMove> _redo = [];
+
+  int? _selected;
+  bool _pencilMode = false;
+  int _mistakes = 0;
+  int _hints;
+
+  /// The digit in the cell at [index], or 0 when it is empty.
+  int digitAt(int index) => _digits[index];
+
+  /// Whether the cell at [index] came with the puzzle, and so cannot be
+  /// changed.
+  bool isGiven(int index) => _clues[index] != 0;
+
+  /// The pencil marks on the cell at [index], as a bitmask where bit `d - 1`
+  /// stands for digit `d`.
+  int notesAt(int index) => _notes[index];
+
+  /// Whether the cell at [index] holds a digit that is not the puzzle's.
+  ///
+  /// Computed against the stored solution rather than against the cell's peers,
+  /// so a digit that is wrong but not yet contradictory is caught. Whether it
+  /// is *drawn* wrong depends on the profile's mistake feedback, which is a
+  /// later pull request's question (`PLAN-phase-3.md` §4.6).
+  bool isWrong(int index) =>
+      _digits[index] != 0 && _digits[index] != _solution[index];
+
+  /// The selected cell, or null when nothing is selected.
+  int? get selected => _selected;
+
+  /// Whether [enter] writes a pencil mark instead of a digit.
+  bool get pencilMode => _pencilMode;
+
+  set pencilMode(bool value) {
+    if (_pencilMode == value) return;
+    _pencilMode = value;
+    notifyListeners();
+  }
+
+  /// Whether [undo] and [redo] have anything to do — what the keypad's two
+  /// buttons are enabled by.
+  bool get canUndo => _undo.isNotEmpty;
+  bool get canRedo => _redo.isNotEmpty;
+
+  /// Whether every cell holds the digit the solution puts there.
+  bool get isSolved {
+    for (var index = 0; index < _digits.length; index++) {
+      if (_digits[index] != _solution[index]) return false;
+    }
+    return true;
+  }
+
+  /// How many wrong digits have been entered, including any that were already
+  /// on the board when a saved puzzle was resumed (see the constructor).
+  ///
+  /// Never decremented: correcting a wrong digit fixes the grid, not the
+  /// history, and this is what `SolvedPuzzle.mistakes` stores and what decides
+  /// the clean star.
+  int get mistakes => _mistakes;
+
+  /// How many cells a hint has given away. Restored from the save and carried
+  /// into the `SolvedPuzzle`; the hint path that increments it arrives with the
+  /// hint button (`PLAN-phase-3.md` §4.6).
+  int get hints => _hints;
+
+  /// Selects the cell at [index], or nothing when it is null.
+  ///
+  /// A given is selectable: tapping one highlights its digit everywhere, which
+  /// is how a child finds the last 7 (`PLAN-phase-3.md` §4.5). It is [enter]
+  /// and [erase] that refuse to change it.
+  void select(int? index) {
+    if (index != null && (index < 0 || index >= _digits.length)) {
+      throw RangeError.range(index, 0, _digits.length - 1, 'index');
+    }
+    if (_selected == index) return;
+    _selected = index;
+    notifyListeners();
+  }
+
+  /// Puts [digit] in the selected cell, or toggles it as a pencil mark when
+  /// [pencilMode] is on.
+  ///
+  /// Does nothing when nothing is selected, when the selected cell is a given,
+  /// when it already holds [digit], or when a pencil mark is asked for on a
+  /// cell that holds a digit — a note under a digit is invisible, so writing
+  /// one would spend an undo entry on nothing a child can see.
+  void enter(int digit) {
+    if (digit < 1 || digit > spec.digits) {
+      throw RangeError.range(digit, 1, spec.digits, 'digit');
+    }
+
+    final index = _selected;
+    if (index == null || isGiven(index)) return;
+
+    if (_pencilMode) {
+      if (_digits[index] != 0) return;
+      _record(index);
+      _notes[index] ^= 1 << (digit - 1);
+    } else {
+      if (_digits[index] == digit) return;
+      _record(index);
+      _digits[index] = digit;
+      // The marks were about which digit went here, and one has.
+      _notes[index] = 0;
+      if (digit != _solution[index]) _mistakes++;
+    }
+    notifyListeners();
+  }
+
+  /// Empties the selected cell, digit and pencil marks alike.
+  ///
+  /// Does nothing when nothing is selected, when the selected cell is a given,
+  /// or when it is already empty.
+  void erase() {
+    final index = _selected;
+    if (index == null || isGiven(index)) return;
+    if (_digits[index] == 0 && _notes[index] == 0) return;
+
+    _record(index);
+    _digits[index] = 0;
+    _notes[index] = 0;
+    notifyListeners();
+  }
+
+  /// Puts the last changed cell back the way it was.
+  ///
+  /// The mistake count does not come back down: it counts wrong digits ever
+  /// entered, and undoing one does not unmake it.
+  void undo() => _step(from: _undo, to: _redo);
+
+  /// Puts back what [undo] took away.
+  void redo() => _step(from: _redo, to: _undo);
+
+  /// This session as the save file stores it.
+  PuzzleInProgress toSaved() => PuzzleInProgress(
+    grid: encodeGrid(spec, _digits),
+    notes: encodeNotes(spec, _notes),
+    elapsedMs: elapsed.inMilliseconds,
+    undoStack: [for (final move in _undo) move.encode()],
+    hints: _hints,
+  );
+
+  /// [moves] with only the newest [undoStackCap] kept.
+  ///
+  /// Applied when a session is built as well as when a move is recorded, so a
+  /// file holding a longer stack — a hand edit, or a build whose cap was larger
+  /// — is brought back inside the cap at once rather than one entry per move.
+  static List<SudokuMove> _capped(List<SudokuMove> moves) =>
+      moves.length <= undoStackCap
+      ? [...moves]
+      : moves.sublist(moves.length - undoStackCap);
+
+  /// Remembers the state of the cell at [index] so a later [undo] can restore
+  /// it, and drops the redo stack: history forks at a new move.
+  void _record(int index) {
+    _redo.clear();
+    _undo.add(_stateOf(index));
+    // Oldest first out. A cap that dropped the newest would make undo stop
+    // working at the end a child is actually using.
+    if (_undo.length > undoStackCap) _undo.removeAt(0);
+  }
+
+  void _step({required List<SudokuMove> from, required List<SudokuMove> to}) {
+    if (from.isEmpty) return;
+
+    final move = from.removeLast();
+    to.add(_stateOf(move.index));
+    _digits[move.index] = move.digit;
+    _notes[move.index] = move.notes;
+    // The cell that moved is selected, so a child watching the board sees which
+    // one changed rather than hunting for it.
+    _selected = move.index;
+    notifyListeners();
+  }
+
+  SudokuMove _stateOf(int index) =>
+      SudokuMove(index: index, digit: _digits[index], notes: _notes[index]);
+}

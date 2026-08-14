@@ -37,7 +37,7 @@ widget.
 | The picker cannot build an id the engine refuses | `PuzzleId.parse` throws for 6x6 Expert, and `generateSudoku` throws `ArgumentError` for it (`PLAN.md` §7 handover). Enforced by a test that walks every (size, difficulty) the menu can offer and parses the id it would build. |
 | Never surface an internal error to a child | `AGENTS.md`. A generation that somehow fails, a cache entry that will not decode, a save write that errors: each degrades to a playable state with at most one plain sentence. `widened` is shown as an ordinary puzzle and never mentioned. |
 | The board is readable at 200% system text scale | `PLAN.md` §9. Digit size derives from cell geometry rather than from `MediaQuery.textScaler`, which would overflow a fixed cell; chrome and keypad labels scale normally. Checked by a widget test pumping at `TextScaler.linear(2.0)` and asserting no overflow. |
-| The save stays a few kilobytes | `PLAN.md` §5.2. The undo stack is capped at 300 entries and `puzzleCache` at 30 puzzles, both enforced at write time in `ProgressRepository` with tests. |
+| The save stays a few kilobytes | `PLAN.md` §5.2. The undo stack is capped at 300 entries and `puzzleCache` at 30 puzzles, both enforced when the entry is added rather than when the file is written, and both with tests. The cache cap is `ProgressRepository`'s, next to the map it evicts from; the undo cap is `SudokuSession`'s, because the stack only ever grows through a move (PR 4 built it there). |
 | `tool/verify.sh` green before every commit | It is what CI runs, in the same order (`AGENTS.md`). App tests are about five seconds of it; this phase should keep them under fifteen, which means widget tests inject a fake puzzle source rather than generating. |
 
 ---
@@ -189,6 +189,17 @@ and only from the clues plus the entries that match the solution.
 `isWrong` is computed against the stored solution rather than against peers, so a digit that is
 wrong but not yet contradictory is caught. Whether it is *drawn* wrong depends on the mistake mode
 (§4.6).
+
+**`elapsed` is a plain field the play screen writes**, rather than a clock the session reads: a model
+that called `DateTime.now` could not be tested without waiting, and PR 6 owns the ticker. Writing it
+does not notify listeners — it moves once a second and only the timer draws it, so notifying would
+repaint eighty-one cells a second to change one digit.
+
+**`mistakes` is seeded on resume from the wrong digits already on the board.** `PuzzleInProgress` has
+no mistake field — phase 1 declared v1 in full (`PLAN-phase-1.md` §4.2) — so those digits are the
+only evidence a save carries, and starting a resumed puzzle at zero would let a force-quit launder a
+wrong digit into a clean star. A mistake corrected before the quit is lost, which is the price of not
+widening the schema for a counter that decides a star and nothing else.
 
 ### 4.4 The in-progress encoding
 

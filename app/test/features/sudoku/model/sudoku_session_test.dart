@@ -1,0 +1,523 @@
+// The session model's tests.
+//
+// Plain `test()` calls with no `pumpWidget`, because the model imports nothing
+// of Flutter beyond `foundation.dart` (`PLAN-phase-3.md` §5) — the whole file
+// is milliseconds, so the widget tests that come next have no reason to cover
+// any of it again.
+//
+// The puzzles are real, from the shared fixtures: a made-up grid would let a
+// test pass against a board no engine would produce, and the point of `isWrong`
+// and `isSolved` is that they agree with a solution the generator wrote.
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:game_station/core/storage/save_data.dart';
+import 'package:game_station/features/sudoku/model/session_codec.dart';
+import 'package:game_station/features/sudoku/model/sudoku_session.dart';
+import 'package:puzzle_engine/puzzle_engine.dart';
+
+import '../puzzle_fixtures.dart';
+
+void main() {
+  final id = PuzzleId.parse('sudoku:9x9:easy:7');
+  final spec = id.spec;
+  final record = fixtureRecord(id);
+
+  SudokuSession start() => SudokuSession.start(id: id, record: record);
+
+  /// The first cell the puzzle leaves empty, and the digit that belongs there.
+  final firstEmpty = record.clues.indexOf('.');
+  final firstGiven = record.clues.indexOf(RegExp('[1-9]'));
+  int solutionAt(int index) => int.parse(record.solution[index]);
+
+  /// A digit that is not the solution's, so entering it is a mistake.
+  int wrongAt(int index) => solutionAt(index) % spec.digits + 1;
+
+  group('a fresh session', () {
+    test('starts from the clues with nothing else on the board', () {
+      final session = start();
+
+      for (var index = 0; index < spec.cells; index++) {
+        final clue = record.clues[index];
+        expect(session.digitAt(index), clue == '.' ? 0 : int.parse(clue));
+        expect(session.isGiven(index), clue != '.');
+        expect(session.notesAt(index), 0);
+        expect(session.isWrong(index), isFalse);
+      }
+      expect(session.selected, isNull);
+      expect(session.pencilMode, isFalse);
+      expect(session.mistakes, 0);
+      expect(session.hints, 0);
+      expect(session.elapsed, Duration.zero);
+      expect(session.canUndo, isFalse);
+      expect(session.canRedo, isFalse);
+      expect(session.isSolved, isFalse);
+    });
+
+    test('notifies when the selection changes, and not when it does not', () {
+      final session = start();
+      var notifications = 0;
+      session.addListener(() => notifications++);
+
+      session.select(firstEmpty);
+      session.select(firstEmpty);
+      expect(notifications, 1);
+
+      session.select(null);
+      expect(notifications, 2);
+    });
+
+    test('refuses a selection outside the grid', () {
+      expect(() => start().select(spec.cells), throwsRangeError);
+      expect(() => start().select(-1), throwsRangeError);
+    });
+  });
+
+  group('entering a digit', () {
+    test('fills the selected cell', () {
+      final session = start()..select(firstEmpty);
+
+      session.enter(solutionAt(firstEmpty));
+
+      expect(session.digitAt(firstEmpty), solutionAt(firstEmpty));
+      expect(session.isWrong(firstEmpty), isFalse);
+      expect(session.mistakes, 0);
+    });
+
+    test('does nothing without a selection', () {
+      final session = start();
+
+      session.enter(1);
+
+      expect(session.canUndo, isFalse);
+    });
+
+    test('cannot overwrite a given', () {
+      final session = start()..select(firstGiven);
+      final clue = solutionAt(firstGiven);
+
+      session
+        ..enter(clue % spec.digits + 1)
+        ..erase();
+
+      expect(session.digitAt(firstGiven), clue);
+      expect(session.canUndo, isFalse);
+      expect(session.mistakes, 0);
+    });
+
+    test('counts a wrong digit as a mistake and flags the cell', () {
+      final session = start()..select(firstEmpty);
+
+      session.enter(wrongAt(firstEmpty));
+
+      expect(session.isWrong(firstEmpty), isTrue);
+      expect(session.mistakes, 1);
+    });
+
+    test('does not count the same wrong digit twice, or a corrected one', () {
+      final session = start()..select(firstEmpty);
+
+      session
+        ..enter(wrongAt(firstEmpty))
+        ..enter(wrongAt(firstEmpty))
+        ..enter(solutionAt(firstEmpty));
+
+      expect(session.isWrong(firstEmpty), isFalse);
+      // Corrected on the board, not in the history: `SolvedPuzzle.mistakes` is
+      // what decides the clean star.
+      expect(session.mistakes, 1);
+    });
+
+    test('clears the cell notes, which were a question the digit answers', () {
+      final session = start()..select(firstEmpty);
+
+      session
+        ..pencilMode = true
+        ..enter(1)
+        ..pencilMode = false
+        ..enter(solutionAt(firstEmpty));
+
+      expect(session.notesAt(firstEmpty), 0);
+    });
+
+    test('refuses a digit the size does not have', () {
+      final session = start()..select(firstEmpty);
+
+      expect(() => session.enter(0), throwsRangeError);
+      expect(() => session.enter(spec.digits + 1), throwsRangeError);
+    });
+  });
+
+  group('pencil marks', () {
+    test('toggle on and off, one bit per digit', () {
+      final session = start()
+        ..select(firstEmpty)
+        ..pencilMode = true;
+
+      session
+        ..enter(1)
+        ..enter(4);
+      expect(session.notesAt(firstEmpty), 1 | 1 << 3);
+
+      session.enter(1);
+      expect(session.notesAt(firstEmpty), 1 << 3);
+      expect(session.digitAt(firstEmpty), 0);
+    });
+
+    test('are not written under a digit, where nothing would show them', () {
+      final session = start()..select(firstEmpty);
+
+      session
+        ..enter(solutionAt(firstEmpty))
+        ..pencilMode = true
+        ..enter(2);
+
+      expect(session.notesAt(firstEmpty), 0);
+      expect(session.toSaved().undoStack, hasLength(1));
+    });
+  });
+
+  group('erasing', () {
+    test('clears the digit and the notes together', () {
+      final session = start()..select(firstEmpty);
+
+      session
+        ..enter(solutionAt(firstEmpty))
+        ..erase();
+
+      expect(session.digitAt(firstEmpty), 0);
+      expect(session.notesAt(firstEmpty), 0);
+    });
+
+    test('does nothing to an already empty cell', () {
+      final session = start()..select(firstEmpty);
+
+      session.erase();
+
+      expect(session.canUndo, isFalse);
+    });
+  });
+
+  group('undo and redo', () {
+    test('walk back through digits and notes alike', () {
+      final session = start()..select(firstEmpty);
+      final digit = solutionAt(firstEmpty);
+
+      session
+        ..pencilMode = true
+        ..enter(3)
+        ..pencilMode = false
+        ..enter(digit)
+        ..erase();
+      expect(session.digitAt(firstEmpty), 0);
+      expect(session.notesAt(firstEmpty), 0);
+
+      session.undo();
+      expect(session.digitAt(firstEmpty), digit);
+
+      session.undo();
+      expect(session.digitAt(firstEmpty), 0);
+      expect(session.notesAt(firstEmpty), 1 << 2);
+
+      session.undo();
+      expect(session.notesAt(firstEmpty), 0);
+      expect(session.canUndo, isFalse);
+
+      session.undo();
+      expect(session.notesAt(firstEmpty), 0);
+    });
+
+    test('put back what the other took away', () {
+      final session = start()..select(firstEmpty);
+      final digit = solutionAt(firstEmpty);
+
+      session
+        ..enter(digit)
+        ..undo();
+      expect(session.canRedo, isTrue);
+
+      session.redo();
+      expect(session.digitAt(firstEmpty), digit);
+      expect(session.canRedo, isFalse);
+      expect(session.canUndo, isTrue);
+    });
+
+    test('select the cell that changed, so the board shows what moved', () {
+      final session = start()..select(firstEmpty);
+
+      session
+        ..enter(solutionAt(firstEmpty))
+        ..select(null)
+        ..undo();
+
+      expect(session.selected, firstEmpty);
+    });
+
+    test('do not take the mistake count back down', () {
+      final session = start()..select(firstEmpty);
+
+      session
+        ..enter(wrongAt(firstEmpty))
+        ..undo();
+
+      expect(session.isWrong(firstEmpty), isFalse);
+      expect(session.mistakes, 1);
+    });
+
+    test('redo is dropped by a new move', () {
+      final session = start()..select(firstEmpty);
+
+      session
+        ..enter(solutionAt(firstEmpty))
+        ..undo();
+      expect(session.canRedo, isTrue);
+
+      session.enter(wrongAt(firstEmpty));
+
+      expect(session.canRedo, isFalse);
+    });
+
+    test('keep the newest $undoStackCap moves and drop the oldest', () {
+      final session = start()
+        ..select(firstEmpty)
+        ..pencilMode = true;
+
+      /// The state the stack's oldest surviving entry restores: the cell as it
+      /// stood before the move that pushed the first entry out.
+      late int atCap;
+      for (var move = 0; move < undoStackCap + 50; move++) {
+        if (move == 50) atCap = session.notesAt(firstEmpty);
+        session.enter(move % spec.digits + 1);
+      }
+      expect(session.toSaved().undoStack, hasLength(undoStackCap));
+
+      for (var move = 0; move < undoStackCap; move++) {
+        session.undo();
+      }
+
+      expect(session.canUndo, isFalse);
+      expect(session.notesAt(firstEmpty), atCap);
+    });
+  });
+
+  group('solving', () {
+    test('is every cell agreeing with the solution', () {
+      final session = start();
+
+      for (var index = 0; index < spec.cells; index++) {
+        if (session.isGiven(index)) continue;
+        session
+          ..select(index)
+          ..enter(solutionAt(index));
+      }
+
+      expect(session.isSolved, isTrue);
+      expect(session.mistakes, 0);
+    });
+
+    test('is not reached by a full board with a wrong digit in it', () {
+      final session = start();
+
+      for (var index = 0; index < spec.cells; index++) {
+        if (session.isGiven(index)) continue;
+        session
+          ..select(index)
+          ..enter(index == firstEmpty ? wrongAt(index) : solutionAt(index));
+      }
+
+      expect(session.isSolved, isFalse);
+      expect(session.mistakes, 1);
+    });
+  });
+
+  group('saving and resuming', () {
+    /// A board with entries, notes, a wrong digit and history on it.
+    SudokuSession played() {
+      final session = start();
+      var entered = 0;
+      for (var index = 0; index < spec.cells && entered < 12; index++) {
+        if (session.isGiven(index)) continue;
+        session.select(index);
+        if (entered.isEven) {
+          session.enter(entered == 4 ? wrongAt(index) : solutionAt(index));
+        } else {
+          session
+            ..pencilMode = true
+            ..enter(entered % spec.digits + 1)
+            ..enter((entered + 3) % spec.digits + 1)
+            ..pencilMode = false;
+        }
+        entered++;
+      }
+      return session
+        ..undo()
+        ..elapsed = const Duration(minutes: 3, seconds: 14);
+    }
+
+    test('a played board resumes to an identical model', () {
+      final before = played();
+      final saved = before.toSaved();
+
+      final after = SudokuSession.resume(id: id, record: record, saved: saved);
+
+      for (var index = 0; index < spec.cells; index++) {
+        expect(
+          after.digitAt(index),
+          before.digitAt(index),
+          reason: 'digit at cell $index',
+        );
+        expect(
+          after.notesAt(index),
+          before.notesAt(index),
+          reason: 'notes at cell $index',
+        );
+        expect(
+          after.isGiven(index),
+          before.isGiven(index),
+          reason: 'given at cell $index',
+        );
+        expect(
+          after.isWrong(index),
+          before.isWrong(index),
+          reason: 'wrong at cell $index',
+        );
+      }
+      expect(after.elapsed, before.elapsed);
+      expect(after.hints, before.hints);
+      expect(after.toSaved().undoStack, saved.undoStack);
+      expect(after.toSaved(), saved);
+    });
+
+    test('the undo stack still walks the board back after a resume', () {
+      final before = played();
+      final after = SudokuSession.resume(
+        id: id,
+        record: record,
+        saved: before.toSaved(),
+      );
+
+      while (before.canUndo) {
+        before.undo();
+        after.undo();
+      }
+
+      expect(after.toSaved().grid, before.toSaved().grid);
+      expect(after.toSaved().notes, before.toSaved().notes);
+    });
+
+    test('carries the hint count, which nothing else restores', () {
+      final saved = played().toSaved();
+
+      final after = SudokuSession.resume(
+        id: id,
+        record: record,
+        saved: PuzzleInProgress(
+          grid: saved.grid,
+          notes: saved.notes,
+          elapsedMs: saved.elapsedMs,
+          undoStack: saved.undoStack,
+          hints: 3,
+        ),
+      );
+
+      expect(after.hints, 3);
+      expect(after.toSaved().hints, 3);
+    });
+
+    test('counts the wrong digits it resumes with as mistakes', () {
+      final before = played();
+
+      final after = SudokuSession.resume(
+        id: id,
+        record: record,
+        saved: before.toSaved(),
+      );
+
+      expect(before.mistakes, 1);
+      expect(after.mistakes, 1);
+    });
+
+    test('starts with nothing to redo', () {
+      final before = played();
+      expect(before.canRedo, isTrue);
+
+      final after = SudokuSession.resume(
+        id: id,
+        record: record,
+        saved: before.toSaved(),
+      );
+
+      expect(after.canRedo, isFalse);
+      expect(after.canUndo, isTrue);
+    });
+
+    test('brings an over-long undo stack back inside the cap at once', () {
+      // A hand-edited file, or one written by a build whose cap was larger.
+      // Trimming a move at a time would leave the save over its size for the
+      // next few hundred taps.
+      final saved = played().toSaved();
+
+      final after = SudokuSession.resume(
+        id: id,
+        record: record,
+        saved: PuzzleInProgress(
+          grid: saved.grid,
+          undoStack: [
+            for (var move = 0; move < undoStackCap + 5; move++) '0.0.$move',
+          ],
+        ),
+      );
+
+      expect(after.toSaved().undoStack, hasLength(undoStackCap));
+      // The newest are the ones kept: the oldest five are what fell off.
+      expect(after.toSaved().undoStack.last, '0.0.${undoStackCap + 4}');
+    });
+
+    test('rejects a truncated grid rather than decoding it', () {
+      final saved = played().toSaved();
+
+      expect(
+        () => SudokuSession.resume(
+          id: id,
+          record: record,
+          saved: PuzzleInProgress(
+            grid: saved.grid.substring(0, saved.grid.length - 1),
+          ),
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('rejects a grid that disagrees with the puzzle it is resumed as', () {
+      // The same length and the same alphabet: only a clue is missing, which is
+      // what a save paired with the wrong id looks like.
+      final saved = played().toSaved();
+
+      expect(
+        () => SudokuSession.resume(
+          id: id,
+          record: record,
+          saved: PuzzleInProgress(
+            grid: saved.grid.replaceRange(firstGiven, firstGiven + 1, '.'),
+          ),
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('rejects an undo entry that is not a move on this board', () {
+      final saved = played().toSaved();
+
+      expect(
+        () => SudokuSession.resume(
+          id: id,
+          record: record,
+          saved: PuzzleInProgress(
+            grid: saved.grid,
+            undoStack: ['${spec.cells}.1.0'],
+          ),
+        ),
+        throwsFormatException,
+      );
+    });
+  });
+}
