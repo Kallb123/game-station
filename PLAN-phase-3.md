@@ -249,6 +249,22 @@ fail the second.
 9x9 gets the 3x3 phone-keypad shape and 6x6 gets 2x3, derived rather than hardcoded. Every button is
 at least `AppTapTargets.min` (56 dp). Beside the digits: erase, pencil toggle, undo, redo, hint.
 
+**The play screen does not use `ScreenScaffold`**, which every other screen in the app does. PR 6
+found the cost by measuring it: that frame's heading is a screen's name at display size, and this
+screen's content is a square board, so the heading's height comes off the board's width as well. The
+same board and keypad on a 360x640 phone with a notch and a gesture bar measure 166 dp across inside
+`ScreenScaffold` and 194 dp inside a compact header, and at 200% text scale, 14 dp against 170 dp —
+the first of those is a board no child can play. The play screen therefore keeps the same safe area,
+the same screen padding and the same back control with the same tooltip, and puts the screen's name
+at `titleLarge` in a row with the clock instead of above it. Nothing else moves to the compact
+header: the other screens have text as their content, and their headings cost them height only.
+
+The board takes the space the keypad leaves rather than the other way round, because every keypad
+button has a floor to clear (`PLAN.md` §4.2) and a board cell has none. What keeps that from
+crushing the board is a test rather than an eye: the eight-case matrix in
+`sudoku_play_screen_test.dart` — both sizes, both themes, 100% and 200% — asserts no overflow **and**
+a board of at least 16 dp per cell.
+
 ### 4.6 Hints, mistakes and completion
 
 **Hint**, in order:
@@ -339,6 +355,16 @@ through would make resume regenerate it behind a spinner.
 
 Writes happen on every move through the debounce (`PLAN.md` §5.3), and `flush()` on pause and detach
 is already wired in `app.dart`.
+
+**The clock is written when it stops, not when it moves.** A tick is a mutation like any other, so a
+second of play would otherwise cost a write per second for as long as a child sits on the screen.
+Instead the play screen writes `elapsed` on every move, when the app leaves the foreground, and when
+the screen closes — the three moments after which the seconds since the last move are otherwise only
+in memory. The last of them also `flush()`es rather than leaving the write in the debounce window,
+because a puzzle nobody is playing has no later write to be coalesced with. The pause path does not
+need to: `app.dart` flushes there, and `ProgressRepository.flush` loops until nothing is pending, so
+it picks up a mutation made while its own first write is in flight no matter which lifecycle listener
+the platform calls first.
 
 ---
 
@@ -479,7 +505,9 @@ Commits:
    button is wired in PR 7 and disabled here rather than absent, so the layout does not move).
 3. Tests: box borders land at the right rows and columns for both sizes; tapping a cell then a
    digit shows it; pencil mode writes a note instead; every button is at least 56 dp; the whole
-   screen pumps at `TextScaler.linear(2.0)` with no overflow.
+   screen pumps at `TextScaler.linear(2.0)` with no overflow. PR 6 replaced that last file with the
+   same matrix run against the real screen, chrome included, which is where the overflow was
+   actually available to happen (§4.5).
 
 **Done when:** those tests pass, and the screen has been looked at on the Android device at both
 sizes — a border test proves geometry, not legibility.

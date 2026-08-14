@@ -30,6 +30,10 @@ SaveData freshSave({AppSettings? settings}) {
 /// Returns the scope's container, so a test can read the repository and assert
 /// what the app wrote rather than only what it drew.
 ///
+/// [overrides] is where a test that reaches a Sudoku screen puts its
+/// `puzzleSourceProvider`: without one the app generates for real, on an
+/// isolate, in a widget test (`PLAN-phase-3.md` §4.2).
+///
 /// Called a second time in the same test, it is a relaunch: the previous tree
 /// comes down first. Without that, `pumpWidget` would update the element tree in
 /// place — same root widget type — and the app would keep the navigator, and so
@@ -37,6 +41,7 @@ SaveData freshSave({AppSettings? settings}) {
 Future<ProviderContainer> pumpApp(
   WidgetTester tester, {
   required SaveStore store,
+  List<Override> overrides = const [],
 }) async {
   final loaded = await store.load();
   final root = UncontrolledProviderScope(
@@ -44,6 +49,7 @@ Future<ProviderContainer> pumpApp(
       overrides: [
         saveStoreProvider.overrideWithValue(store),
         initialSaveProvider.overrideWithValue(loaded),
+        ...overrides,
       ],
     ),
     child: const GameStationApp(),

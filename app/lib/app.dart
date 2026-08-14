@@ -11,6 +11,8 @@ import 'features/home/home_screen.dart';
 import 'features/placeholders/coming_soon_screen.dart';
 import 'features/profiles/profile_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/sudoku/ui/sudoku_launcher_screen.dart';
+import 'features/sudoku/ui/sudoku_play_screen.dart';
 import 'routes.dart';
 
 /// The application root.
@@ -159,13 +161,18 @@ class _NoPageTransition extends PageTransitionsBuilder {
 /// Builds the route for [settings], falling back to home for a name no screen
 /// is registered under.
 ///
-/// The assert is the real handling: an unknown name can only come from a typo
-/// in this repository, because nothing outside the app can name a route. It
-/// fails loudly in debug and in tests, and in release it puts the child on the
-/// home screen instead of on a grey error page.
+/// The assert is the real handling: an unknown name, or arguments of the wrong
+/// shape, can only come from a typo in this repository, because nothing outside
+/// the app can name a route. It fails loudly in debug and in tests, and in
+/// release it puts the child on the home screen instead of on a grey error
+/// page.
 Route<void> _generateRoute(RouteSettings settings) {
-  final screen = _screenFor(settings.name);
-  assert(screen != null, 'no screen is registered for route ${settings.name}');
+  final screen = _screenFor(settings);
+  assert(
+    screen != null,
+    'no screen is registered for route ${settings.name} with arguments '
+    '${settings.arguments}',
+  );
 
   return MaterialPageRoute<void>(
     builder: screen ?? (context) => const HomeScreen(),
@@ -173,22 +180,32 @@ Route<void> _generateRoute(RouteSettings settings) {
   );
 }
 
-/// The screen behind each route name, or null for a name with no screen.
+/// The screen behind each route, or null for one no screen answers to.
 ///
-/// `/sudoku` and `/arcade` are placeholders until phases 3 and 4; the route
-/// names are already the ones those screens will answer to, so wiring them is a
-/// one-line change there rather than a change here as well.
-WidgetBuilder? _screenFor(String? name) => switch (name) {
+/// Takes the whole [RouteSettings] rather than the name alone because
+/// [AppRoutes.sudokuPlay] carries which puzzle to play. `/arcade` is a
+/// placeholder until phase 4; the route name is already the one that screen
+/// will answer to, so wiring it is a one-line change there rather than a change
+/// here as well.
+WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.home => (context) => const HomeScreen(),
   AppRoutes.profiles => (context) => const ProfileScreen(),
   AppRoutes.settings => (context) => const SettingsScreen(),
-  AppRoutes.sudoku => (context) => const ComingSoonScreen(
-    title: 'Sudoku',
-    icon: homeSudokuIcon,
-  ),
+  // Replaced by the menu in phase 3's PR 8, which deletes the launcher with it.
+  AppRoutes.sudoku => (context) => const SudokuLauncherScreen(),
+  AppRoutes.sudokuPlay => _playScreen(settings.arguments),
   AppRoutes.arcade => (context) => const ComingSoonScreen(
     title: 'Arcade',
     icon: homeArcadeIcon,
   ),
   _ => null,
 };
+
+/// The play screen for [arguments], or null when the route was pushed without
+/// a [SudokuPlayArgs] — which the assert in [_generateRoute] catches.
+///
+/// A check rather than a cast: an `as` here would throw from inside a route
+/// builder, which is a grey error page in release rather than the home screen.
+WidgetBuilder? _playScreen(Object? arguments) => arguments is SudokuPlayArgs
+    ? (context) => SudokuPlayScreen(args: arguments)
+    : null;

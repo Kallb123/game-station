@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:game_station/core/storage/providers.dart';
 import 'package:game_station/core/storage/save_data.dart';
 import 'package:game_station/core/storage/save_store.dart';
+import 'package:game_station/features/sudoku/ui/sudoku_launcher_screen.dart';
+import 'package:game_station/routes.dart';
 
 import 'app_harness.dart';
 
@@ -18,28 +20,53 @@ void main() {
     expect(find.text('Arcade'), findsOneWidget);
   });
 
-  // The PR's done-criterion: every card leads somewhere, and every somewhere
-  // leads back. A card that opened a screen with no way out would strand a
-  // child on it.
-  for (final (label, title) in const [
-    ('Sudoku', 'Sudoku'),
-    ('Arcade', 'Arcade'),
-  ]) {
-    testWidgets('$label opens its screen and comes back', (tester) async {
-      await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+  // Every card leads somewhere, and every somewhere leads back. A card that
+  // opened a screen with no way out would strand a child on it.
+  testWidgets('Arcade opens its screen and comes back', (tester) async {
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
-      expect(find.text('Coming soon!'), findsOneWidget);
-      expect(find.text(title), findsOneWidget);
+    await tester.tap(find.text('Arcade'));
+    await tester.pumpAndSettle();
+    expect(find.text('Coming soon!'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Back'));
-      await tester.pumpAndSettle();
-      expect(find.text('Sudoku'), findsOneWidget);
-      expect(find.text('Arcade'), findsOneWidget);
-      expect(find.text('Coming soon!'), findsNothing);
-    });
-  }
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sudoku'), findsOneWidget);
+    expect(find.text('Arcade'), findsOneWidget);
+    expect(find.text('Coming soon!'), findsNothing);
+  });
+
+  testWidgets('Sudoku opens its launcher and comes back', (tester) async {
+    // The launcher is phase 3 PR 6's temporary way onto the board and PR 8
+    // deletes it; what this test is really about — the card leads somewhere
+    // and that somewhere leads back — outlives it.
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+
+    await tester.tap(find.text('Sudoku'));
+    await tester.pumpAndSettle();
+    expect(find.text(launcherLabel), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Arcade'), findsOneWidget);
+    expect(find.text(launcherLabel), findsNothing);
+  });
+
+  testWidgets('the play route without a puzzle to play fails loudly', (
+    tester,
+  ) async {
+    // The one route in the app that takes arguments, so it is the one that can
+    // be pushed without them. Same reasoning as the unknown-name case below:
+    // only a typo in this repository can do it, so it has to fail in a test run
+    // rather than reach a child.
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+
+    expect(
+      () => navigator.pushNamed(AppRoutes.sudokuPlay),
+      throwsAssertionError,
+    );
+  });
 
   testWidgets('the settings button opens the settings route', (tester) async {
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
