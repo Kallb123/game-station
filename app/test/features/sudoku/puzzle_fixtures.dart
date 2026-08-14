@@ -10,6 +10,7 @@
 
 import 'package:game_station/features/sudoku/data/puzzle_record.dart';
 import 'package:game_station/features/sudoku/data/puzzle_source.dart';
+import 'package:game_station/features/sudoku/model/sudoku_session.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 /// The record for [id], generated on the first ask and remembered afterwards.
@@ -20,6 +21,13 @@ PuzzleRecord fixtureRecord(PuzzleId id) =>
     _fixtures[id.value] ??= PuzzleRecord.of(generateSudoku(id));
 
 final Map<String, PuzzleRecord> _fixtures = {};
+
+/// A fresh session on the puzzle [id] names.
+///
+/// The record is shared and the session is not: a widget test plays on it, and
+/// two tests sharing one board would pass in one order and fail in another.
+SudokuSession fixtureSession(PuzzleId id) =>
+    SudokuSession.start(id: id, record: fixtureRecord(id));
 
 /// A [PuzzleSource] that answers from [fixtureRecord] without an isolate, a
 /// cache or a delay, and records what it was asked for.
