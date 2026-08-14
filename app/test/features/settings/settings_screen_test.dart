@@ -62,6 +62,35 @@ void main() {
     }
   }
 
+  /// Scrolls [label] into view, building it if the list has not yet.
+  ///
+  /// `ensureVisible` is not enough for anything below the last section: a
+  /// `ListView` builds lazily, so a control off the bottom is not in the tree
+  /// to be made visible until the list has been dragged towards it.
+  Future<void> scrollTo(WidgetTester tester, String label) async {
+    await tester.scrollUntilVisible(
+      find.text(label),
+      AppTapTargets.primary,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+  }
+
+  /// Picks when this profile is told about a wrong digit.
+  Future<void> chooseMistakeFeedback(
+    WidgetTester tester,
+    MistakeFeedback choice,
+  ) async {
+    final label = mistakeFeedbackChoices[choice]!.label;
+    await scrollTo(tester, label);
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
+  /// The active profile, which is what the mistake setting belongs to.
+  Profile activeProfile(ProviderContainer container) =>
+      container.read(progressRepositoryProvider).activeProfile;
+
   /// Picks a theme, scrolling to it first.
   ///
   /// The five controls are taller than a short window, so the theme buttons can
@@ -142,19 +171,90 @@ void main() {
     await openSettings(tester);
 
     // Selection is a check icon as well as a colour (`big_button.dart`), so
-    // exactly one choice carries one.
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.ancestor(
-          of: find.text(themeChoices[ThemeChoice.system]!.label),
-          matching: find.byType(FilledButton),
+    // exactly one of the three carries one — a fresh save follows the device,
+    // which makes it Automatic.
+    for (final MapEntry(key: choice, value: (:label, icon: _))
+        in themeChoices.entries) {
+      expect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text(label),
+            matching: find.byType(FilledButton),
+          ),
+          matching: find.byIcon(Icons.check_circle),
         ),
-        matching: find.byIcon(Icons.check_circle),
-      ),
-      findsOneWidget,
-      reason: 'a fresh save follows the device, so Automatic is the chosen one',
-    );
+        choice == ThemeChoice.system ? findsOneWidget : findsNothing,
+        reason: label,
+      );
+    }
+  });
+
+  group('when a wrong number is pointed out', () {
+    testWidgets('the choice survives a relaunch', (tester) async {
+      final store = MemorySaveStore(initial: freshSave());
+      final container = await pumpApp(tester, store: store);
+      await openSettings(tester);
+      expect(
+        activeProfile(container).mistakeFeedback,
+        MistakeFeedback.immediate,
+        reason: 'the default (`PLAN.md` §3.7)',
+      );
+
+      await chooseMistakeFeedback(tester, MistakeFeedback.atCompletion);
+      expect(
+        activeProfile(container).mistakeFeedback,
+        MistakeFeedback.atCompletion,
+      );
+
+      await flush(container);
+      final relaunched = await pumpApp(tester, store: store);
+
+      expect(
+        activeProfile(relaunched).mistakeFeedback,
+        MistakeFeedback.atCompletion,
+        reason: 'encoded, written and decoded by the real codec',
+      );
+    });
+
+    testWidgets('it belongs to the player, not to the tablet', (tester) async {
+      // The one setting on this screen that is per profile
+      // (`save_data.dart`), which is why the control says whose it is.
+      final container = await pumpApp(
+        tester,
+        store: MemorySaveStore(initial: freshSave()),
+      );
+      final repository = container.read(progressRepositoryProvider);
+      final first = repository.activeProfile;
+      final second = repository.createProfile(avatar: AvatarId.owl);
+
+      repository.selectProfile(first.id);
+      await openSettings(tester);
+      await chooseMistakeFeedback(tester, MistakeFeedback.atCompletion);
+
+      repository.selectProfile(second.id);
+      await tester.pumpAndSettle();
+      await scrollTo(tester, mistakeSectionLabel);
+
+      expect(
+        repository.activeProfile.mistakeFeedback,
+        MistakeFeedback.immediate,
+        reason: 'the other child was not changed with them',
+      );
+      expect(find.text(mistakeSectionCaption(second.name)), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text(
+              mistakeFeedbackChoices[MistakeFeedback.immediate]!.label,
+            ),
+            matching: find.byType(FilledButton),
+          ),
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsOneWidget,
+        reason: 'and the screen shows this profile\'s answer, not the first\'s',
+      );
+    });
   });
 
   testWidgets('every switch survives a relaunch', (tester) async {
@@ -309,7 +409,11 @@ void main() {
           reason: '$label is a row a child aims at',
         );
       }
-      for (final choice in themeChoices.values) {
+      for (final choice in [
+        ...themeChoices.values,
+        ...mistakeFeedbackChoices.values,
+      ]) {
+        await scrollTo(tester, choice.label);
         expect(
           tester
               .getSize(
