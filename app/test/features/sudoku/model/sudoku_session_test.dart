@@ -11,6 +11,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game_station/core/storage/save_data.dart';
+import 'package:game_station/features/sudoku/data/puzzle_record.dart';
 import 'package:game_station/features/sudoku/model/session_codec.dart';
 import 'package:game_station/features/sudoku/model/sudoku_session.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
@@ -325,6 +326,211 @@ void main() {
       }
 
       expect(session.isSolved, isFalse);
+      expect(session.mistakes, 1);
+    });
+  });
+
+  group('a hint', () {
+    test('fills a cell the solution agrees with, and counts', () {
+      final session = start();
+      session.hint();
+
+      final filled = session.selected;
+      expect(filled, isNotNull);
+      expect(session.isGiven(filled!), isFalse);
+      expect(session.digitAt(filled), solutionAt(filled));
+      expect(session.hints, 1);
+      expect(session.mistakes, 0, reason: 'a hint is never a mistake');
+    });
+
+    test('is an ordinary move, so undo takes it back', () {
+      final session = start();
+      session.hint();
+      final filled = session.selected!;
+
+      session.undo();
+
+      expect(session.digitAt(filled), 0);
+      // The count does not come back down, for the same reason a corrected
+      // mistake still counts: it records what was given away, not what is on
+      // the board now.
+      expect(session.hints, 1);
+    });
+
+    test('clears the pencil marks under the cell it fills', () {
+      final session = start()
+        ..select(firstEmpty)
+        ..pencilMode = true
+        ..enter(1)
+        ..pencilMode = false;
+      expect(session.notesAt(firstEmpty), isNot(0));
+
+      // Whichever cell the hint lands on, that cell ends up holding a digit and
+      // no marks — and this is the run where it lands on one that had some.
+      while (session.digitAt(firstEmpty) == 0) {
+        session.hint();
+      }
+
+      expect(session.notesAt(firstEmpty), 0);
+    });
+
+    test('points at a wrong digit instead of revealing anything', () {
+      final session = start()
+        ..select(firstEmpty)
+        ..enter(wrongAt(firstEmpty));
+      final before = [
+        for (var index = 0; index < spec.cells; index++) session.digitAt(index),
+      ];
+
+      session.hint();
+
+      expect(session.selected, firstEmpty);
+      expect(session.isFlagged(firstEmpty), isTrue);
+      expect(session.hints, 0, reason: 'pointing gives nothing away');
+      expect(
+        [
+          for (var index = 0; index < spec.cells; index++)
+            session.digitAt(index),
+        ],
+        before,
+        reason: 'and changes no cell',
+      );
+    });
+
+    test('points at the same cell twice rather than at the second mistake', () {
+      // Deterministic, and the lowest index wins: a hint that walked to the
+      // next mistake would let a child page through their errors without
+      // fixing the first one.
+      final second = record.clues.indexOf('.', firstEmpty + 1);
+      final session = start()
+        ..select(second)
+        ..enter(wrongAt(second))
+        ..select(firstEmpty)
+        ..enter(wrongAt(firstEmpty));
+
+      session
+        ..hint()
+        ..hint();
+
+      expect(session.selected, firstEmpty);
+      expect(session.hints, 0);
+    });
+
+    test('reveals the emptiest cell when technique has run out', () {
+      // A board with no clues at all: no technique makes progress on one, which
+      // is what `nextPlacement` returning null means (`technique_solver.dart`),
+      // so this is the T4 path of `PLAN-phase-3.md` §4.6 without the seconds a
+      // real Expert puzzle costs to generate. Every empty cell has the same
+      // number of candidates, so the tie-break — the lowest index — is what
+      // decides, and that is the property worth pinning.
+      final session = SudokuSession.start(
+        id: id,
+        record: PuzzleRecord(
+          clues: PuzzleRecord.emptyCell * spec.cells,
+          solution: record.solution,
+        ),
+      );
+
+      session.hint();
+
+      expect(session.selected, 0);
+      expect(session.digitAt(0), solutionAt(0));
+      expect(session.hints, 1);
+    });
+
+    test('does nothing to a solved board', () {
+      final session = start();
+      for (var index = 0; index < spec.cells; index++) {
+        if (session.isGiven(index)) continue;
+        session
+          ..select(index)
+          ..enter(solutionAt(index));
+      }
+
+      session.hint();
+
+      expect(session.hints, 0);
+    });
+  });
+
+  group('mistake feedback', () {
+    /// Fills every empty cell of [session] with the solution, except [wrong],
+    /// which gets a digit the solution disagrees with.
+    void fill(SudokuSession session, {required int wrong}) {
+      for (var index = 0; index < spec.cells; index++) {
+        if (session.isGiven(index)) continue;
+        session
+          ..select(index)
+          ..enter(index == wrong ? wrongAt(index) : solutionAt(index));
+      }
+    }
+
+    test('immediate flags a wrong digit as it is entered', () {
+      final session = start()
+        ..select(firstEmpty)
+        ..enter(wrongAt(firstEmpty));
+
+      expect(session.mistakeFeedback, MistakeFeedback.immediate);
+      expect(session.isWrong(firstEmpty), isTrue);
+      expect(session.isFlagged(firstEmpty), isTrue);
+    });
+
+    test('atCompletion says nothing until the grid is full', () {
+      final session = SudokuSession.start(
+        id: id,
+        record: record,
+        mistakeFeedback: MistakeFeedback.atCompletion,
+      );
+
+      session
+        ..select(firstEmpty)
+        ..enter(wrongAt(firstEmpty));
+      expect(session.isWrong(firstEmpty), isTrue);
+      expect(
+        session.isFlagged(firstEmpty),
+        isFalse,
+        reason: 'the fact is known; the board has not said so',
+      );
+
+      fill(session, wrong: firstEmpty);
+
+      expect(session.isFull, isTrue);
+      expect(session.isSolved, isFalse);
+      expect(
+        session.isFlagged(firstEmpty),
+        isTrue,
+        reason: 'a full grid that is not solved has to say why',
+      );
+    });
+
+    test('atCompletion still flags the cell a hint pointed at', () {
+      // Otherwise the hint would select a cell in silence, which tells a child
+      // nothing at all (`PLAN-phase-3.md` §4.6).
+      final session =
+          SudokuSession.start(
+              id: id,
+              record: record,
+              mistakeFeedback: MistakeFeedback.atCompletion,
+            )
+            ..select(firstEmpty)
+            ..enter(wrongAt(firstEmpty));
+      expect(session.isFlagged(firstEmpty), isFalse);
+
+      session.hint();
+
+      expect(session.isFlagged(firstEmpty), isTrue);
+    });
+
+    test('counts a mistake in both modes, because the star depends on it', () {
+      final session =
+          SudokuSession.start(
+              id: id,
+              record: record,
+              mistakeFeedback: MistakeFeedback.atCompletion,
+            )
+            ..select(firstEmpty)
+            ..enter(wrongAt(firstEmpty));
+
       expect(session.mistakes, 1);
     });
   });
