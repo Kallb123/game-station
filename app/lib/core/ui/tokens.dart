@@ -73,6 +73,14 @@ abstract final class AppBorders {
   /// 1 dp — an outline that says "this is a control" without competing with
   /// [selected] for attention.
   static const double hairline = 1;
+
+  /// 2 dp — the line between two boxes of a Sudoku grid, against
+  /// [hairline] between two cells of one box.
+  ///
+  /// Its own token rather than [selected] at the same value: this line is
+  /// structure, not state, and a change to how selection is drawn must not
+  /// silently redraw the grid.
+  static const double gridBox = 2;
 }
 
 /// Icon sizes.

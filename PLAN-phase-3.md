@@ -225,7 +225,9 @@ thousands of moves in one puzzle, and the save is meant to be a few kilobytes af
 
 ### 4.5 The grid and keypad
 
-`SudokuGridView` takes a `SudokuSpec` and a session, and draws both sizes from `spec.boxRows`,
+`SudokuGridView` takes a session — PR 5 dropped the separate `SudokuSpec` parameter this section
+first sketched, because the session has carried its own spec since PR 4 and two sources for one fact
+is one that can disagree — and draws both sizes from `spec.boxRows`,
 `spec.boxCols` and `spec.digits`. No `if (size == 9)` anywhere: a 6x6 whose boxes come out 3x2
 instead of 2x3 is the bug `PLAN.md` §3.6 already tests for in the engine, and the widget has its own
 test: for 9x9 the thick lines fall after columns 3 and 6 and after rows 3 and 6; for 6x6 after
