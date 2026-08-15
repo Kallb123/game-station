@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/build_info.dart';
 import '../../core/storage/providers.dart';
 import '../../core/storage/save_data.dart';
 import '../../core/ui/big_button.dart';
@@ -136,7 +137,42 @@ class SettingsScreen extends ConsumerWidget {
                 .read(progressRepositoryProvider)
                 .setMistakeFeedback(profile.id, value),
           ),
+          const SizedBox(height: AppSpacing.xxl),
+          const _BuildFooter(),
         ],
+      ),
+    );
+  }
+}
+
+/// Which build this is, at the bottom of the last screen a child goes looking
+/// at — so the answer to "what version have you got?" is on the tablet rather
+/// than in a store listing this app is not in yet.
+///
+/// The smallest type on the screen and the quietest colour, because it is the
+/// one thing here that is not for the player: nothing on this line is worth a
+/// child's attention, and everything above it is. It is a plain [Text] rather
+/// than a control — there is nothing to tap, and a tappable version number is
+/// how a child ends up somewhere a grown-up has to get them out of.
+///
+/// Last in the [ListView] rather than pinned under it: pinning costs the height
+/// on every screen, which at 200% text scale is height the settings themselves
+/// need.
+class _BuildFooter extends StatelessWidget {
+  const _BuildFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Text(
+        BuildInfo.current.label,
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

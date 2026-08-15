@@ -51,6 +51,7 @@ tool/check_determinism.dart # enforces the engine's no-clock, no-dart:math rules
 tool/verify.sh          # everything CI runs, in the same order
 tool/install_flutter.sh # installs the pinned SDK, for cloud sessions
 tool/check_apk_permissions.sh # asserts a built APK requests no permissions
+tool/build_defines.sh   # stamps a build with its version and build time
 tool/icon/              # resamples the icon master into every platform's launcher sizes
 ```
 
@@ -90,6 +91,25 @@ that reached a phone was checked on the way.
 
 Locally, `cd app && flutter build apk --release` produces the same thing at
 `app/build/app/outputs/flutter-apk/app-release.apk`.
+
+### Which build is this?
+
+The bottom of the settings screen names the running build — `Version 0.1.0+1 · built 15 Aug 2026,
+13:07 UTC` — so a device can answer the question without a store listing.
+
+Both halves are compile-time `--dart-define`s rather than a plugin, and
+[`tool/build_defines.sh`](tool/build_defines.sh) emits them, reading the version from
+`app/pubspec.yaml` so the footer, the APK's file name and pubspec cannot disagree. The Android APK
+workflow calls it, so every uploaded and released package is stamped. A build made without it —
+`flutter run`, `flutter test`, a plain local `flutter build` — says **Development build** instead:
+
+```sh
+cd app && flutter build apk --release $(../tool/build_defines.sh)  # stamped
+```
+
+There is no fallback version compiled into the app on purpose. One would be a second home for a
+number pubspec already owns, and it would fail by reporting the version before last rather than by
+going red.
 
 ### The signing key
 

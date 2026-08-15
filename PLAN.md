@@ -776,6 +776,10 @@ complete app.
 - [ ] The built Android APK manifest contains no internet permission (verified in the artifact).
 - [ ] The release APK is signed with the key from repository secrets, not the fallback debug key —
       the run summary names which, and a store upload can never change key afterwards.
+- [ ] The installed build's settings footer names a version and a build time rather than
+      "Development build". The stamp comes from the build command rather than from the source
+      (`tool/build_defines.sh`), which is what keeps it from going stale — and also the one way this
+      can fail, since an unstamped build is a green build.
 - [ ] The daily puzzle is byte-identical on Android, iOS, Windows, macOS and Linux.
 - [ ] Golden determinism tests pass in CI.
 - [ ] A force-quit mid-puzzle restores the exact board, notes and timer.

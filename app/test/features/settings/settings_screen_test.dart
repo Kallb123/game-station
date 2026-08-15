@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/build_info.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
@@ -431,6 +432,27 @@ void main() {
         greaterThanOrEqualTo(AppTapTargets.min),
       );
     });
+  });
+
+  testWidgets('the footer names the build, under everything else', (
+    tester,
+  ) async {
+    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+    await openSettings(tester);
+
+    // Whatever this build was stamped with — `flutter test` stamps nothing, so
+    // here it is the development label. Asserting the string the app would show
+    // rather than a literal is what keeps the test honest under a stamped run:
+    // `build_info_test.dart` is where the label's own wording is pinned.
+    final footer = find.text(BuildInfo.current.label);
+    await scrollTo(tester, BuildInfo.current.label);
+
+    expect(footer, findsOneWidget);
+    expect(
+      tester.getTopLeft(footer).dy,
+      greaterThan(tester.getBottomLeft(find.text(mistakeSectionLabel)).dy),
+      reason: 'the footer sits below the last setting',
+    );
   });
 
   testWidgets('every control is reachable on a small phone at 200% text scale', (
