@@ -192,8 +192,17 @@ jobs:
       # debug key otherwise — app/android/app/build.gradle.kts decides, from
       # whether key.properties exists. A store release still needs the rest of
       # Phase 6 (PLAN.md §7); this only fixes installing one build over another.
+      #
+      # tool/build_defines.sh stamps the build with pubspec's version and the
+      # time it was compiled, which the settings screen's footer reports
+      # (app/lib/core/build_info.dart). Unquoted so the two flags it prints
+      # become two arguments; neither value contains a space. A build without
+      # it is not stamped and says "Development build", which is what a local
+      # `flutter build apk` gives you — deliberately, since the alternative is
+      # a fallback version in the source that goes stale without anyone
+      # noticing.
       - name: Build the release APK
-        run: flutter build apk --release
+        run: flutter build apk --release $(../tool/build_defines.sh)
         working-directory: app
 
       # Deleted as soon as the build no longer needs it, and on failure too. The
