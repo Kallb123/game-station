@@ -296,17 +296,9 @@ void main() {
       expect(savedIn(container), isNull);
     });
 
-    testWidgets('writes where the clock stopped when the screen closes', (
-      tester,
-    ) async {
-      final container = await pumpPlay(tester);
-      await tester.pump(const Duration(seconds: 5));
-
-      // The screen going away, as a pop does it.
-      await tester.pumpWidget(const SizedBox.shrink());
-
-      expect(savedIn(container)?.elapsedMs, 5000);
-    });
+    // Where the clock stopped is written by the pop rather than by the screen's
+    // disposal (`sudoku_play_screen.dart`), so the test for it is one that pops
+    // a route: `completion_test.dart`, which runs the app's own routes.
   });
 
   // The whole screen on the smallest target, at both sizes, in both themes, at

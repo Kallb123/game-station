@@ -12,8 +12,8 @@
 // `SudokuBoard.place` refuses a digit that repeats one in its row, column or
 // box, and `SudokuBoard.fromClues` throws on one, so a board holding a child's
 // wrong digit cannot be built at all (`PLAN-phase-3.md` §4.3). A `SudokuBoard`
-// is constructed only where one is needed — for hints, in a later pull request
-// — and only from the clues plus the entries that match the solution.
+// is constructed only where one is needed — in [SudokuSession.hint] — and only
+// once every entered digit is known to match the solution.
 
 import 'package:flutter/foundation.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
@@ -33,6 +33,7 @@ class SudokuSession extends ChangeNotifier {
   factory SudokuSession.start({
     required PuzzleId id,
     required PuzzleRecord record,
+    MistakeFeedback mistakeFeedback = MistakeFeedback.immediate,
   }) {
     final clues = decodeGrid(id.spec, record.clues);
     return SudokuSession._(
@@ -43,6 +44,7 @@ class SudokuSession extends ChangeNotifier {
       // whose givens moved with its entries would call every cell a given.
       digits: [...clues],
       notes: List<int>.filled(id.spec.cells, 0),
+      mistakeFeedback: mistakeFeedback,
     );
   }
 
@@ -63,6 +65,7 @@ class SudokuSession extends ChangeNotifier {
     required PuzzleId id,
     required PuzzleRecord record,
     required PuzzleInProgress saved,
+    MistakeFeedback mistakeFeedback = MistakeFeedback.immediate,
   }) {
     final spec = id.spec;
     final clues = decodeGrid(spec, record.clues);
@@ -88,6 +91,7 @@ class SudokuSession extends ChangeNotifier {
       ],
       elapsed: Duration(milliseconds: saved.elapsedMs),
       hints: saved.hints,
+      mistakeFeedback: mistakeFeedback,
     );
   }
 
@@ -97,6 +101,7 @@ class SudokuSession extends ChangeNotifier {
     required this._solution,
     required this._digits,
     required this._notes,
+    this.mistakeFeedback = MistakeFeedback.immediate,
     this.elapsed = Duration.zero,
     this._hints = 0,
     List<SudokuMove> undoStack = const [],
@@ -115,6 +120,14 @@ class SudokuSession extends ChangeNotifier {
   /// Which puzzle this is. The board is a pure function of it, so this is what
   /// the save stores and what a resume is keyed by.
   final PuzzleId id;
+
+  /// When a wrong digit is drawn as one (`PLAN-phase-3.md` §4.6).
+  ///
+  /// Read once, when the session is built, rather than watched: it is a field
+  /// on the profile, and nothing reachable from a puzzle in play changes either
+  /// the setting or the profile, so a board cannot outlive the answer it
+  /// started with.
+  final MistakeFeedback mistakeFeedback;
 
   /// Time on the clock.
   ///
@@ -144,6 +157,14 @@ class SudokuSession extends ChangeNotifier {
   int _mistakes = 0;
   int _hints;
 
+  /// The wrong cell a [hint] pointed at, or null when none has.
+  ///
+  /// Flagged whatever [mistakeFeedback] says (see [isFlagged]): a child who
+  /// asks for help and gets a cell selected in silence has been told nothing.
+  /// Not stored — the schema has no field for it, and a hint given before a
+  /// force-quit is not something to bring back.
+  int? _pointedAt;
+
   /// The digit in the cell at [index], or 0 when it is empty.
   int digitAt(int index) => _digits[index];
 
@@ -158,11 +179,24 @@ class SudokuSession extends ChangeNotifier {
   /// Whether the cell at [index] holds a digit that is not the puzzle's.
   ///
   /// Computed against the stored solution rather than against the cell's peers,
-  /// so a digit that is wrong but not yet contradictory is caught. Whether it
-  /// is *drawn* wrong depends on the profile's mistake feedback, which is a
-  /// later pull request's question (`PLAN-phase-3.md` §4.6).
+  /// so a digit that is wrong but not yet contradictory is caught. This is the
+  /// fact; [isFlagged] is whether the board says so yet.
   bool isWrong(int index) =>
       _digits[index] != 0 && _digits[index] != _solution[index];
+
+  /// Whether the cell at [index] is *drawn* as a mistake
+  /// (`PLAN-phase-3.md` §4.6).
+  ///
+  /// Under [MistakeFeedback.immediate] that is every wrong digit, as soon as it
+  /// is entered. Under [MistakeFeedback.atCompletion] nothing is flagged until
+  /// the grid is full — at which point being told is the only way a child finds
+  /// out why the puzzle has not finished — and until then only the cell a
+  /// [hint] pointed at.
+  bool isFlagged(int index) =>
+      isWrong(index) &&
+      (mistakeFeedback == MistakeFeedback.immediate ||
+          isFull ||
+          index == _pointedAt);
 
   /// The selected cell, or null when nothing is selected.
   int? get selected => _selected;
@@ -189,6 +223,18 @@ class SudokuSession extends ChangeNotifier {
     return true;
   }
 
+  /// Whether every cell holds a digit, right or wrong.
+  ///
+  /// The difference from [isSolved] is what [MistakeFeedback.atCompletion]
+  /// turns on: a full grid that is not solved is exactly the moment a child who
+  /// asked not to be interrupted needs to be told.
+  bool get isFull {
+    for (final digit in _digits) {
+      if (digit == 0) return false;
+    }
+    return true;
+  }
+
   /// How many wrong digits have been entered, including any that were already
   /// on the board when a saved puzzle was resumed (see the constructor).
   ///
@@ -197,9 +243,9 @@ class SudokuSession extends ChangeNotifier {
   /// the clean star.
   int get mistakes => _mistakes;
 
-  /// How many cells a hint has given away. Restored from the save and carried
-  /// into the `SolvedPuzzle`; the hint path that increments it arrives with the
-  /// hint button (`PLAN-phase-3.md` §4.6).
+  /// How many cells a [hint] has given away. Restored from the save and carried
+  /// into the `SolvedPuzzle`, where any at all clears the clean star
+  /// (`PLAN.md` §3.7).
   int get hints => _hints;
 
   /// Selects the cell at [index], or nothing when it is null.
@@ -270,6 +316,60 @@ class SudokuSession extends ChangeNotifier {
   /// Puts back what [undo] took away.
   void redo() => _step(from: _redo, to: _undo);
 
+  /// Helps, in the three steps of `PLAN-phase-3.md` §4.6.
+  ///
+  /// 1. **A wrong digit already on the board is pointed at** rather than a new
+  ///    cell revealed. A child whose grid already contradicts itself needs the
+  ///    contradiction shown, not another digit — and it does not count as a
+  ///    hint, because it gives nothing away. It is also what keeps step 2 safe:
+  ///    no `SudokuBoard` is ever built from a grid that cannot hold one (§4.3).
+  /// 2. **Otherwise the technique solver decides a cell.** That is a cell a
+  ///    child could have worked out, which is what makes it a hint rather than
+  ///    an answer, and the step carries the technique's name for a later phase
+  ///    to explain with.
+  /// 3. **Otherwise the empty cell with the fewest candidates is revealed**
+  ///    from the stored solution. This is the T4 board where technique has run
+  ///    out (`PLAN.md` §3.4), and a hint button that did nothing there would be
+  ///    a broken button on exactly the puzzle that needed it.
+  ///
+  /// The digit written is always the solution's, even when a technique chose
+  /// the cell: the two agree — the puzzle has one completion, and the board the
+  /// solver is given is a subset of it — and taking the solution's is what
+  /// makes "a hint is never wrong" true by construction rather than by trusting
+  /// the solver.
+  ///
+  /// A hint is an ordinary move: it goes on the undo stack, and undoing it
+  /// leaves the count where it is, as a corrected mistake does.
+  void hint() {
+    if (isSolved) return;
+
+    final wrong = _firstWrong();
+    if (wrong != null) {
+      _pointedAt = wrong;
+      // Not through [select]: re-pointing at the cell already selected still
+      // has to repaint it, and [select] returns early on a selection that has
+      // not moved.
+      _selected = wrong;
+      notifyListeners();
+      return;
+    }
+
+    // Safe because of the step above: every entered digit matches the solution,
+    // so this grid is a subset of a legal one and `fromClues` cannot throw.
+    final board = SudokuBoard.fromClues(spec, encodeGrid(spec, _digits));
+    final index = nextPlacement(board)?.index ?? _fewestCandidates(board);
+    if (index == null) return;
+
+    _record(index);
+    _digits[index] = _solution[index];
+    // The marks were about which digit went here, and one has — the same
+    // reasoning as [enter].
+    _notes[index] = 0;
+    _hints++;
+    _selected = index;
+    notifyListeners();
+  }
+
   /// This session as the save file stores it.
   PuzzleInProgress toSaved() => PuzzleInProgress(
     grid: encodeGrid(spec, _digits),
@@ -314,4 +414,50 @@ class SudokuSession extends ChangeNotifier {
 
   SudokuMove _stateOf(int index) =>
       SudokuMove(index: index, digit: _digits[index], notes: _notes[index]);
+
+  /// The lowest-numbered cell holding a digit the solution disagrees with, or
+  /// null when there is none. Lowest rather than nearest the selection, so the
+  /// same board always produces the same hint.
+  int? _firstWrong() {
+    for (var index = 0; index < _digits.length; index++) {
+      if (isWrong(index)) return index;
+    }
+    return null;
+  }
+
+  /// The empty cell of [board] that the fewest digits could legally go in, or
+  /// null when it has no empty cell.
+  ///
+  /// The closest thing to a deduction left once technique has run out: it is
+  /// the cell a search would branch on first, so it is the one whose answer
+  /// unlocks the most. Ties go to the lowest index, which is what makes a hint
+  /// a pure function of the board rather than of the order cells were visited
+  /// in.
+  int? _fewestCandidates(SudokuBoard board) {
+    int? found;
+    var fewest = spec.digits + 1;
+
+    for (var index = 0; index < _digits.length; index++) {
+      if (board.digitAt(index) != 0) continue;
+      final candidates = _bitCount(board.candidateMask(index));
+      if (candidates < fewest) {
+        fewest = candidates;
+        found = index;
+      }
+    }
+    return found;
+  }
+}
+
+/// How many digits [mask] holds.
+///
+/// The engine's own mask helpers are not exported — they are how a puzzle is
+/// built rather than anything the app has a question for (`puzzle_engine.dart`)
+/// — and this is the one count the app needs.
+int _bitCount(int mask) {
+  var count = 0;
+  for (var bits = mask; bits != 0; bits >>= 1) {
+    count += bits & 1;
+  }
+  return count;
 }

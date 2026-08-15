@@ -171,14 +171,22 @@ void main() {
       expect(session.digitAt(target), 5);
     });
 
-    testWidgets('hold a place for the hint button rather than adding it '
-        'later', (tester) async {
-      // Wired in PR 7. Present and disabled here, so the row it sits in does
-      // not move on the day it starts working (`PLAN-phase-3.md` §6).
-      await pumpKeypad(tester, fixtureSession(large));
+    testWidgets('hint fills a cell, whatever is selected', (tester) async {
+      // Enabled with nothing selected, unlike undo and redo: the hint decides
+      // which cell it is about, so there is no state in which it does nothing
+      // (`PLAN-phase-3.md` §4.6). What it fills a cell *with* is the session's
+      // test, not this one.
+      final session = fixtureSession(large);
+      await pumpKeypad(tester, session);
 
-      expect(control('Hint'), findsOneWidget);
-      expect(tester.widget<IconButton>(control('Hint')).onPressed, isNull);
+      expect(tester.widget<IconButton>(control('Hint')).onPressed, isNotNull);
+
+      await tester.tap(find.byTooltip('Hint'));
+      await tester.pump();
+
+      expect(session.hints, 1);
+      expect(session.selected, isNotNull);
+      expect(session.digitAt(session.selected!), isNot(0));
     });
   });
 

@@ -353,6 +353,38 @@ void main() {
       },
     );
 
+    test('recordSolved dates a result that arrived without a date', () {
+      // From this repository's clock, which is the one the streak is counted
+      // against: a solve dated by one clock and counted by another is two
+      // answers to the same question. The screen that finishes a puzzle
+      // therefore reads no clock of its own (`sudoku_play_screen.dart`).
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final id = puzzleAt(4);
+
+      repository.recordSolved(id, const SolvedPuzzle(timeMs: 1000));
+
+      expect(
+        repository.activeProfile.sudoku.solved[id.value]?.solvedAt,
+        clock().toUtc(),
+      );
+    });
+
+    test('recordSolved keeps a date it was given', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final id = puzzleAt(6);
+      final yesterday = DateTime.utc(2026, 8, 11, 9);
+
+      repository.recordSolved(
+        id,
+        SolvedPuzzle(timeMs: 1000, solvedAt: yesterday),
+      );
+
+      expect(
+        repository.activeProfile.sudoku.solved[id.value]?.solvedAt,
+        yesterday,
+      );
+    });
+
     test('recordSolved keeps the faster of the times seen so far', () {
       final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
 

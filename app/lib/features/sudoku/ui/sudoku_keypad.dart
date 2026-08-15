@@ -81,10 +81,11 @@ class SudokuKeypad extends StatelessWidget {
                 tooltip: 'Redo',
               ),
               IconButton(
-                // Disabled rather than absent until PR 7 wires the hint path
-                // (`PLAN-phase-3.md` §6): a button that appears later moves
-                // every other button in this row on the day it does.
-                onPressed: null,
+                // Enabled whatever the board holds: the hint has an answer for
+                // every state a puzzle in play can be in — a mistake to point
+                // at, a cell technique can decide, or the emptiest cell of a
+                // board technique has run out on (`PLAN-phase-3.md` §4.6).
+                onPressed: session.hint,
                 icon: const Icon(Icons.lightbulb_outline),
                 tooltip: 'Hint',
               ),
