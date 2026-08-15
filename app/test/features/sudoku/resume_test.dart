@@ -17,10 +17,18 @@ import 'package:game_station/core/storage/save_store.dart';
 import 'package:game_station/features/sudoku/data/providers.dart';
 import 'package:game_station/features/sudoku/model/sudoku_session.dart';
 import 'package:game_station/features/sudoku/ui/sudoku_grid_view.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_launcher_screen.dart';
+import 'package:game_station/features/sudoku/ui/sudoku_menu_screen.dart';
+import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../app_harness.dart';
 import 'puzzle_fixtures.dart';
+
+/// The board this test plays on.
+///
+/// 6x6 Easy because it is the cheapest puzzle to generate a fixture for
+/// (`PLAN.md` §3.5), and index 0 because a save with nothing solved in it is
+/// what the menu's first Easy row offers (`sudoku_menu.dart`).
+const PuzzleId resumePuzzle = PuzzleId(SudokuSpec.s6x6, Difficulty.easy, 0);
 
 void main() {
   testWidgets('a force-quit mid-puzzle brings the same board back', (
@@ -108,7 +116,7 @@ void main() {
   });
 }
 
-/// Home, then the temporary launcher, then the board.
+/// Home, then the menu, then the board — the way a child reaches it.
 ///
 /// Explicit pumps rather than `pumpAndSettle`: the clock on the play screen is
 /// a periodic timer, and settling would advance it by however long the route
@@ -117,7 +125,11 @@ void main() {
 Future<void> _openTheBoard(WidgetTester tester) async {
   await tester.tap(find.text('Sudoku'));
   await tester.pumpAndSettle();
-  await tester.tap(find.text(launcherLabel));
+  await tester.tap(find.text(resumePuzzle.spec.label));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.text(difficultyChoices[resumePuzzle.difficulty]!.label),
+  );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
   expect(find.byType(SudokuGridView), findsOneWidget);
@@ -144,7 +156,7 @@ void _comeBack(WidgetTester tester) {
 SudokuSession _boardOf(WidgetTester tester) =>
     tester.widget<SudokuGridView>(find.byType(SudokuGridView)).session;
 
-/// A digit for [cell] of the launcher's puzzle that the solution disagrees
+/// A digit for [cell] of [resumePuzzle] that the solution disagrees
 /// with when [wrong] is set, and the one it agrees with when it is not.
 ///
 /// Asked of a throwaway session over the same fixture rather than guessed: the
@@ -152,7 +164,7 @@ SudokuSession _boardOf(WidgetTester tester) =>
 /// digit would be right today and wrong after a `generatorVersion` bump —
 /// which is the difference between this test counting one mistake and two.
 int _digitFor(int cell, {required bool wrong}) {
-  final scratch = fixtureSession(launcherPuzzle)..select(cell);
+  final scratch = fixtureSession(resumePuzzle)..select(cell);
   for (var digit = 1; digit <= scratch.spec.digits; digit++) {
     scratch.enter(digit);
     if (scratch.isWrong(cell) == wrong) return digit;

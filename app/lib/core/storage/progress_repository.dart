@@ -231,7 +231,7 @@ class ProgressRepository extends ChangeNotifier {
   /// updates `bestTimeMs` and the daily streak (`PLAN-phase-3.md` §4.7, §4.8).
   void recordSolved(engine.PuzzleId id, SolvedPuzzle result) =>
       _updateActiveSudoku((sudoku) {
-        final key = _bestTimeKey(id);
+        final key = SudokuProgress.bestTimeKey(id.spec, id.difficulty);
         final best = sudoku.bestTimeMs[key];
 
         return sudoku.copyWith(
@@ -284,10 +284,6 @@ class ProgressRepository extends ChangeNotifier {
   bool _isPinned(String puzzleId) => _data.profiles.any(
     (profile) => profile.sudoku.inProgress.containsKey(puzzleId),
   );
-
-  /// `"9x9:easy"`, the key [SudokuProgress.bestTimeMs] uses (`PLAN.md` §5.2).
-  String _bestTimeKey(engine.PuzzleId id) =>
-      '${id.spec.label}:${id.difficulty.name}';
 
   /// The streak after solving [id], or [streak] unchanged when [id] is not
   /// today's daily puzzle — any size and difficulty counts, so a solve is only

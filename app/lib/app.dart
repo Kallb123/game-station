@@ -11,7 +11,7 @@ import 'features/home/home_screen.dart';
 import 'features/placeholders/coming_soon_screen.dart';
 import 'features/profiles/profile_screen.dart';
 import 'features/settings/settings_screen.dart';
-import 'features/sudoku/ui/sudoku_launcher_screen.dart';
+import 'features/sudoku/ui/sudoku_menu_screen.dart';
 import 'features/sudoku/ui/sudoku_play_screen.dart';
 import 'routes.dart';
 
@@ -191,8 +191,7 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.home => (context) => const HomeScreen(),
   AppRoutes.profiles => (context) => const ProfileScreen(),
   AppRoutes.settings => (context) => const SettingsScreen(),
-  // Replaced by the menu in phase 3's PR 8, which deletes the launcher with it.
-  AppRoutes.sudoku => (context) => const SudokuLauncherScreen(),
+  AppRoutes.sudoku => (context) => const SudokuMenuScreen(),
   AppRoutes.sudokuPlay => _playScreen(settings.arguments),
   AppRoutes.arcade => (context) => const ComingSoonScreen(
     title: 'Arcade',

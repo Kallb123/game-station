@@ -260,6 +260,18 @@ class SudokuProgress {
   /// stored, so the menu can show a best time without walking every entry.
   final Map<String, int> bestTimeMs;
 
+  /// The key [bestTimeMs] holds one size and difficulty under
+  /// (`PLAN.md` §5.2).
+  ///
+  /// Beside the field rather than in the repository that writes it, because the
+  /// menu reads it too (`PLAN-phase-3.md` §4.7): two spellings of `"9x9:easy"`
+  /// would agree right up until one of them was edited, and the failure then is
+  /// a best time that silently stops being found.
+  static String bestTimeKey(
+    engine.SudokuSpec spec,
+    engine.Difficulty difficulty,
+  ) => '${spec.label}:${difficulty.name}';
+
   SudokuProgress copyWith({
     Map<String, SolvedPuzzle>? solved,
     Map<String, PuzzleInProgress>? inProgress,

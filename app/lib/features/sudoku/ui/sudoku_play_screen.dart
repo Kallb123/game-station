@@ -116,14 +116,15 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
 
     final session = _session;
     if (session != null) {
-      // Leaving the screen stops the clock as surely as a pause does, and the
-      // seconds since the last move are only in memory until something writes
-      // them.
-      _save();
-      // Landed rather than left in the debounce window: the window exists to
-      // coalesce the writes of a puzzle being played, and this one has no more
-      // moves to coalesce with. [flush] never throws
-      // (`progress_repository.dart`), so there is nothing here to await.
+      // The board itself is not written here: it was written when the screen
+      // was popped (see [build]), because a provider cannot be modified while
+      // the tree is coming down — Riverpod asserts on it, and the assertion
+      // would fire on the *Back* tap that ends every session.
+      //
+      // The flush is not a mutation and stays: it lands whatever the last move
+      // left in the debounce window, for the ways off this screen that are not
+      // a pop — a relaunch, or a route stack replaced under it. [flush] never
+      // throws (`progress_repository.dart`), so there is nothing to await.
       unawaited(_repository.flush());
       session
         ..removeListener(_save)
@@ -148,17 +149,27 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     // The frame is otherwise the same one: the same safe area, the same screen
     // padding, the same back control with the same tooltip
     // (`PLAN-phase-3.md` §4.5).
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _header(context),
-              const SizedBox(height: AppSpacing.md),
-              Expanded(child: _body()),
-            ],
+    return PopScope(
+      // The way off this screen, and so the moment the clock is written. It is
+      // here rather than in [dispose] because a pop runs between frames and an
+      // unmount runs inside one, and only the first of those may touch a
+      // provider. Every pop counts — the back control, the system gesture and
+      // the desktop shortcut all arrive here.
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _saveOnLeaving();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _header(context),
+                const SizedBox(height: AppSpacing.md),
+                Expanded(child: _body()),
+              ],
+            ),
           ),
         ),
       ),
@@ -341,6 +352,24 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     final session = _session;
     if (session == null) return;
     _repository.saveInProgress(session.id, session.toSaved());
+  }
+
+  /// Writes where the clock stopped, on the way out.
+  ///
+  /// Leaving the screen stops the clock as surely as a pause does, and the
+  /// seconds since the last move are only in memory until something writes
+  /// them.
+  void _saveOnLeaving() {
+    // Stopped before the write rather than in `dispose`, which runs a route
+    // transition later: a tick in between would move a clock nothing is going
+    // to write again.
+    _stopClock();
+    _save();
+    // Landed rather than left in the debounce window: the window exists to
+    // coalesce the writes of a puzzle being played, and this one has no more
+    // moves to coalesce with. [ProgressRepository.flush] never throws
+    // (`progress_repository.dart`), so there is nothing here to await.
+    unawaited(_repository.flush());
   }
 }
 

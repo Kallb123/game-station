@@ -46,6 +46,7 @@ void main() {
     ThemeData? theme,
     double textScale = 1,
     EdgeInsets padding = EdgeInsets.zero,
+    bool pushed = false,
   }) async {
     final store = MemorySaveStore(initial: save ?? freshSave());
     final container = ProviderContainer(
@@ -71,7 +72,9 @@ void main() {
             ),
             child: child!,
           ),
-          home: SudokuPlayScreen(args: SudokuPlayArgs(puzzle ?? id)),
+          home: pushed
+              ? _Launcher(args: SudokuPlayArgs(puzzle ?? id))
+              : SudokuPlayScreen(args: SudokuPlayArgs(puzzle ?? id)),
         ),
       ),
     );
@@ -79,6 +82,12 @@ void main() {
     // puzzle needs. Not `pumpAndSettle`: that would run the spinner delay out
     // and hide the difference these tests are about.
     await tester.pump();
+    if (pushed) {
+      await tester.tap(find.text(openBoardLabel));
+      await tester.pump();
+      // Past the route transition and short of the clock's first tick.
+      await tester.pump(const Duration(milliseconds: 400));
+    }
     return container;
   }
 
@@ -299,11 +308,16 @@ void main() {
     testWidgets('writes where the clock stopped when the screen closes', (
       tester,
     ) async {
-      final container = await pumpPlay(tester);
+      // Pushed over something, because the write happens as the route is
+      // popped and a screen with nothing under it cannot be popped
+      // (`sudoku_play_screen.dart`). The other ways off the screen are the app
+      // going away, which `app.dart` flushes for, and the lifecycle change
+      // above.
+      final container = await pumpPlay(tester, pushed: true);
       await tester.pump(const Duration(seconds: 5));
 
-      // The screen going away, as a pop does it.
-      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
 
       expect(savedIn(container)?.elapsedMs, 5000);
     });
@@ -423,3 +437,30 @@ class _BrokenPuzzleSource implements PuzzleSource {
   @override
   void prewarm(PuzzleId id) {}
 }
+
+/// What the pushed board is opened from, for the tests that need a route to
+/// pop rather than a tree to throw away.
+class _Launcher extends StatelessWidget {
+  const _Launcher({required this.args});
+
+  final SudokuPlayArgs args;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: TextButton(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) => SudokuPlayScreen(args: args),
+            ),
+          ),
+          child: const Text(openBoardLabel),
+        ),
+      ),
+    );
+  }
+}
+
+/// The label on that button.
+const String openBoardLabel = 'Open the board';
