@@ -37,6 +37,13 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
+  # Runs `integration_test/` on a real device (PLAN-phase-3.md §6, PR 9). A dev
+  # dependency, so nothing it drags in reaches a release build: it brings a
+  # driver HTTP client with it, which `tool/check_offline.dart` reports as
+  # test-only rather than shipped because it is unreachable from the runtime
+  # dependencies. CI does not run these tests — see AGENTS.md.
+  integration_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true

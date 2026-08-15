@@ -63,6 +63,23 @@ A change is not done because it compiles. It is done when the checks pass and, f
 visible behaviour, when it has been run. Report what was actually verified and what was not — "CI
 will tell us" is a gap to state, not to hide.
 
+**`app/integration_test/` is the one suite neither of them runs.** `flutter test` collects `app/test`
+only, `tool/verify.sh` does not name it, and CI has no emulator to run it on — an emulator job is
+`PLAN.md` §9's open question, and until it exists this is a check somebody performs rather than one a
+merge waits for (`PLAN-phase-3.md` §7). Run it by hand, against a device from `flutter devices`:
+
+```sh
+cd app && flutter test -d <device-id> integration_test/sudoku_smoke_test.dart
+```
+
+`-d flutter-tester` runs it headless on the host in about ten seconds, and is worth doing before a
+device run because it still exercises the generation isolate, the codec and a real filesystem. It is
+not a substitute: no plugin answers there, so `path_provider` falls back to a temp directory, and the
+whole reason this suite exists is the part only a device can answer. Run it on hardware for anything
+that touches generation, the save, or the play screen's lifecycle, and say in the pull request which
+device it ran on. What covers the same ground on every commit is
+`app/test/features/sudoku/resume_test.dart`, over a fake puzzle source and an in-memory store.
+
 The toolchain is already there: `.claude/hooks/session-start.sh` puts the pinned Flutter SDK on
 `PATH` and resolves both packages before the session starts, so the commands above work from the
 first one. The SDK itself comes from `tool/install_flutter.sh`, which reads the version from

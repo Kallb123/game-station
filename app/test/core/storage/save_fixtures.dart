@@ -73,8 +73,13 @@ SaveData fullSave() => SaveData(
 
 /// `PLAN.md` §5.2's example document, with its `"…"` placeholders filled in and
 /// nothing else changed. The plan elides four values — two timestamps, the
-/// in-progress board, and the cached clue string — and each is filled with
-/// something of the right shape.
+/// in-progress board, and the two halves of the cached record — and each is
+/// filled with something of the right shape.
+///
+/// Short of the 81 characters a real 9x9 record holds on each side of the `|`,
+/// as the plan's own example is: the codec stores the value as an opaque string
+/// and never parses it (`PLAN-phase-3.md` §4.1), so a full-length one would be
+/// seventy more characters proving the same thing.
 const String planExampleJson = '''
 {
   "schemaVersion": 1,
@@ -86,6 +91,7 @@ const String planExampleJson = '''
   },
   "profiles": [{
     "id": "p1", "name": "Ana", "avatar": "fox", "createdAt": "2026-08-11T10:00:00Z",
+    "mistakeFeedback": "atCompletion",
     "sudoku": {
       "solved": {
         "sudoku:9x9:easy:0": { "timeMs": 244000, "hints": 0, "mistakes": 2,
@@ -104,7 +110,7 @@ const String planExampleJson = '''
                     "gamesPlayed": 22, "totalKills": 3110 }
     }
   }],
-  "puzzleCache": { "sudoku:9x9:hard:12": "53..7...." }
+  "puzzleCache": { "sudoku:9x9:hard:12": "53..7....|534678912" }
 }
 ''';
 

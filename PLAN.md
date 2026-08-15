@@ -281,15 +281,28 @@ Also test:
 - The grid scales to fit, with thick box borders and thin cell borders.
 - Tap a cell to select; a large number pad sits below the grid, within thumb reach.
 - **Pencil mode** toggle for corner notes.
-- **Undo / redo** with a deep stack.
-- Mistake feedback with two modes: flag immediately (default for children) or only at completion.
+- **Undo / redo** with a deep stack, capped at 300 moves so that a pencil-mark spree cannot grow the
+  save without bound.
+- Mistake feedback with two modes: flag immediately (default for children) or only at completion. It
+  is `Profile.mistakeFeedback`, per profile rather than per device (§5.2): a younger sibling wants to
+  be told at once and an older one may not.
 - Highlight the selected digit everywhere, and soft-highlight its row, column and box.
-- **Hint** reveals one cell the technique solver can prove. Hints are counted; the puzzle still
-  counts as solved but does not earn a clean-win star.
+- **Hint** reveals one cell the technique solver can prove, through the engine's `nextPlacement`. The
+  exported `nextStep` returns an elimination as readily as a placement, and "4 is ruled out of three
+  cells" is not a hint for a six-year-old. Two cases sit either side of it: a board that already holds
+  a wrong digit gets that cell pointed at instead, and an Expert board that technique cannot finish
+  falls back to the emptiest cell of the stored solution. Hints are counted; the puzzle still counts
+  as solved but does not earn a clean-win star. Pointing at a mistake is free, because it gives
+  nothing away.
 - **Auto-save every move**, so closing the app mid-puzzle and returning later restores the exact
-  board.
-- The timer is visible but small, and can be switched off in settings.
-- Completion shows confetti and a subdued sound, honouring the mute and reduced-motion settings.
+  board. The clock is the exception: it is written when it stops rather than as it moves — on a move,
+  on the app leaving the foreground, and on the screen being popped — because a puzzle left open
+  would otherwise cost a write a second.
+- The timer is visible but small, and can be switched off in settings. It runs either way: a child
+  who hid it has not asked to stop being timed.
+- Completion shows confetti, honouring the reduced-motion setting. **The sound is phase 5**: it needs
+  `flutter_soloud`, and a dependency three phases early is one carried through every intervening
+  review (`PLAN-phase-3.md` §2).
 
 ---
 
@@ -378,6 +391,7 @@ so there is no setup wall.
   },
   "profiles": [{
     "id": "p1", "name": "Ana", "avatar": "fox", "createdAt": "2026-08-11T10:00:00Z",
+    "mistakeFeedback": "atCompletion",
     "sudoku": {
       "solved": {
         "sudoku:9x9:easy:0": { "timeMs": 244000, "hints": 0, "mistakes": 2,
@@ -396,7 +410,7 @@ so there is no setup wall.
                     "gamesPlayed": 22, "totalKills": 3110 }
     }
   }],
-  "puzzleCache": { "sudoku:9x9:hard:12": "…clue string…" }
+  "puzzleCache": { "sudoku:9x9:hard:12": "…clue string…|…solution…" }
 }
 ```
 
@@ -409,7 +423,23 @@ verbatim into a decode test, where a value that is not the default proves the fi
 defaulted.
 
 `generatorVersion` is written from the engine's own constant at save time, so a file records which
-generator produced the IDs in it instead of being assumed to match the build that opens it.
+generator produced the IDs in it instead of being assumed to match the build that opens it. The whole
+of `puzzleCache` is dropped when it moves, rather than each entry being keyed by it: a per-entry key
+would let a stale entry outlive the generator that made it, and there is nothing in a cache worth a
+migration.
+
+`mistakeFeedback` arrived with phase 3 and is one of `immediate` — the default — or `atCompletion`.
+It is on the profile rather than in `settings` because it belongs to a child rather than to the
+tablet. `PLAN-phase-1.md` §4.2 declared v1 "in full" and missed it, which is recorded here rather than
+left as two documents disagreeing: adding an optional field to an existing object is not a shape
+change, so `schemaVersion` stays 1 and no migration step exists for it. The block shows
+`atCompletion` for the same reason it shows `day`.
+
+A `puzzleCache` value is `"<clues>|<solution>"`, not the clue string alone. Immediate mistake feedback
+needs the digit that belongs in a cell, and nothing exported from the engine recovers it from the
+clues — the solution is already a field on `GeneratedPuzzle`, and caching it costs 81 bytes per puzzle
+(`PLAN-phase-3.md` §4.1). The three in-progress strings are opaque to the codec on purpose, so the
+board representation can change without changing the save format; §4.4 there is what they mean.
 
 ### 5.3 Rules
 
@@ -595,7 +625,7 @@ What differed from the plan, decided while building it:
 - **Nothing in `app/lib` imports the engine yet.** `nextStep()` exists for phase 3's hints with a test
   and no caller, which is where the phase boundary was drawn.
 
-### Phase 3 — Sudoku UI (5–7 days)
+### Phase 3 — Sudoku UI (5–7 days) — done
 
 - Size and difficulty pickers showing solved state and best times.
 - A daily-puzzle card with the current streak.
@@ -607,25 +637,56 @@ What differed from the plan, decided while building it:
 - **Done when:** 9x9 and 6x6 can be solved end to end; a force-quit mid-puzzle resumes the exact
   board; solved state persists across a restart.
 
-Planned as nine pull requests in [`PLAN-phase-3.md`](PLAN-phase-3.md), as phases 1 and 2 were. It
-records the two formats this phase freezes — the `puzzleCache` value and the in-progress board
-encoding — because both become a save migration once a child's file holds them, and the decisions
-that reach back into `PLAN.md` §3.7 and §5.2 are named there before they are built rather than after.
+Planned as nine pull requests in [`PLAN-phase-3.md`](PLAN-phase-3.md), as phases 1 and 2 were. That
+file stays as the record of why each piece of `app/lib/features/sudoku` is shaped the way it is — the
+code cites its section numbers — and §3.7 and §5.2 above now say what was built rather than what was
+sketched. It also holds the two formats this phase froze, the `puzzleCache` value and the in-progress
+board encoding, because both become a save migration now that a child's file can hold them.
 
-What phase 2 hands over, so phase 3 does not have to read the engine to find out:
+**Met by the suite that runs on every commit; not yet met on hardware, which is stated rather than
+implied.** Each clause of the criterion has a check: a widget test solves a 6x6 end to end by tapping
+and asserts the `SolvedPuzzle` it stored; another plays a board, relaunches the app over the encoded
+save alone and compares every cell, every note mask, the elapsed time, the hint count and the undo
+stack; and the solved state's round trip through `save.json` is the storage suite's. What none of them
+involves is a device. `app/integration_test/sudoku_smoke_test.dart` is the run that closes that gap —
+a real 9x9 Medium generated on a real isolate, played, backgrounded, and read back out of a real
+`save.json` — and CI has no emulator to run it on, so it is a check somebody performs rather than one
+a merge waits for. `AGENTS.md` says how; an emulator job stays §9's open question. The three §9 lines
+that need hardware are therefore still unticked, along with the six-target gap carried out of phase 1.
 
-- `generateSudoku(PuzzleId)` returns a `GeneratedPuzzle` — clue string, solution, tier, clue count,
-  and `widened`. It never throws for a puzzle it could not make well; it settles and sets `widened`,
-  which the UI shows like any other puzzle rather than reporting. It *does* throw `ArgumentError` for
-  6x6 Expert, which `PuzzleId.parse` also refuses to spell, so the picker must not offer it.
-- `SudokuBoard.fromClues(spec, clues)` reads the clue string back, and `nextStep(board)` is the hint:
-  the cheapest available deduction, or null when technique has run out. Both are exported; `Rng`,
-  `fnv1a32`, `countSolutions` and `CandidateGrid` deliberately are not.
-- The engine is synchronous and holds no mutable top-level state, so `compute()` is all the isolate
-  wiring it needs. A 9x9 Hard is 65 ms at the median and occasionally half a second (§3.5), which is
-  why the spinner and the pre-warm are in this list rather than optional.
-- `puzzleCache` in the schema (§5.2) is still unwritten, and `generatorVersion` is 1. A cached grid is
-  only valid for the version that made it, so the cache is keyed by both or dropped on a bump.
+**"9x9 and 6x6 can be solved end to end" is checked by tapping at 6x6 and by construction at 9x9.**
+Nothing in the grid, the keypad or the session branches on size — the box shape comes from
+`SudokuSpec`, and both sizes have widget tests over the same code — so filling eighty-one cells one
+tap at a time in the suite would spend most of its budget re-exercising what the 6x6 already covers.
+The 9x9 is played through on the device instead, which is where the integration test plays one.
+
+What differed from the plan, decided while building it:
+
+- **`mistakeFeedback` is a field on `Profile`, not on `AppSettings`**, and §5.2 above records it. It
+  belongs to a child rather than to the tablet: siblings sharing one do not agree about being told.
+  It is additive, so `schemaVersion` stays 1 — `PLAN-phase-1.md` §4.2 declared v1 "in full" and
+  missed it, which §5.2 now says rather than leaving two documents disagreeing.
+- **A `puzzleCache` value holds the solution as well as the clues** (§5.2). Immediate mistake feedback
+  needs the digit that belongs in a cell, and nothing the engine exports recovers it from the clues.
+- **The play screen is the one screen that does not use `ScreenScaffold`**, and the exception was
+  measured rather than felt: on a 360x640 phone with a notch and a gesture bar, that frame leaves a
+  166 dp board against a compact header's 194 dp, and at 200% text scale 14 dp against 170 dp. The
+  first of those is a board no child can play.
+- **The last save of a puzzle belongs to the pop, not to `dispose`.** A screen is disposed part-way
+  through a build and Riverpod refuses a provider mutation made during one, so writing from `dispose`
+  turned the back arrow into an assertion failure in debug — on an ordinary tap, mid-puzzle.
+- **The continue card offers the board with the most time on its clock**, not the one played last: a
+  save cannot say which that was, because `PuzzleInProgress` carries no timestamp, and widening the
+  schema for one card was the wrong trade.
+- **9x9 Expert is offered, last**, answering `PLAN-phase-2.md` §9. The engine makes it either way, and
+  a child who wants something harder than Hard and finds nothing is a worse outcome than one who
+  tries Expert and backs out. Removing it later is a line in `difficultiesFor`.
+- **The engine gained exactly one function, `nextPlacement`,** taken first and alone so that "no
+  golden file changed" was a reviewable claim rather than a line in a large diff. It touches no
+  generation path, `generatorVersion` is still 1, and no save migration exists for this phase.
+- **The app suite costs about 25 s, not the 15 s `PLAN-phase-3.md` §1 budgeted.** The fake puzzle
+  source did its job — nothing generates in a widget test — but the whole-app tests, each launching
+  the app over its own store, are the bulk of it, and they are the ones the resume criterion needs.
 
 ### Phase 4 — arcade shell and Space Invaders (5–7 days)
 
@@ -717,18 +778,15 @@ complete app.
 ## 10. Starting order
 
 1. Phase 0: scaffold the app and engine package, CI, and the no-network guard. **Done**, and so are
-   phases 1 and 2 — steps 2 and 3 below were phase 2's first two and are done with it.
+   phases 1, 2 and 3 — steps 2 and 3 below were phase 2's first two and are done with it.
 2. Write `Rng` and `fnv1a`, and write the determinism test **before** the generator, so the sequence
    is locked before anything depends on it. **Done:** the sequence is frozen against literals in
    `rng_test.dart` and against 700 golden puzzles.
 3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it. **Done.**
 
-The next work is phase 3, and it starts in `app/` rather than in the engine: the engine is finished
-for what phase 3 needs, and the first thing that has to exist is the isolate wiring and a grid widget
-to draw a clue string into. Phase 3's list in §7 names what phase 2 hands over.
-
-Phase 2 touched nothing in `app/`: the engine is a pure-Dart package with its own tests, so the phase
-was built and reviewed without opening the Flutter app. Schema v1 already declares the `sudoku`
-fields phase 3 will fill (§5.2), so phase 2 owed the save file nothing either.
+The next work is phase 4, and it starts with `GameShell` rather than with Invaders: pause, quit and
+the game-over card are what every later game reuses, and building them under a real game is how they
+end up shaped by one. Nothing phase 3 built is in its way — `/arcade` still opens
+`ComingSoonScreen`, and the save's `arcade` block has been declared since v1 (§5.2).
 
 Space Invaders is the easier and more enjoyable half, so it makes a better reward than a warm-up.

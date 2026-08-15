@@ -67,12 +67,15 @@ void main() {
       expect(save.generatorVersion, 1);
       expect(save.activeProfileId, 'p1');
       expect(save.settings, const AppSettings(theme: ThemeChoice.day));
-      expect(save.puzzleCache, {'sudoku:9x9:hard:12': '53..7....'});
+      expect(save.puzzleCache, {'sudoku:9x9:hard:12': '53..7....|534678912'});
 
       final profile = save.activeProfile;
       expect(profile.name, 'Ana');
       expect(profile.avatar, AvatarId.fox);
       expect(profile.createdAt, DateTime.utc(2026, 8, 11, 10));
+      // Not the default, so this asserts the field is read rather than filled
+      // in — the same reason the plan's example carries `"theme": "day"`.
+      expect(profile.mistakeFeedback, MistakeFeedback.atCompletion);
 
       expect(
         profile.sudoku.solved['sudoku:9x9:easy:0'],
