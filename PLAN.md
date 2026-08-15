@@ -716,7 +716,11 @@ What differed from the plan, decided while building it:
 
 - Icon, splash, store artwork and per-platform screenshots.
 - Android: signed AAB, latest target API, Play Data Safety declared as no data collected (accurate),
-  aiming for Teacher Approved / Designed for Families.
+  aiming for Teacher Approved / Designed for Families. The signing config itself landed early, out of
+  phase: the CI APK was signed with each runner's own debug key, so no build could be installed over
+  the last one without uninstalling and losing the save. `app/android/app/build.gradle.kts` now reads
+  `android/key.properties`, and the workflows write it from repository secrets — see README.md. What
+  is left here is the AAB, the store listing and the upload, not the key.
 - iOS: Kids Category, which **bans** third-party ads and analytics — the app has neither, so it
   qualifies without changes. Requires an Apple Developer account (about $99/year) and a Mac to build.
 - Windows: MSIX or a plain zip; Microsoft Store or Steam optional later.
@@ -763,6 +767,8 @@ complete app.
       an existing file is the one part of the save path that can behave differently per platform (§8),
       and the CI jobs for those two targets build without testing today.
 - [ ] The built Android APK manifest contains no internet permission (verified in the artifact).
+- [ ] The release APK is signed with the key from repository secrets, not the fallback debug key —
+      the run summary names which, and a store upload can never change key afterwards.
 - [ ] The daily puzzle is byte-identical on Android, iOS, Windows, macOS and Linux.
 - [ ] Golden determinism tests pass in CI.
 - [ ] A force-quit mid-puzzle restores the exact board, notes and timer.

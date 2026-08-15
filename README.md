@@ -87,9 +87,59 @@ Every build asserts that the package requests no platform permission
 ([`tool/check_apk_permissions.sh`](tool/check_apk_permissions.sh)) before it is uploaded, so an APK
 that reached a phone was checked on the way.
 
-Until the Phase 6 store release it is signed with Flutter's debug key: Android warns about an unknown
-source, and it cannot be published. Locally, `cd app && flutter build apk --release` produces the
-same thing at `app/build/app/outputs/flutter-apk/app-release.apk`.
+Locally, `cd app && flutter build apk --release` produces the same thing at
+`app/build/app/outputs/flutter-apk/app-release.apk`.
+
+### The signing key
+
+Android identifies an app by its package name and its signing certificate together, and refuses to
+install an update signed by a different certificate. Flutter's debug key is generated per machine, so
+while the workflow used it, every run signed with a key nobody had seen before: a new build would not
+install over the last one, and the only way through was to uninstall — which throws the saved puzzles
+away with it.
+
+Set four repository secrets (Settings → Secrets and variables → Actions) and every build is signed
+with one key instead, so each is an update of the one before:
+
+| Secret | What it is |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | The keystore file, base64-encoded. |
+| `ANDROID_KEYSTORE_PASSWORD` | Password for the keystore. |
+| `ANDROID_KEY_ALIAS` | Alias of the key inside it. |
+| `ANDROID_KEY_PASSWORD` | Password for that key — often the same as the keystore's. |
+
+To create one, and print the value to paste into the first secret:
+
+```sh
+keytool -genkeypair -v -keystore upload-keystore.jks -storetype JKS \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+base64 -w0 upload-keystore.jks     # macOS: base64 -i upload-keystore.jks
+```
+
+**Keep the keystore and its passwords backed up somewhere outside this repository.** Losing them
+means no future build can update an installed app — the store release in Phase 6 has the same
+property, permanently, so treat this key as the one the app will keep.
+
+With no secrets set the build falls back to the debug key rather than failing, so a fork still
+produces an installable APK. Setting some but not all of the four is a hard failure instead of a
+fallback: it would otherwise sign with the debug key and look exactly like success, which is the bug
+this fixes. Every run prints which key it used and the certificate's SHA-256 fingerprint in its
+summary ([`tool/apk_signing_cert.sh`](tool/apk_signing_cert.sh)) — two builds install over each other
+when those fingerprints match.
+
+Android still warns about an unknown source, and this is not yet a store release; that is the rest of
+Phase 6. To build a signed APK locally, put the same values in `app/android/key.properties`, which is
+gitignored:
+
+```properties
+storeFile=upload-keystore.jks
+storePassword=...
+keyAlias=upload
+keyPassword=...
+```
+
+`storeFile` is resolved relative to `app/android/`. Without that file, a local release build uses the
+debug key exactly as before.
 
 ## How the constraints are enforced
 
