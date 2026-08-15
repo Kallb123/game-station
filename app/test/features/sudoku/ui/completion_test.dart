@@ -22,11 +22,18 @@ import 'package:game_station/features/sudoku/model/sudoku_session.dart';
 import 'package:game_station/features/sudoku/ui/completion_card.dart';
 import 'package:game_station/features/sudoku/ui/confetti.dart';
 import 'package:game_station/features/sudoku/ui/sudoku_grid_view.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_launcher_screen.dart';
+import 'package:game_station/features/sudoku/ui/sudoku_menu_screen.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../../app_harness.dart';
 import '../puzzle_fixtures.dart';
+
+/// The board these tests finish.
+///
+/// 6x6 Easy because filling it by tapping is twenty cells rather than sixty,
+/// and index 0 because that is what the menu's Easy row offers a profile with
+/// nothing solved (`sudoku_menu.dart`).
+const PuzzleId solvedPuzzle = PuzzleId(SudokuSpec.s6x6, Difficulty.easy, 0);
 
 void main() {
   /// The board on screen, which is the only handle a test has on the state the
@@ -34,7 +41,20 @@ void main() {
   SudokuSession boardOf(WidgetTester tester) =>
       tester.widget<SudokuGridView>(find.byType(SudokuGridView)).session;
 
-  /// Launches the app over [save] and taps through to the launcher's puzzle.
+  /// Taps what [label] names on the menu, scrolling it into view first.
+  ///
+  /// Settling is safe here and only here: it happens while the menu is the only
+  /// screen up, so there is no clock for it to advance — the tap itself is left
+  /// for the caller to pump, because the tap that opens the board is the one
+  /// this file's pumps are counted from.
+  Future<void> tapInMenu(WidgetTester tester, String label) async {
+    final target = find.text(label);
+    await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
+    await tester.tap(target);
+  }
+
+  /// Launches the app over [save] and taps through the menu to [solvedPuzzle].
   Future<ProviderContainer> openTheBoard(
     WidgetTester tester, {
     SaveData? save,
@@ -47,7 +67,11 @@ void main() {
 
     await tester.tap(find.text('Sudoku'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(launcherLabel));
+    // Scrolled to before each tap, because the menu scrolls: at 200% text scale
+    // on a small phone its difficulty rows start below the fold.
+    await tapInMenu(tester, solvedPuzzle.spec.label);
+    await tester.pumpAndSettle();
+    await tapInMenu(tester, difficultyChoices[solvedPuzzle.difficulty]!.label);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(SudokuGridView), findsOneWidget);
@@ -83,7 +107,7 @@ void main() {
     int? leave,
     bool byTapping = false,
   }) async {
-    final scratch = fixtureSession(launcherPuzzle);
+    final scratch = fixtureSession(solvedPuzzle);
     final board = boardOf(tester);
 
     for (final cell in emptyCells(scratch)) {
@@ -141,7 +165,7 @@ void main() {
     await tapIn(
       tester,
       last,
-      int.parse(fixtureRecord(launcherPuzzle).solution[last]),
+      int.parse(fixtureRecord(solvedPuzzle).solution[last]),
     );
 
     expect(find.text(completionTitle), findsOneWidget);
@@ -149,7 +173,7 @@ void main() {
     expect(find.text('0:08'), findsOneWidget, reason: 'the time it took');
     await settleCelebration(tester);
 
-    final solved = solvedIn(container, launcherPuzzle);
+    final solved = solvedIn(container, solvedPuzzle);
     expect(solved?.timeMs, 8000);
     expect(solved?.hints, 0);
     expect(solved?.mistakes, 0);
@@ -194,13 +218,13 @@ void main() {
     await tapIn(
       tester,
       empty.first,
-      int.parse(fixtureRecord(launcherPuzzle).solution[empty.first]),
+      int.parse(fixtureRecord(solvedPuzzle).solution[empty.first]),
     );
     await tester.tap(find.byTooltip('Hint'));
     await tester.pump();
 
     expect(find.byType(CompletionCard), findsOneWidget);
-    final solved = solvedIn(container, launcherPuzzle);
+    final solved = solvedIn(container, solvedPuzzle);
     expect(solved?.hints, 1, reason: 'only the revealing hint counted');
     expect(solved?.mistakes, 1);
     expect(solved?.clean, isFalse);
@@ -233,9 +257,9 @@ void main() {
     // while the fresh one comes in, and both hold a board until it is.
     await tester.pumpAndSettle();
 
-    expect(boardOf(tester).id.index, launcherPuzzle.index + 1);
-    expect(boardOf(tester).id.difficulty, launcherPuzzle.difficulty);
-    expect(boardOf(tester).id.spec, launcherPuzzle.spec);
+    expect(boardOf(tester).id.index, solvedPuzzle.index + 1);
+    expect(boardOf(tester).id.difficulty, solvedPuzzle.difficulty);
+    expect(boardOf(tester).id.spec, solvedPuzzle.spec);
     expect(
       find.byType(CompletionCard),
       findsNothing,
@@ -246,7 +270,7 @@ void main() {
     // one back tap lands on the menu (`PLAN-phase-3.md` §4.6).
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text(launcherLabel), findsOneWidget);
+    expect(find.text(dailyPuzzleTitle), findsOneWidget);
   });
 
   testWidgets('back to Sudoku leaves the board', (tester) async {
@@ -256,7 +280,7 @@ void main() {
     await tester.tap(find.text(backToSudokuLabel));
     await tester.pumpAndSettle();
 
-    expect(find.text(launcherLabel), findsOneWidget);
+    expect(find.text(dailyPuzzleTitle), findsOneWidget);
     expect(find.byType(SudokuGridView), findsNothing);
   });
 
@@ -275,7 +299,7 @@ void main() {
     await tapIn(
       tester,
       empty,
-      int.parse(fixtureRecord(launcherPuzzle).solution[empty]),
+      int.parse(fixtureRecord(solvedPuzzle).solution[empty]),
     );
     await tester.pump(const Duration(seconds: 6));
 
@@ -286,7 +310,7 @@ void main() {
         .read(progressRepositoryProvider)
         .activeProfile
         .sudoku
-        .inProgress[launcherPuzzle.value];
+        .inProgress[solvedPuzzle.value];
     expect(saved?.elapsedMs, 6000);
     expect(
       container.read(progressRepositoryProvider).isSaving,
@@ -313,7 +337,7 @@ void main() {
     await tester.tap(find.text(backToSudokuLabel));
     await tester.pumpAndSettle();
 
-    expect(find.text(launcherLabel), findsOneWidget);
+    expect(find.text(dailyPuzzleTitle), findsOneWidget);
   });
 
   group('the confetti', () {
@@ -417,10 +441,10 @@ void main() {
   });
 }
 
-/// A digit for [cell] of the launcher's puzzle that the solution disagrees
+/// A digit for [cell] of [solvedPuzzle] that the solution disagrees
 /// with.
 int _wrongDigitFor(int cell) {
-  final scratch = fixtureSession(launcherPuzzle)..select(cell);
+  final scratch = fixtureSession(solvedPuzzle)..select(cell);
   for (var digit = 1; digit <= scratch.spec.digits; digit++) {
     scratch.enter(digit);
     if (scratch.isWrong(cell)) return digit;

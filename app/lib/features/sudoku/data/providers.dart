@@ -6,6 +6,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/providers.dart';
+import '../model/sudoku_menu.dart';
 import 'puzzle_source.dart';
 
 /// Where every screen gets its puzzles.
@@ -27,3 +28,23 @@ final Provider<PuzzleSource> puzzleSourceProvider = Provider<PuzzleSource>((
   ref.onDispose(source.dispose);
   return source;
 });
+
+/// What the menu shows for the profile that is playing.
+///
+/// Watches [activeProfileProvider] rather than the repository, so switching
+/// profile redraws the solved counts, the best times and the streak, and a
+/// saved move on a screen nobody is looking at does not.
+final Provider<SudokuMenu> sudokuMenuProvider = Provider<SudokuMenu>(
+  (ref) => SudokuMenu.of(ref.watch(activeProfileProvider).sudoku),
+);
+
+/// Where the app reads the wall clock for the daily puzzle.
+///
+/// A function rather than a [DateTime], so a screen that stays open across
+/// midnight asks again on its next build instead of holding yesterday's answer.
+/// It is a provider so that a test can fix today: the daily card names a puzzle
+/// id, and a test that had to compute the same id from the real clock would
+/// pass every day except the one it ran across a UTC midnight on.
+final Provider<DateTime Function()> nowProvider = Provider<DateTime Function()>(
+  (ref) => DateTime.now,
+);

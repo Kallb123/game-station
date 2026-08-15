@@ -6,10 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:game_station/core/storage/providers.dart';
 import 'package:game_station/core/storage/save_data.dart';
 import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_launcher_screen.dart';
+import 'package:game_station/features/sudoku/data/providers.dart';
+import 'package:game_station/features/sudoku/ui/sudoku_menu_screen.dart';
 import 'package:game_station/routes.dart';
 
 import 'app_harness.dart';
+import 'features/sudoku/puzzle_fixtures.dart';
 
 void main() {
   testWidgets('the app boots to the home screen', (tester) async {
@@ -36,20 +38,24 @@ void main() {
     expect(find.text('Coming soon!'), findsNothing);
   });
 
-  testWidgets('Sudoku opens its launcher and comes back', (tester) async {
-    // The launcher is phase 3 PR 6's temporary way onto the board and PR 8
-    // deletes it; what this test is really about — the card leads somewhere
-    // and that somewhere leads back — outlives it.
-    await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
+  testWidgets('Sudoku opens its menu and comes back', (tester) async {
+    // The source is a fake because the menu pre-warms today's puzzle the moment
+    // it opens (`sudoku_menu_screen.dart`), and the real one would generate a
+    // 9x9 on an isolate in a widget test.
+    await pumpApp(
+      tester,
+      store: MemorySaveStore(initial: freshSave()),
+      overrides: [puzzleSourceProvider.overrideWithValue(FakePuzzleSource())],
+    );
 
     await tester.tap(find.text('Sudoku'));
     await tester.pumpAndSettle();
-    expect(find.text(launcherLabel), findsOneWidget);
+    expect(find.text(dailyPuzzleTitle), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Arcade'), findsOneWidget);
-    expect(find.text(launcherLabel), findsNothing);
+    expect(find.text(dailyPuzzleTitle), findsNothing);
   });
 
   testWidgets('the play route without a puzzle to play fails loudly', (

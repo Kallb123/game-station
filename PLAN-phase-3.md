@@ -38,7 +38,7 @@ widget.
 | Never surface an internal error to a child | `AGENTS.md`. A generation that somehow fails, a cache entry that will not decode, a save write that errors: each degrades to a playable state with at most one plain sentence. `widened` is shown as an ordinary puzzle and never mentioned. |
 | The board is readable at 200% system text scale | `PLAN.md` §9. Digit size derives from cell geometry rather than from `MediaQuery.textScaler`, which would overflow a fixed cell; chrome and keypad labels scale normally. Checked by a widget test pumping at `TextScaler.linear(2.0)` and asserting no overflow. |
 | The save stays a few kilobytes | `PLAN.md` §5.2. The undo stack is capped at 300 entries and `puzzleCache` at 30 puzzles, both enforced when the entry is added rather than when the file is written, and both with tests. The cache cap is `ProgressRepository`'s, next to the map it evicts from; the undo cap is `SudokuSession`'s, because the stack only ever grows through a move (PR 4 built it there). |
-| `tool/verify.sh` green before every commit | It is what CI runs, in the same order (`AGENTS.md`). App tests are about five seconds of it; this phase should keep them under fifteen, which means widget tests inject a fake puzzle source rather than generating. **Measured at PR 7: 21 s**, of which the whole-app tests — each one launching the app over its own store — are the bulk. The fake source is doing its job; the launches are the cost, and the one place a test fills a board a cell at a time is the done-criterion that asks for it (§6, PR 7). |
+| `tool/verify.sh` green before every commit | It is what CI runs, in the same order (`AGENTS.md`). App tests are about five seconds of it; this phase should keep them under fifteen, which means widget tests inject a fake puzzle source rather than generating. **Measured at PR 8: 25 s**, up from 21 s at PR 7, of which the whole-app tests — each one launching the app over its own store — are the bulk. The fake source is doing its job; the launches are the cost, and the one place a test fills a board a cell at a time is the done-criterion that asks for it (§6, PR 7). |
 
 ---
 
@@ -325,10 +325,21 @@ setting (`app.dart`). Sound is phase 5 (§2).
 `/sudoku` replaces `ComingSoonScreen`:
 
 - A **continue** card when the active profile has an `inProgress` entry, first, because a child who
-  left a puzzle half-done wants that one.
+  left a puzzle half-done wants that one. **Which** entry, when there are several, is not "the one
+  played last": PR 8 found that a save cannot say. `PuzzleInProgress` carries no timestamp — v1 was
+  declared in full in phase 1 — and the cache's recency list is in memory only (§4.8), so the card
+  offers the board with the most time on its clock, ties broken by the id. An in-memory "last
+  played" was rejected for being exact until the force-quit this card exists for, and widening the
+  schema for a card was rejected for the reason §4.3 gives about `mistakes`.
 - A **daily** card: `dayIndexFor(DateTime.now())` gives the index, and the size and difficulty are
-  whichever the child last played, defaulting to 9x9 Easy. It shows the current streak, and its
-  puzzle is pre-warmed the moment the screen opens (`PLAN.md` §3.5).
+  whichever the child last played, defaulting to 9x9 Easy. "Last played" is the continue card's
+  puzzle where there is one, and otherwise the solved puzzle with the latest `solvedAt` — the same
+  problem as above, answered from the one field that does carry a time. The size is the menu's own
+  toggle once the child moves it, so today's card follows the size they are looking at, and the
+  difficulty is clamped to what that size offers: a child who last played 9x9 Expert is offered 6x6
+  Hard rather than a puzzle the engine refuses to build. It shows the current streak, and its puzzle
+  is pre-warmed the moment the screen opens (`PLAN.md` §3.5) — once, for the size the menu opened
+  on, because a warm per rebuild would generate puzzles nobody asked for.
 - A **size toggle** (9x9 / 6x6) and a **difficulty list** built from `difficultiesFor(spec)`, which
   returns `Difficulty.values` for 9x9 and all but `expert` for 6x6 — the engine refuses 6x6 Expert
   in two places (§1), and one function that both the menu and its test read is the mechanism that
@@ -337,7 +348,17 @@ setting (`app.dart`). Sound is phase 5 (§2).
   harder puzzle finding nothing above Hard is a worse outcome than one who tries Expert and backs
   out. Removing it later is a one-line change to `difficultiesFor`.
 - Each difficulty row shows solved count and best time from `SudokuProgress.bestTimeMs`, keyed
-  `"9x9:easy"` as §5.2 specifies.
+  `"9x9:easy"` as §5.2 specifies — under `SudokuProgress.bestTimeKey`, which PR 8 moved out of
+  `ProgressRepository` so that the code writing the key and the code reading it cannot spell it
+  differently. Tapping a row launches the **lowest index that profile has not solved**, so a tier is
+  a queue rather than a fixed puzzle; a half-finished one is offered again rather than skipped,
+  because the play screen resumes it.
+
+The derivations behind all of that are `SudokuMenu` in `model/sudoku_menu.dart`, pure over a
+`SudokuProgress` and built by `sudokuMenuProvider`, so every number on the screen is tested without
+pumping a widget. The clock the daily index comes from is `nowProvider`, for the same reason the
+repository takes a `now`: a test that had to compute today's id from the real clock would pass every
+day except the one it ran across a UTC midnight on.
 
 **Streak arithmetic** lives in `ProgressRepository`, next to the data it changes: on solving a
 puzzle whose index equals today's day index, `lastDayIndex == today` changes nothing; `today - 1`
@@ -409,11 +430,12 @@ app/
 │     ├─ data/
 │     │  ├─ puzzle_record.dart          # the "<clues>|<solution>" codec
 │     │  ├─ puzzle_source.dart          # PuzzleSource, IsolatePuzzleSource, the compute entry
-│     │  └─ providers.dart              # puzzleSourceProvider, sudokuMenuProvider
+│     │  └─ providers.dart              # puzzleSourceProvider, sudokuMenuProvider, nowProvider
 │     ├─ model/
 │     │  ├─ sudoku_session.dart         # entries, notes, undo/redo, mistakes, hints
 │     │  ├─ session_codec.dart          # grid / notes / undoStack strings (§4.4)
-│     │  └─ difficulties.dart           # difficultiesFor(spec)
+│     │  ├─ difficulties.dart           # difficultiesFor(spec)
+│     │  └─ sudoku_menu.dart            # what the menu shows, derived from a profile (§4.7)
 │     └─ ui/
 │        ├─ sudoku_menu_screen.dart     # /sudoku
 │        ├─ sudoku_play_screen.dart     # /sudoku/play
@@ -440,9 +462,11 @@ Boundaries:
   three methods on a class that changes every PR.
 - **`difficulties.dart` is one function**, imported by the menu and by its test, so "the picker
   offers what the engine builds" is a shared fact rather than two lists.
-- **Nothing under `features/sudoku/ui/` imports `puzzle_engine` except for `SudokuSpec` and
-  `Difficulty`.** The board a widget draws comes from the session, so a widget test needs no
-  generation.
+- **Nothing under `features/sudoku/ui/` imports `puzzle_engine` except for `SudokuSpec`,
+  `Difficulty`, `PuzzleId` and `dayIndexFor`.** The board a widget draws comes from the session, so a
+  widget test needs no generation. The two names past the pair this section first listed are the
+  menu's: a screen whose job is launching puzzles names them, and the day index is what today's card
+  is (PR 8).
 - **`integration_test/` is new**, as `PLAN.md` §6's tree anticipated.
 
 ---
