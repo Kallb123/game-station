@@ -8,12 +8,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/providers.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/core/ui/screen_scaffold.dart';
-import 'package:game_station/core/ui/tokens.dart';
-import 'package:game_station/features/settings/settings_screen.dart';
+import 'package:zibo_games/core/storage/providers.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/core/ui/screen_scaffold.dart';
+import 'package:zibo_games/core/ui/tokens.dart';
+import 'package:zibo_games/features/settings/settings_screen.dart';
 
 import '../../app_harness.dart';
 

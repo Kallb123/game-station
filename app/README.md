@@ -1,4 +1,4 @@
-# game_station (app)
+# zibo_games (app)
 
 The Flutter application: UI, storage, audio and the arcade games. Sudoku generation and solving live
 in [`packages/puzzle_engine`](../packages/puzzle_engine), which this package depends on by path.

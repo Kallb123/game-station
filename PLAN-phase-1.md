@@ -217,7 +217,7 @@ void main() async {
   runApp(ProviderScope(
     overrides: [saveStoreProvider.overrideWithValue(store),
                 initialSaveProvider.overrideWithValue(loaded)],
-    child: const GameStationApp(),
+    child: const ZiboGamesApp(),
   ));
 }
 ```

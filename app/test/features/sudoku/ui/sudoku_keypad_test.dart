@@ -5,11 +5,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/ui/theme.dart';
-import 'package:game_station/core/ui/tokens.dart';
-import 'package:game_station/features/sudoku/model/sudoku_session.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_keypad.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/ui/theme.dart';
+import 'package:zibo_games/core/ui/tokens.dart';
+import 'package:zibo_games/features/sudoku/model/sudoku_session.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_keypad.dart';
 
 import '../../../core/ui/ui_harness.dart';
 import '../puzzle_fixtures.dart';

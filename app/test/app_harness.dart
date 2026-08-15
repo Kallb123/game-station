@@ -9,10 +9,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/app.dart';
-import 'package:game_station/core/storage/providers.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/storage/save_store.dart';
+import 'package:zibo_games/app.dart';
+import 'package:zibo_games/core/storage/providers.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
 
 /// A fixed clock, so nothing in a test depends on the day it runs.
 DateTime testClock() => DateTime.utc(2026, 8, 12, 9);
@@ -52,7 +52,7 @@ Future<ProviderContainer> pumpApp(
         ...overrides,
       ],
     ),
-    child: const GameStationApp(),
+    child: const ZiboGamesApp(),
   );
   addTearDown(root.container.dispose);
 

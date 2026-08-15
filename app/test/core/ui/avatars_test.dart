@@ -8,8 +8,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/ui/avatars.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/ui/avatars.dart';
 
 void main() {
   test('every avatar has a picture of its own', () {

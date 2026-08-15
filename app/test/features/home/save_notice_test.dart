@@ -3,8 +3,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/features/home/home_screen.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/home/home_screen.dart';
 
 import '../../app_harness.dart';
 

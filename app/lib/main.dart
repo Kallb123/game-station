@@ -25,7 +25,7 @@ Future<void> main() async {
         saveStoreProvider.overrideWithValue(store),
         initialSaveProvider.overrideWithValue(loaded),
       ],
-      child: const GameStationApp(),
+      child: const ZiboGamesApp(),
     ),
   );
 }
@@ -42,7 +42,7 @@ Future<SaveStore> _openStore() async {
   try {
     return FileSaveStore(await getApplicationSupportDirectory());
   } on Exception catch (error) {
-    debugPrint('Game Station: no save directory, running without one: $error');
+    debugPrint('Zibo Games: no save directory, running without one: $error');
     return MemorySaveStore();
   }
 }

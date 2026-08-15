@@ -8,10 +8,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/progress_repository.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/storage/save_store.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/storage/progress_repository.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
 
 void main() {
   DateTime clock() => DateTime.utc(2026, 8, 12, 9);
@@ -679,7 +679,7 @@ void main() {
     late Directory directory;
 
     setUp(() {
-      directory = Directory.systemTemp.createTempSync('game_station_repo');
+      directory = Directory.systemTemp.createTempSync('zibo_games_repo');
     });
 
     tearDown(() {

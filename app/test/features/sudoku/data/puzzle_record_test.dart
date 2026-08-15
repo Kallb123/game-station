@@ -7,8 +7,8 @@
 // exception in a log.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/features/sudoku/data/puzzle_record.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/features/sudoku/data/puzzle_record.dart';
 
 void main() {
   final small = PuzzleId.parse('sudoku:6x6:easy:0');

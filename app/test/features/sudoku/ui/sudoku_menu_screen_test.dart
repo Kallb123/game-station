@@ -10,17 +10,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/providers.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/core/ui/theme.dart';
-import 'package:game_station/core/ui/tokens.dart';
-import 'package:game_station/features/sudoku/data/providers.dart';
-import 'package:game_station/features/sudoku/model/difficulties.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_grid_view.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_menu_screen.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_play_screen.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/storage/providers.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/core/ui/theme.dart';
+import 'package:zibo_games/core/ui/tokens.dart';
+import 'package:zibo_games/features/sudoku/data/providers.dart';
+import 'package:zibo_games/features/sudoku/model/difficulties.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_grid_view.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_menu_screen.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_play_screen.dart';
 
 import '../../../app_harness.dart';
 import '../../../core/ui/ui_harness.dart' show appThemes, usePhoneSurface;

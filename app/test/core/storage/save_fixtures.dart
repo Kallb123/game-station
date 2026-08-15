@@ -5,7 +5,7 @@
 // evidence that v1 is final if it covers the parts of v1 that are not yet
 // exercised by anything else.
 
-import 'package:game_station/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
 
 /// A save with every field of schema v1 set to a distinguishable value.
 SaveData fullSave() => SaveData(

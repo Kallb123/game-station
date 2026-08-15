@@ -14,16 +14,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/providers.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/features/sudoku/data/providers.dart';
-import 'package:game_station/features/sudoku/model/sudoku_session.dart';
-import 'package:game_station/features/sudoku/ui/completion_card.dart';
-import 'package:game_station/features/sudoku/ui/confetti.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_grid_view.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_menu_screen.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/storage/providers.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/sudoku/data/providers.dart';
+import 'package:zibo_games/features/sudoku/model/sudoku_session.dart';
+import 'package:zibo_games/features/sudoku/ui/completion_card.dart';
+import 'package:zibo_games/features/sudoku/ui/confetti.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_grid_view.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_menu_screen.dart';
 
 import '../../../app_harness.dart';
 import '../puzzle_fixtures.dart';

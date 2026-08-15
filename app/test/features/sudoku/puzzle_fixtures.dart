@@ -8,10 +8,10 @@
 // generated once per run and shared, because a fake that returned a made-up
 // grid would let a test pass against a board no engine would produce.
 
-import 'package:game_station/features/sudoku/data/puzzle_record.dart';
-import 'package:game_station/features/sudoku/data/puzzle_source.dart';
-import 'package:game_station/features/sudoku/model/sudoku_session.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/features/sudoku/data/puzzle_record.dart';
+import 'package:zibo_games/features/sudoku/data/puzzle_source.dart';
+import 'package:zibo_games/features/sudoku/model/sudoku_session.dart';
 
 /// The record for [id], generated on the first ask and remembered afterwards.
 ///
