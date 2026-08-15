@@ -20,10 +20,15 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
+import '../../../core/storage/save_data.dart';
+import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';
+import '../../../routes.dart';
 import '../data/providers.dart';
 import '../data/puzzle_record.dart';
 import '../model/sudoku_session.dart';
+import 'completion_card.dart';
+import 'confetti.dart';
 import 'sudoku_grid_view.dart';
 import 'sudoku_keypad.dart';
 
@@ -96,6 +101,14 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
   bool _failed = false;
   bool _resumed = true;
 
+  /// Whether the puzzle has been finished and written down.
+  ///
+  /// It is what stops the board being saved again as a puzzle in progress:
+  /// [ProgressRepository.recordSolved] clears that entry in the same mutation
+  /// it stores the result (`PLAN-phase-3.md` §4.8), and the screen closing a
+  /// moment later must not put it back.
+  bool _solved = false;
+
   @override
   void initState() {
     super.initState();
@@ -116,22 +129,47 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
 
     final session = _session;
     if (session != null) {
-      // The board itself is not written here: it was written when the screen
-      // was popped (see [build]), because a provider cannot be modified while
-      // the tree is coming down — Riverpod asserts on it, and the assertion
-      // would fire on the *Back* tap that ends every session.
-      //
-      // The flush is not a mutation and stays: it lands whatever the last move
-      // left in the debounce window, for the ways off this screen that are not
-      // a pop — a relaunch, or a route stack replaced under it. [flush] never
-      // throws (`progress_repository.dart`), so there is nothing to await.
-      unawaited(_repository.flush());
+      // Nothing is *written* here: the board was written as it was played, and
+      // the seconds since the last move were written by [_onPopped] or by the
+      // lifecycle listener before this screen got as far as being taken down.
+      // A write still sitting in the debounce window is started, though —
+      // starting one is not a mutation, and a screen that has gone has no next
+      // move to coalesce it with. [flush] never throws, so there is nothing
+      // here to await (`progress_repository.dart`).
+      if (!_repository.isDisposed) unawaited(_repository.flush());
       session
-        ..removeListener(_save)
+        ..removeListener(_onSessionChanged)
         ..dispose();
     }
     _elapsed.dispose();
     super.dispose();
+  }
+
+  /// Writes where the clock stopped, as the screen is left.
+  ///
+  /// Leaving stops the clock as surely as a pause does, and the seconds since
+  /// the last move are only in memory until something writes them. **The write
+  /// belongs to the pop rather than to [dispose]**: a screen is disposed
+  /// part-way through a build, and Riverpod refuses a provider mutation made
+  /// during one — rightly, since two widgets in the same frame would otherwise
+  /// read different states. A pop is a tap handler, which is exactly where a
+  /// mutation is allowed. Popping mid-puzzle is a child tapping the back arrow,
+  /// so this is not a corner.
+  ///
+  /// It covers every way off this screen that has anything to write: the app
+  /// going to the background writes through [_onLifecycleChanged], and both
+  /// ways on from the completion card leave a puzzle whose result is already
+  /// stored (`PLAN-phase-3.md` §4.8).
+  void _onPopped(bool didPop, Object? result) {
+    if (!didPop) return;
+
+    _stopClock();
+    _save();
+    // Landed rather than left in the debounce window: the window exists to
+    // coalesce the writes of a puzzle being played, and this one has no more
+    // moves to coalesce with. [flush] never throws
+    // (`progress_repository.dart`), so there is nothing here to await.
+    unawaited(_repository.flush());
   }
 
   @override
@@ -150,14 +188,10 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     // padding, the same back control with the same tooltip
     // (`PLAN-phase-3.md` §4.5).
     return PopScope(
-      // The way off this screen, and so the moment the clock is written. It is
-      // here rather than in [dispose] because a pop runs between frames and an
-      // unmount runs inside one, and only the first of those may touch a
-      // provider. Every pop counts — the back control, the system gesture and
-      // the desktop shortcut all arrive here.
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) _saveOnLeaving();
-      },
+      // The pop is where the last write is made — see [_onPopped]. Nothing is
+      // blocked: a child leaving a puzzle is leaving it, and the board they
+      // left is what comes back.
+      onPopInvokedWithResult: _onPopped,
       child: Scaffold(
         body: SafeArea(
           child: Padding(
@@ -234,7 +268,7 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
           : const SizedBox.expand();
     }
 
-    return Column(
+    final board = Column(
       children: [
         Expanded(child: SudokuGridView(session: session)),
         const SizedBox(height: AppSpacing.md),
@@ -245,6 +279,67 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
         SudokuKeypad(session: session),
       ],
     );
+    if (!_solved) return board;
+
+    // The finished board stays where it was, under the card
+    // (`PLAN-phase-3.md` §4.6). The barrier is what stops a tap reaching the
+    // keypad behind it: entering a digit over a solved grid would unsolve it,
+    // and there is no way back from that to the card.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        board,
+        ModalBarrier(
+          color: Theme.of(context).colorScheme.scrim.withValues(alpha: 0.4),
+          dismissible: false,
+        ),
+        Confetti(colors: _confettiColors(context)),
+        CompletionCard(
+          time: formatElapsed(session.elapsed),
+          hints: session.hints,
+          mistakes: session.mistakes,
+          clean: session.hints == 0 && session.mistakes == 0,
+          onNext: _nextPuzzle(session.id) == null ? null : _playNext,
+          onBack: Navigator.of(context).pop,
+        ),
+      ],
+    );
+  }
+
+  /// The paper the celebration is cut from: the Sudoku role's own tones, so it
+  /// reads as part of this screen rather than as a second palette
+  /// (`sudoku_grid_view.dart` derives the board's colours the same way).
+  List<Color> _confettiColors(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final role = AppTheme.roleScheme(
+      AppPalette.of(brightness).sudoku,
+      brightness,
+    );
+
+    return [role.primary, role.secondary, role.tertiary, role.primaryContainer];
+  }
+
+  /// The same size and difficulty, one index on (`PLAN-phase-3.md` §4.6), or
+  /// null at the end of the endless list.
+  ///
+  /// The list stops at `PuzzleId.maxPuzzleIndex`, which is a billion puzzles
+  /// away and still worth a check rather than an assertion failure: this is the
+  /// one place in the app that builds an id by arithmetic.
+  PuzzleId? _nextPuzzle(PuzzleId id) => id.index < PuzzleId.maxPuzzleIndex
+      ? PuzzleId(id.spec, id.difficulty, id.index + 1)
+      : null;
+
+  void _playNext() {
+    final next = _nextPuzzle(widget.args.id);
+    if (next == null) return;
+
+    // Replaced rather than pushed: a child who plays six in a row would
+    // otherwise stack six finished boards behind them, and the back arrow would
+    // walk back through every one of them to reach the menu.
+    Navigator.of(context).pushReplacementNamed(
+      AppRoutes.sudokuPlay,
+      arguments: SudokuPlayArgs(next),
+    );
   }
 
   Future<void> _load() async {
@@ -253,11 +348,20 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     try {
       final record = await ref.read(puzzleSourceProvider).load(id);
       if (!mounted) return;
+      // Read once, here: the profile's answer decides how the board draws a
+      // wrong digit, and nothing reachable from this screen changes either the
+      // answer or whose it is (`sudoku_session.dart`).
+      final mistakeFeedback = _repository.activeProfile.mistakeFeedback;
       // Building the session is inside the same `try` as the load: it decodes
       // the record it was handed, so it is one more way the puzzle can fail to
       // arrive rather than a step that happens after it has.
       session =
-          _restore(id, record) ?? SudokuSession.start(id: id, record: record);
+          _restore(id, record, mistakeFeedback) ??
+          SudokuSession.start(
+            id: id,
+            record: record,
+            mistakeFeedback: mistakeFeedback,
+          );
     } on Object {
       // Every way this fails — an isolate that died, a record that will not
       // decode — is the same thing to a child, and it is not a message about
@@ -271,7 +375,7 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     // repository debounces the writes into one every 500 ms (`PLAN.md` §5.3),
     // and a tap that only moves the selection produces a `PuzzleInProgress`
     // equal to the stored one, which it drops without scheduling anything.
-    session.addListener(_save);
+    session.addListener(_onSessionChanged);
 
     _spinnerDelay?.cancel();
     setState(() {
@@ -280,16 +384,31 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
       _elapsed.value = session.elapsed;
     });
     _startClock();
+
+    // A saved board that is already finished can only come from a file edited
+    // by hand — `recordSolved` clears the in-progress entry as it stores the
+    // result — but without this a child would be left looking at a full grid
+    // with no card and nothing to tap (`AGENTS.md`).
+    if (session.isSolved) _finish(session);
   }
 
   /// The saved board for [id], or null when there is none — and when the one
   /// there is does not describe this puzzle.
-  SudokuSession? _restore(PuzzleId id, PuzzleRecord record) {
+  SudokuSession? _restore(
+    PuzzleId id,
+    PuzzleRecord record,
+    MistakeFeedback mistakeFeedback,
+  ) {
     final saved = _repository.activeProfile.sudoku.inProgress[id.value];
     if (saved == null) return null;
 
     try {
-      return SudokuSession.resume(id: id, record: record, saved: saved);
+      return SudokuSession.resume(
+        id: id,
+        record: record,
+        saved: saved,
+        mistakeFeedback: mistakeFeedback,
+      );
     } on FormatException {
       // A truncated or hand-edited entry. Dropping it and starting fresh is the
       // whole of the handling: the alternative is telling a six-year-old that
@@ -316,7 +435,10 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
   /// arrange. A tick that arrives late loses a few milliseconds against the
   /// wall clock, which is not a quantity a child's puzzle timer is measured in.
   void _startClock() {
-    if (_clock != null || _session == null || !_resumed) return;
+    // A finished puzzle's time is what was written down, so nothing may start
+    // it moving again — coming back to the app on a solved board is the path
+    // that would.
+    if (_clock != null || _session == null || !_resumed || _solved) return;
     _clock = Timer.periodic(clockTick, (_) => _tick());
   }
 
@@ -348,28 +470,57 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     _save();
   }
 
-  void _save() {
+  /// What every change to the board leads to: it is written down, and if it
+  /// finished the puzzle, that is written down instead.
+  void _onSessionChanged() {
     final session = _session;
-    if (session == null) return;
-    _repository.saveInProgress(session.id, session.toSaved());
+    if (session == null || _solved) return;
+
+    if (session.isSolved) {
+      _finish(session);
+      return;
+    }
+    _save();
   }
 
-  /// Writes where the clock stopped, on the way out.
+  /// Stops the clock, records the result, and puts the card over the board.
   ///
-  /// Leaving the screen stops the clock as surely as a pause does, and the
-  /// seconds since the last move are only in memory until something writes
-  /// them.
-  void _saveOnLeaving() {
-    // Stopped before the write rather than in `dispose`, which runs a route
-    // transition later: a tick in between would move a clock nothing is going
-    // to write again.
+  /// The listener goes first so that nothing the card does — a rebuild, a
+  /// route change — can write the finished board back as a puzzle in progress.
+  /// Removing it from inside a notification is safe: `ChangeNotifier` allows a
+  /// listener to remove itself while it is being called.
+  void _finish(SudokuSession session) {
+    _solved = true;
     _stopClock();
-    _save();
-    // Landed rather than left in the debounce window: the window exists to
-    // coalesce the writes of a puzzle being played, and this one has no more
-    // moves to coalesce with. [ProgressRepository.flush] never throws
-    // (`progress_repository.dart`), so there is nothing here to await.
+    session.removeListener(_onSessionChanged);
+
+    _repository.recordSolved(
+      session.id,
+      SolvedPuzzle(
+        timeMs: session.elapsed.inMilliseconds,
+        hints: session.hints,
+        mistakes: session.mistakes,
+        // The star: no hints and no mistakes, where a mistake counts even if it
+        // was corrected (`PLAN.md` §3.7, `sudoku_session.dart`).
+        clean: session.hints == 0 && session.mistakes == 0,
+      ),
+    );
+    // Landed rather than left in the debounce window, for the same reason the
+    // screen's own close flushes: a finished puzzle has no later move to
+    // coalesce the write with.
     unawaited(_repository.flush());
+
+    setState(() {});
+  }
+
+  void _save() {
+    final session = _session;
+    // A solved puzzle is stored as a `SolvedPuzzle` and nothing else: writing
+    // it here as well would leave the save holding one puzzle that is both
+    // finished and in progress, which is exactly what `recordSolved` goes out
+    // of its way to prevent.
+    if (session == null || _solved) return;
+    _repository.saveInProgress(session.id, session.toSaved());
   }
 }
 

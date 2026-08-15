@@ -38,7 +38,7 @@ widget.
 | Never surface an internal error to a child | `AGENTS.md`. A generation that somehow fails, a cache entry that will not decode, a save write that errors: each degrades to a playable state with at most one plain sentence. `widened` is shown as an ordinary puzzle and never mentioned. |
 | The board is readable at 200% system text scale | `PLAN.md` §9. Digit size derives from cell geometry rather than from `MediaQuery.textScaler`, which would overflow a fixed cell; chrome and keypad labels scale normally. Checked by a widget test pumping at `TextScaler.linear(2.0)` and asserting no overflow. |
 | The save stays a few kilobytes | `PLAN.md` §5.2. The undo stack is capped at 300 entries and `puzzleCache` at 30 puzzles, both enforced when the entry is added rather than when the file is written, and both with tests. The cache cap is `ProgressRepository`'s, next to the map it evicts from; the undo cap is `SudokuSession`'s, because the stack only ever grows through a move (PR 4 built it there). |
-| `tool/verify.sh` green before every commit | It is what CI runs, in the same order (`AGENTS.md`). App tests are about five seconds of it; this phase should keep them under fifteen, which means widget tests inject a fake puzzle source rather than generating. |
+| `tool/verify.sh` green before every commit | It is what CI runs, in the same order (`AGENTS.md`). App tests are about five seconds of it; this phase should keep them under fifteen, which means widget tests inject a fake puzzle source rather than generating. **Measured at PR 8: 25 s**, up from 21 s at PR 7, of which the whole-app tests — each one launching the app over its own store — are the bulk. The fake source is doing its job; the launches are the cost, and the one place a test fills a board a cell at a time is the done-criterion that asks for it (§6, PR 7). |
 
 ---
 
@@ -166,6 +166,7 @@ int  digitAt(int index);          // 0 for empty
 bool isGiven(int index);          // from the clue string, never editable
 int  notesAt(int index);          // candidate bitmask, bit 0 = digit 1
 bool isWrong(int index);          // entered and != solution
+bool isFlagged(int index);        // wrong *and* drawn as wrong yet (§4.6)
 
 void select(int? index);
 void enter(int digit);            // respects pencilMode
@@ -187,8 +188,11 @@ digit cannot be built at all. A `SudokuBoard` is constructed only where one is n
 and only from the clues plus the entries that match the solution.
 
 `isWrong` is computed against the stored solution rather than against peers, so a digit that is
-wrong but not yet contradictory is caught. Whether it is *drawn* wrong depends on the mistake mode
-(§4.6).
+wrong but not yet contradictory is caught. Whether it is *drawn* wrong is `isFlagged`, which is
+`isWrong` filtered by the mistake mode (§4.6) — PR 7 added it here rather than in the cell widget,
+so `atCompletion` changes what a cell is told and not how a cell draws. The mode is a field on the
+session, read once when it is built: nothing reachable from a puzzle in play changes either the
+setting or the profile it belongs to.
 
 **`elapsed` is a plain field the play screen writes**, rather than a clock the session reads: a model
 that called `DateTime.now` could not be tested without waiting, and PR 6 owns the ticker. Writing it
@@ -269,11 +273,17 @@ a board of at least 16 dp per cell.
 
 **Hint**, in order:
 
-1. If any entered digit is wrong, select and flag that cell instead of revealing a new one. A child
-   whose grid already contradicts itself needs the contradiction pointed at, not another digit. This
-   also sidesteps §4.3's trap: no `SudokuBoard` is built from a grid that cannot hold one.
+1. If any entered digit is wrong, select and flag that cell instead of revealing a new one — the
+   lowest-numbered one, so the same board always gives the same hint. A child whose grid already
+   contradicts itself needs the contradiction pointed at, not another digit. This also sidesteps
+   §4.3's trap: no `SudokuBoard` is built from a grid that cannot hold one. The cell is flagged
+   whatever the mistake mode says, because a hint that only moved the selection would, under
+   `atCompletion`, tell a child nothing at all.
 2. Otherwise `nextPlacement(board)` over the clues plus correct entries. If it returns a step, that
-   cell is filled and the technique name is available for a later phase to explain.
+   cell is filled and the technique name is available for a later phase to explain. **The digit
+   written is the solution's**, even here: the two agree — the puzzle has one completion and the
+   board handed to the solver is a subset of it — and taking the solution's makes "a hint is never
+   wrong" true by construction rather than by trusting the solver.
 3. Otherwise — an Expert board where technique has run out (`PLAN.md` §3.4's T4) — reveal the empty
    cell with the fewest candidates, from the stored solution. Deterministic, lowest index wins a
    tie.
@@ -294,11 +304,21 @@ closing PR records that in `PLAN.md` §5.2 rather than leaving the two disagreei
 `mistakes` counts every wrong digit entered, in both modes, because it is what
 `SolvedPuzzle.mistakes` stores and what decides `clean`.
 
+**The control for it is the settings screen's last section**, under the theme choices and drawn the
+same way — the same `BigButton` row per choice, so the tap-target floor and the selected drawing are
+one implementation rather than two. It carries the active profile's name, because it is the only
+control on that screen that belongs to a child rather than to the tablet, and a grown-up who set it
+for one and expected it to hold for the other would find out on the day it mattered.
+
 **Completion** is an overlay card on the board, not a route: the board stays visible behind it, and
 *Back* has one meaning. It shows time, hints, mistakes and the clean star, and offers *Next puzzle*
-(the same size and difficulty, index + 1) and *Back to Sudoku*. Confetti is a `CustomPainter` with
-no dependency, suppressed when `MediaQuery.disableAnimationsOf(context)` is true — which phase 1
-already or-ed with the stored setting (`app.dart`). Sound is phase 5 (§2).
+(the same size and difficulty, index + 1, `pushReplacement`ed so six puzzles in a row do not leave
+six finished boards to walk back through) and *Back to Sudoku*. A `ModalBarrier` sits under the
+card: a tap reaching the keypad behind it would enter a digit over a solved grid and unsolve it,
+with no way back to the card. Confetti is a `CustomPainter` with no dependency, its pieces scattered
+by a hash of their own index rather than by `Random` (`PLAN-phase-1.md` §1), suppressed when
+`MediaQuery.disableAnimationsOf(context)` is true — which phase 1 already or-ed with the stored
+setting (`app.dart`). Sound is phase 5 (§2).
 
 ### 4.7 The menu, the daily puzzle and the streak
 
@@ -366,7 +386,10 @@ that named it would make the storage layer depend on a feature. The repository s
 string for the same reason the codec does (§3), and the one parser is on the feature side.
 
 `recordSolved` clears the matching `inProgress` entry in the same mutation, so a save cannot hold a
-puzzle that is both finished and in progress.
+puzzle that is both finished and in progress. It also dates a result that arrives without a
+`solvedAt`, from the same clock the streak is counted against (PR 7): a solve dated by one clock and
+counted by another is two answers to one question, and it keeps `DateTime.now` out of the screen
+that finishes a puzzle, where a test cannot move it.
 
 **Cache eviction** is least-recently-used over an in-memory recency list, seeded on load in whatever
 order the file gives — the codec sorts keys on write, so recency is not recoverable from disk, and
@@ -380,22 +403,20 @@ is already wired in `app.dart`.
 **The clock is written when it stops, not when it moves.** A tick is a mutation like any other, so a
 second of play would otherwise cost a write per second for as long as a child sits on the screen.
 Instead the play screen writes `elapsed` on every move, when the app leaves the foreground, and when
-the screen closes — the three moments after which the seconds since the last move are otherwise only
-in memory. The last of them also `flush()`es rather than leaving the write in the debounce window,
-because a puzzle nobody is playing has no later write to be coalesced with. The pause path does not
+the screen is popped — the three moments after which the seconds since the last move are otherwise
+only in memory. The last of them also `flush()`es rather than leaving the write in the debounce
+window, because a puzzle nobody is playing has no later write to be coalesced with.
+
+**The pop, not `dispose`.** PR 6 wrote that last save from the screen's `dispose`, and PR 7 found
+why it cannot stay there: a screen is disposed part-way through a build, and Riverpod refuses a
+provider mutation made during one — rightly, since two widgets in the same frame would otherwise
+read different states. Tapping the back arrow mid-puzzle is exactly that path, so it was an
+assertion failure in debug on an ordinary tap. `PopScope` moves the write to the pop itself, which
+is a tap handler. `dispose` still starts a write left in the debounce window, because starting one
+is not a mutation. The pause path does not
 need to: `app.dart` flushes there, and `ProgressRepository.flush` loops until nothing is pending, so
 it picks up a mutation made while its own first write is in flight no matter which lifecycle listener
 the platform calls first.
-
-**The closing write happens on the pop, not in `dispose`.** PR 6 put it in `dispose`, where nothing
-could reach it: the play screen had no menu to go back to until PR 8, and the only test that closed
-it replaced the widget tree instead of popping a route. A pop reaches it, and Riverpod asserts on a
-provider modified while the tree is coming down — so the *first* time a child tapped *Back* on a
-finished puzzle, they would have got the assertion rather than the menu. It is now written from
-`PopScope`, which runs between frames and covers the back control, the system gesture and the desktop
-shortcut alike. `dispose` still `flush()`es, because a flush is not a mutation and the ways off the
-screen that are not a pop — a relaunch, a route stack replaced underneath — still have the last
-move's write sitting in the debounce window.
 
 ---
 
@@ -658,7 +679,7 @@ file is recorded in both files rather than in a commit message.
 | Should the daily card offer one fixed size and difficulty rather than the last played? | Assumed last played, defaulting to 9x9 Easy (§4.7): a child who plays 6x6 should not be handed a 9x9 every morning. | PR 8's review, on the device. Changing it is a line in the menu's provider. |
 | ~~Is one streak across all sizes and difficulties right, or should it be per size?~~ | **Resolved before PR 2: one streak.** `DailyStreak` stays the single object §4.7 already assumed; `ProgressRepository.recordSolved` counts any size and difficulty against it. | Decided; PR 2 built it this way. |
 | Should CI gain an Android emulator job so `integration_test/` runs on merges? | Assumed no for phase 3: an emulator job is several minutes per run and the widget-level resume test covers the same path. | A phase-6 decision, when release checks need device evidence anyway (`PLAN.md` §9). |
-| Does the completion card need a *Next puzzle* that respects the difficulty the puzzle actually came out as, when `widened` is set? | Assumed no: *Next puzzle* is index + 1 at the requested difficulty, and `widened` stays invisible (§2). | PR 7. Nothing stored depends on it. |
+| ~~Does the completion card need a *Next puzzle* that respects the difficulty the puzzle actually came out as, when `widened` is set?~~ | **Resolved in PR 7: no.** *Next puzzle* is index + 1 at the requested difficulty, `widened` stays invisible (§2), and the card replaces the finished screen rather than stacking on it so that *Back* still reaches the menu in one tap. | Decided; PR 7 built it this way. |
 | ~~Should `mistakeFeedback` be per profile rather than device-wide?~~ | **Resolved before PR 2: per profile.** The field lives on `Profile`, not `AppSettings`; §4.6 is updated to match. | Decided; PR 2 built it this way. |
 
 ---

@@ -113,6 +113,14 @@ class ProgressRepository extends ChangeNotifier {
   /// Whether a write is scheduled or running.
   bool get isSaving => _pending || _inFlight != null;
 
+  /// Whether this repository has been disposed with its scope.
+  ///
+  /// Asked by a caller that arranged to write *after* the frame that took it
+  /// down — the play screen's last save (`sudoku_play_screen.dart`) — because
+  /// by then the scope may have gone too, and mutating a disposed
+  /// [ChangeNotifier] throws.
+  bool get isDisposed => _disposed;
+
   /// What the last write failed with, or null if the last one succeeded.
   ///
   /// A failed write is recorded rather than thrown: the caller is a tap
@@ -229,13 +237,19 @@ class ProgressRepository extends ChangeNotifier {
   /// `solved`, clears the matching `inProgress` entry in the same mutation so
   /// a save cannot hold a puzzle that is both finished and in progress, and
   /// updates `bestTimeMs` and the daily streak (`PLAN-phase-3.md` §4.7, §4.8).
+  ///
+  /// A [result] with no [SolvedPuzzle.solvedAt] is stamped from this
+  /// repository's own clock — the one the streak is counted against, so a solve
+  /// cannot be dated by one clock and counted by another. It is also the clock
+  /// a test can move, which a `DateTime.now` in the screen that finished the
+  /// puzzle would not be.
   void recordSolved(engine.PuzzleId id, SolvedPuzzle result) =>
       _updateActiveSudoku((sudoku) {
         final key = SudokuProgress.bestTimeKey(id.spec, id.difficulty);
         final best = sudoku.bestTimeMs[key];
 
         return sudoku.copyWith(
-          solved: {...sudoku.solved, id.value: result},
+          solved: {...sudoku.solved, id.value: _stamped(result)},
           inProgress: {
             for (final entry in sudoku.inProgress.entries)
               if (entry.key != id.value) entry.key: entry.value,
@@ -279,6 +293,17 @@ class ProgressRepository extends ChangeNotifier {
 
     _apply(_data.copyWith(puzzleCache: cache));
   }
+
+  /// [result] with a time on it, dated now when it arrived without one.
+  SolvedPuzzle _stamped(SolvedPuzzle result) => result.solvedAt != null
+      ? result
+      : SolvedPuzzle(
+          timeMs: result.timeMs,
+          hints: result.hints,
+          mistakes: result.mistakes,
+          solvedAt: _now().toUtc(),
+          clean: result.clean,
+        );
 
   /// Whether some profile has an `inProgress` entry for [puzzleId].
   bool _isPinned(String puzzleId) => _data.profiles.any(

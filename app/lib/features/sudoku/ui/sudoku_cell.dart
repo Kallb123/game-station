@@ -201,13 +201,13 @@ class _SudokuCellState extends State<SudokuCell> {
   /// The digit, drawn as a given, an entry, or an entry the solution
   /// disagrees with.
   ///
-  /// A wrong digit is flagged as soon as it is entered, which is
-  /// `MistakeFeedback.immediate` — the default and, until PR 7 reads the
-  /// profile's choice, the only behaviour. PR 7 gates this on that setting
-  /// rather than adding a second way to draw a digit.
+  /// *When* a wrong digit is drawn wrong is the session's answer rather than
+  /// this widget's: `isFlagged` is `isWrong` filtered by the profile's mistake
+  /// feedback (`sudoku_session.dart`), so `atCompletion` changes what a cell is
+  /// told and not how it draws it.
   Widget _digit() {
     final colors = widget.colors;
-    final color = _view.isWrong
+    final color = _view.isFlagged
         ? colors.wrong
         : _view.isGiven
         ? colors.given
@@ -224,7 +224,7 @@ class _SudokuCellState extends State<SudokuCell> {
           // A given is heavier and a wrong digit is underlined, so neither
           // depends on its colour being told apart from the other two.
           fontWeight: _view.isGiven ? FontWeight.w700 : FontWeight.w500,
-          decoration: _view.isWrong ? TextDecoration.underline : null,
+          decoration: _view.isFlagged ? TextDecoration.underline : null,
           decorationColor: color,
         ),
       ),
@@ -315,7 +315,7 @@ class _CellView {
     required this.digit,
     required this.notes,
     required this.isGiven,
-    required this.isWrong,
+    required this.isFlagged,
     required this.isSelected,
     required this.isPeer,
     required this.sharesDigit,
@@ -331,7 +331,7 @@ class _CellView {
       digit: digit,
       notes: session.notesAt(index),
       isGiven: session.isGiven(index),
-      isWrong: session.isWrong(index),
+      isFlagged: session.isFlagged(index),
       isSelected: isSelected,
       isPeer:
           selected != null &&
@@ -350,7 +350,7 @@ class _CellView {
   final int digit;
   final int notes;
   final bool isGiven;
-  final bool isWrong;
+  final bool isFlagged;
   final bool isSelected;
   final bool isPeer;
   final bool sharesDigit;
@@ -361,7 +361,7 @@ class _CellView {
       other.digit == digit &&
       other.notes == notes &&
       other.isGiven == isGiven &&
-      other.isWrong == isWrong &&
+      other.isFlagged == isFlagged &&
       other.isSelected == isSelected &&
       other.isPeer == isPeer &&
       other.sharesDigit == sharesDigit;
@@ -371,7 +371,7 @@ class _CellView {
     digit,
     notes,
     isGiven,
-    isWrong,
+    isFlagged,
     isSelected,
     isPeer,
     sharesDigit,
