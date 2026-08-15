@@ -1,5 +1,16 @@
 # Phase 3 — Sudoku UI
 
+**Closed. Kept as the record of a finished phase, not as current plan.** [`PLAN.md`](PLAN.md) is the
+source of truth for what the project is doing now; §7 there carries the phase-3 outcome and everything
+that differed from this file, and §3.7 and §5.2 have been reconciled with what was built. Read this
+one for *why* a piece of `app/lib/features/sudoku` is shaped the way it is — those files and their
+tests cite these section numbers throughout, which is why it stays here under its original name rather
+than being deleted or moved.
+
+Below, "will" and "is" describe the plan as it was written before the phase started, except where a
+paragraph says otherwise: the sections that were rewritten against what a pull request measured or
+found say so in place, since a plan that no longer matches the code is worse than none.
+
 The plan for the Sudoku half of `app/`: the menu, the board, the keypad, hints, mistakes, auto-save
 and the isolate that keeps generation off the raster thread. [`PLAN.md`](PLAN.md) §3.7 is the design
 this expands, §7 is the phase order, and §7's phase-3 list names what
@@ -32,13 +43,13 @@ widget.
 | Constraint | Rationale and mechanism |
 |---|---|
 | A force-quit mid-puzzle restores the exact board, notes, timer and undo stack | `PLAN.md` §7's phase-3 done-criterion. Enforced by a widget test that encodes a played board, rebuilds the app from the encoded save alone, and asserts cell-by-cell equality — not by a manual pass, which cannot be run on every commit. The manual pass on a device happens too (§8). |
-| No new dependency | Everything here is `flutter`, `flutter_riverpod` and `puzzle_engine`, all already resolved (`app/pubspec.yaml`). `compute()` is in `package:flutter/foundation.dart`. Enforced by `tool/check_offline.dart`, which reads the resolved graph. |
+| No new dependency | Everything here is `flutter`, `flutter_riverpod` and `puzzle_engine`, all already resolved (`app/pubspec.yaml`). `compute()` is in `package:flutter/foundation.dart`. Enforced by `tool/check_offline.dart`, which reads the resolved graph. **One arrived after all, at PR 9:** `integration_test`, from the SDK and declared under `dev_dependencies`, because §5's `integration_test/` cannot run without it. Nothing ships that did not ship before — the graph audit separates the two, and it reports the driver's HTTP client as test-only — but `app/pubspec.lock` did change, and this row would otherwise read as though it had not. |
 | Generation never blocks a frame | `PLAN.md` §3.5: 9x9 Hard is 65 ms at the median and about half a second at the tail. Every call goes through `compute()`; nothing calls `generateSudoku` on the UI isolate. Enforced by a lint-shaped test: `grep`-style unit test asserting the only `generateSudoku` call site in `app/lib` is the isolate entry point. |
 | The picker cannot build an id the engine refuses | `PuzzleId.parse` throws for 6x6 Expert, and `generateSudoku` throws `ArgumentError` for it (`PLAN.md` §7 handover). Enforced by a test that walks every (size, difficulty) the menu can offer and parses the id it would build. |
 | Never surface an internal error to a child | `AGENTS.md`. A generation that somehow fails, a cache entry that will not decode, a save write that errors: each degrades to a playable state with at most one plain sentence. `widened` is shown as an ordinary puzzle and never mentioned. |
 | The board is readable at 200% system text scale | `PLAN.md` §9. Digit size derives from cell geometry rather than from `MediaQuery.textScaler`, which would overflow a fixed cell; chrome and keypad labels scale normally. Checked by a widget test pumping at `TextScaler.linear(2.0)` and asserting no overflow. |
 | The save stays a few kilobytes | `PLAN.md` §5.2. The undo stack is capped at 300 entries and `puzzleCache` at 30 puzzles, both enforced when the entry is added rather than when the file is written, and both with tests. The cache cap is `ProgressRepository`'s, next to the map it evicts from; the undo cap is `SudokuSession`'s, because the stack only ever grows through a move (PR 4 built it there). |
-| `tool/verify.sh` green before every commit | It is what CI runs, in the same order (`AGENTS.md`). App tests are about five seconds of it; this phase should keep them under fifteen, which means widget tests inject a fake puzzle source rather than generating. **Measured at PR 8: 25 s**, up from 21 s at PR 7, of which the whole-app tests — each one launching the app over its own store — are the bulk. The fake source is doing its job; the launches are the cost, and the one place a test fills a board a cell at a time is the done-criterion that asks for it (§6, PR 7). |
+| `tool/verify.sh` green before every commit | It is what CI runs, in the same order (`AGENTS.md`). App tests are about five seconds of it; this phase should keep them under fifteen, which means widget tests inject a fake puzzle source rather than generating. **Measured at PR 8: 25 s**, up from 21 s at PR 7, and **28 s for 386 tests at PR 9**, of which the whole-app tests — each one launching the app over its own store — are the bulk. The fake source is doing its job; the launches are the cost, and the one place a test fills a board a cell at a time is the done-criterion that asks for it (§6, PR 7). The fifteen seconds was a guess made before any of those tests existed, and §8 records it as missed rather than quietly restating the budget. |
 
 ---
 
@@ -648,27 +659,47 @@ file is recorded in both files rather than in a commit message.
 
 ## 8. Verification checklist
 
-- [ ] `tool/verify.sh` passes from a clean checkout.
-- [ ] `cd app && flutter test` passes in under 15 s.
-- [ ] `cd packages/puzzle_engine && dart test` passes with no golden file changed by PR 1.
-- [ ] `dart tool/check_offline.dart` reports no violations, with no new dependency in
-      `app/pubspec.lock`.
-- [ ] `dart tool/check_determinism.dart` still passes; PR 1 added no clock, `dart:math` or map-order
+Ticked at PR 9, against a run rather than against a memory of one. The three that are not ticked need
+hardware this phase was built without, and they stay open rather than being softened into something a
+container can pass.
+
+- [x] `tool/verify.sh` passes from a clean checkout.
+- [ ] ~~`cd app && flutter test` passes in under 15 s.~~ **Missed: 28 s for 386 tests.** The fake
+      puzzle source did what it was for — nothing generates in a widget test — but seven files launch
+      the whole app over their own store, and those launches are the cost. The budget was a guess made
+      before any of them existed; the resume criterion is what asks for them, so the number moved
+      rather than the tests. `PLAN.md` §7 records it.
+- [x] `cd packages/puzzle_engine && dart test` passes with no golden file changed by PR 1.
+- [x] `dart tool/check_offline.dart` reports no violations. **One dependency was added**, against
+      §1's "no new dependency": `integration_test`, a dev dependency from the Flutter SDK, without
+      which PR 9's file cannot run at all. §1 was written about what ships and stays true of it —
+      nothing reaches `app/pubspec.yaml`'s `dependencies:` — but the lock file did change, so it is
+      recorded here rather than left to a reader of the diff. The check reports the driver's HTTP
+      client as test-only, which is the case its own comment already anticipated.
+- [x] `dart tool/check_determinism.dart` still passes; PR 1 added no clock, `dart:math` or map-order
       iteration to the engine.
-- [ ] A widget test solves a 6x6 end to end by tapping and asserts the stored `SolvedPuzzle`.
-- [ ] A widget test rebuilds a played board from the encoded save alone and compares all cells, all
+- [x] A widget test solves a 6x6 end to end by tapping and asserts the stored `SolvedPuzzle`.
+- [x] A widget test rebuilds a played board from the encoded save alone and compares all cells, all
       note masks, the elapsed time, the hint count and the undo stack.
-- [ ] A widget test pumps the play screen at `TextScaler.linear(2.0)` with no overflow.
-- [ ] Every (size, difficulty) the menu can offer parses as a `PuzzleId`, and 6x6 Expert is not
+- [x] A widget test pumps the play screen at `TextScaler.linear(2.0)` with no overflow — eight cases:
+      both sizes, both themes, 100% and 200%, each also asserting at least 16 dp per cell.
+- [x] Every (size, difficulty) the menu can offer parses as a `PuzzleId`, and 6x6 Expert is not
       offered.
-- [ ] `grep -rn "generateSudoku" app/lib` returns exactly one hit, in the isolate entry point.
+- [x] One `generateSudoku` call site in `app/lib`, in the isolate entry point. Asserted by a test
+      rather than by the `grep` this item named: the plain grep returns three hits, two of them in
+      comments, so the scanner strips comments first and has its own tests for doing it.
 - [ ] On the Android device: play a 9x9 to completion, force-quit mid-puzzle and relaunch, and the
-      board, notes and timer come back exactly.
+      board, notes and timer come back exactly. **Not run — no device.**
 - [ ] On the Android device: solved state and best time survive a restart, and the daily streak
-      increments the following day (or with the device clock moved forward one day).
+      increments the following day (or with the device clock moved forward one day). **Not run — no
+      device.**
 - [ ] `app/integration_test/sudoku_smoke_test.dart` passes on the device against a real generated
-      puzzle.
-- [ ] `PLAN.md` §3.7, §5.2 and §7 match what was built, and this file carries its closed banner.
+      puzzle. **Not run on a device.** It passes on the host with `-d flutter-tester` in about ten
+      seconds, which is a real generation on a real isolate and a real `save.json` but answers no
+      plugin call, so it is evidence for the first two items above rather than a substitute for them.
+      Checked to fail as well as to pass (`AGENTS.md`): with the play screen's write-on-pause removed
+      it reports the board the file holds instead, rather than going quietly green.
+- [x] `PLAN.md` §3.7, §5.2 and §7 match what was built, and this file carries its closed banner.
 
 ---
 
@@ -676,7 +707,7 @@ file is recorded in both files rather than in a commit message.
 
 | Question | Current assumption | What resolves it |
 |---|---|---|
-| Should the daily card offer one fixed size and difficulty rather than the last played? | Assumed last played, defaulting to 9x9 Easy (§4.7): a child who plays 6x6 should not be handed a 9x9 every morning. | PR 8's review, on the device. Changing it is a line in the menu's provider. |
+| Should the daily card offer one fixed size and difficulty rather than the last played? | Assumed last played, defaulting to 9x9 Easy (§4.7): a child who plays 6x6 should not be handed a 9x9 every morning. | **Still open at close.** It was to be answered by PR 8's review on the device, and no device pass happened (§8), so it is carried rather than declared decided. Changing it is a line in the menu's provider. |
 | ~~Is one streak across all sizes and difficulties right, or should it be per size?~~ | **Resolved before PR 2: one streak.** `DailyStreak` stays the single object §4.7 already assumed; `ProgressRepository.recordSolved` counts any size and difficulty against it. | Decided; PR 2 built it this way. |
 | Should CI gain an Android emulator job so `integration_test/` runs on merges? | Assumed no for phase 3: an emulator job is several minutes per run and the widget-level resume test covers the same path. | A phase-6 decision, when release checks need device evidence anyway (`PLAN.md` §9). |
 | ~~Does the completion card need a *Next puzzle* that respects the difficulty the puzzle actually came out as, when `widened` is set?~~ | **Resolved in PR 7: no.** *Next puzzle* is index + 1 at the requested difficulty, `widened` stays invisible (§2), and the card replaces the finished screen rather than stacking on it so that *Back* still reaches the menu in one tap. | Decided; PR 7 built it this way. |
