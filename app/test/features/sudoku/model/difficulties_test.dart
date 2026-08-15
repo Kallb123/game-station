@@ -5,8 +5,8 @@
 // (`PLAN-phase-3.md` §5).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/features/sudoku/model/difficulties.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/features/sudoku/model/difficulties.dart';
 
 void main() {
   test('every size and difficulty the menu offers spells a puzzle id', () {

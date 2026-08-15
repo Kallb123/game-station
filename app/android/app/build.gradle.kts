@@ -40,7 +40,7 @@ if (hasReleaseKey) {
 }
 
 android {
-    namespace = "uk.co.gamestation.game_station"
+    namespace = "net.nawt.zibo_games"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -50,7 +50,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "uk.co.gamestation.game_station"
+        applicationId = "net.nawt.zibo_games"
         // Android 8.0. PLAN.md §1 sets the supported matrix at Android 8+, and
         // Flutter's default (API 24) would have Play offer the app to Android 7
         // devices that are never tested against.

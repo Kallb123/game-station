@@ -31,18 +31,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/app.dart';
-import 'package:game_station/core/storage/providers.dart';
-import 'package:game_station/core/storage/save_codec.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/features/sudoku/data/puzzle_record.dart';
-import 'package:game_station/features/sudoku/model/sudoku_session.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_grid_view.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_menu_screen.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/app.dart';
+import 'package:zibo_games/core/storage/providers.dart';
+import 'package:zibo_games/core/storage/save_codec.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/sudoku/data/puzzle_record.dart';
+import 'package:zibo_games/features/sudoku/model/sudoku_session.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_grid_view.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_menu_screen.dart';
 
 /// The puzzle this test plays.
 ///
@@ -197,7 +197,7 @@ Future<ProviderContainer> _launch(WidgetTester tester, SaveStore store) async {
         initialSaveProvider.overrideWithValue(loaded),
       ],
     ),
-    child: const GameStationApp(),
+    child: const ZiboGamesApp(),
   );
   addTearDown(root.container.dispose);
 

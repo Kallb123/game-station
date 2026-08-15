@@ -6,11 +6,11 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/providers.dart';
-import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/features/sudoku/data/providers.dart';
-import 'package:game_station/features/sudoku/data/puzzle_source.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/storage/providers.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/sudoku/data/providers.dart';
+import 'package:zibo_games/features/sudoku/data/puzzle_source.dart';
 
 import '../puzzle_fixtures.dart';
 

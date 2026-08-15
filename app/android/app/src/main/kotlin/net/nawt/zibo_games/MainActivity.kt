@@ -1,4 +1,4 @@
-package uk.co.gamestation.game_station
+package net.nawt.zibo_games
 
 import io.flutter.embedding.android.FlutterActivity
 

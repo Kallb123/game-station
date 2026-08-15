@@ -39,7 +39,7 @@ class HomeScreen extends ConsumerWidget {
     final profile = ref.watch(activeProfileProvider);
 
     return ScreenScaffold(
-      title: 'Game Station',
+      title: 'Zibo Games',
       actions: [
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed(AppRoutes.settings),

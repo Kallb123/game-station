@@ -10,12 +10,12 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/progress_repository.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/features/sudoku/data/puzzle_record.dart';
-import 'package:game_station/features/sudoku/data/puzzle_source.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/storage/progress_repository.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/sudoku/data/puzzle_record.dart';
+import 'package:zibo_games/features/sudoku/data/puzzle_source.dart';
 
 void main() {
   final id = PuzzleId.parse('sudoku:6x6:easy:0');

@@ -7,8 +7,8 @@
 // the change that breaks every file already written.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/features/sudoku/model/session_codec.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/features/sudoku/model/session_codec.dart';
 
 void main() {
   const small = SudokuSpec.s6x6;

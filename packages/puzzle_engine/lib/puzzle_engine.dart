@@ -1,4 +1,4 @@
-/// Deterministic Sudoku generation and solving for Game Station.
+/// Deterministic Sudoku generation and solving for Zibo Games.
 ///
 /// Every puzzle is a pure function of its ID, so the same ID yields the same
 /// grid on every platform, in every release, with nothing stored and nothing

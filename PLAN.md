@@ -1,4 +1,4 @@
-# Game Station — Implementation Plan
+# Zibo Games — Implementation Plan
 
 A local, offline, ad-free games app for children. Sudoku (9x9 and 6x6, deterministic from a date or
 index) plus retro arcade games driven by on-screen controls, with progress that persists across
@@ -714,13 +714,20 @@ What differed from the plan, decided while building it:
 
 ### Phase 6 — release (3–5 days)
 
-- Icon, splash, store artwork and per-platform screenshots.
-- Android: signed AAB, latest target API, Play Data Safety declared as no data collected (accurate),
-  aiming for Teacher Approved / Designed for Families. The signing config itself landed early, out of
-  phase: the CI APK was signed with each runner's own debug key, so no build could be installed over
-  the last one without uninstalling and losing the save. `app/android/app/build.gradle.kts` now reads
-  `android/key.properties`, and the workflows write it from repository secrets — see README.md. What
-  is left here is the AAB, the store listing and the upload, not the key.
+- Icon, splash, store artwork and per-platform screenshots. The icon landed early, with the rename to
+  Zibo Games: `app/assets/images/` holds the master and the two sizes an Amazon listing asks for, and
+  `tool/icon/generate_platform_icons.py` derives every launcher size from the master.
+- Android, and the **Amazon Appstore is the primary target** rather than Play. That suits what is
+  already built: Amazon takes the signed APK the `android-apk` and `android-release` workflows
+  produce, so the artifact needs no new build path, and its kids programme rules out ads, tracking
+  and purchases — three constraints the app is built around and `tool/check_offline.dart` already
+  enforces. Play stays viable as a second listing, which is where the AAB, the Data Safety
+  declaration and Teacher Approved belong.
+- The Android signing config landed early, out of phase: the CI APK was signed with each runner's own
+  debug key, so no build could be installed over the last one without uninstalling and losing the
+  save. `app/android/app/build.gradle.kts` now reads `android/key.properties`, and the workflows
+  write it from repository secrets — see README.md. What is left here is the store listing and the
+  upload, not the key.
 - iOS: Kids Category, which **bans** third-party ads and analytics — the app has neither, so it
   qualifies without changes. Requires an Apple Developer account (about $99/year) and a Mac to build.
 - Windows: MSIX or a plain zip; Microsoft Store or Steam optional later.

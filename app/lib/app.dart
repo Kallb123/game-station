@@ -24,14 +24,14 @@ import 'routes.dart';
 /// It is stateful only to hold the [AppLifecycleListener] that flushes pending
 /// writes when the app goes away. Without it, the last 500 ms of changes — the
 /// debounce window in `progress_repository.dart` — die with the process.
-class GameStationApp extends ConsumerStatefulWidget {
-  const GameStationApp({super.key});
+class ZiboGamesApp extends ConsumerStatefulWidget {
+  const ZiboGamesApp({super.key});
 
   @override
-  ConsumerState<GameStationApp> createState() => _GameStationAppState();
+  ConsumerState<ZiboGamesApp> createState() => _ZiboGamesAppState();
 }
 
-class _GameStationAppState extends ConsumerState<GameStationApp> {
+class _ZiboGamesAppState extends ConsumerState<ZiboGamesApp> {
   late final AppLifecycleListener _lifecycle;
 
   @override
@@ -58,7 +58,7 @@ class _GameStationAppState extends ConsumerState<GameStationApp> {
     final settings = ref.watch(settingsProvider);
 
     return MaterialApp(
-      title: 'Game Station',
+      title: 'Zibo Games',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.day(),
       darkTheme: AppTheme.night(),

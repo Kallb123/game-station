@@ -1,6 +1,6 @@
 name: puzzle_engine
 description: >-
-  Deterministic Sudoku generation and solving for Game Station. Pure Dart, no
+  Deterministic Sudoku generation and solving for Zibo Games. Pure Dart, no
   Flutter and no I/O, so its tests run in about a second without a device.
 version: 0.1.0
 publish_to: none

@@ -5,8 +5,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/save_codec.dart';
-import 'package:game_station/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_codec.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
 
 import 'save_fixtures.dart';
 

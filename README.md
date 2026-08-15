@@ -1,4 +1,4 @@
-# Game Station
+# Zibo Games
 
 A local, offline, ad-free games app for kids. Android, iOS, Windows, macOS, and Linux from one
 codebase.
@@ -51,6 +51,7 @@ tool/check_determinism.dart # enforces the engine's no-clock, no-dart:math rules
 tool/verify.sh          # everything CI runs, in the same order
 tool/install_flutter.sh # installs the pinned SDK, for cloud sessions
 tool/check_apk_permissions.sh # asserts a built APK requests no permissions
+tool/icon/              # resamples the icon master into every platform's launcher sizes
 ```
 
 Two packages joined by a plain path dependency — no melos; see [PLAN.md](PLAN.md) §6.

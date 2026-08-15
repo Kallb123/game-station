@@ -1,6 +1,6 @@
 # puzzle_engine
 
-Deterministic Sudoku generation and solving for [Game Station](../../README.md).
+Deterministic Sudoku generation and solving for [Zibo Games](../../README.md).
 
 Pure Dart. No Flutter, no `dart:io`, no networking — data in, data out. That keeps the tests fast
 enough to fuzz thousands of seeds on every run, with no emulator and no Flutter bindings.

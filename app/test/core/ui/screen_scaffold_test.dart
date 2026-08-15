@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/ui/screen_scaffold.dart';
-import 'package:game_station/core/ui/theme.dart';
-import 'package:game_station/core/ui/tokens.dart';
+import 'package:zibo_games/core/ui/screen_scaffold.dart';
+import 'package:zibo_games/core/ui/theme.dart';
+import 'package:zibo_games/core/ui/tokens.dart';
 
 import 'ui_harness.dart';
 

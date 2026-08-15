@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "uk.co.gamestation" "\0"
-            VALUE "FileDescription", "Game Station" "\0"
+            VALUE "CompanyName", "net.nawt" "\0"
+            VALUE "FileDescription", "Zibo Games" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "game_station" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Game Station contributors. MIT licensed." "\0"
-            VALUE "OriginalFilename", "game_station.exe" "\0"
-            VALUE "ProductName", "Game Station" "\0"
+            VALUE "InternalName", "zibo_games" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Zibo Games contributors. MIT licensed." "\0"
+            VALUE "OriginalFilename", "zibo_games.exe" "\0"
+            VALUE "ProductName", "Zibo Games" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

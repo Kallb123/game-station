@@ -3,12 +3,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game_station/core/storage/providers.dart';
-import 'package:game_station/core/storage/save_data.dart';
-import 'package:game_station/core/storage/save_store.dart';
-import 'package:game_station/features/sudoku/data/providers.dart';
-import 'package:game_station/features/sudoku/ui/sudoku_menu_screen.dart';
-import 'package:game_station/routes.dart';
+import 'package:zibo_games/core/storage/providers.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/sudoku/data/providers.dart';
+import 'package:zibo_games/features/sudoku/ui/sudoku_menu_screen.dart';
+import 'package:zibo_games/routes.dart';
 
 import 'app_harness.dart';
 import 'features/sudoku/puzzle_fixtures.dart';
@@ -17,7 +17,7 @@ void main() {
   testWidgets('the app boots to the home screen', (tester) async {
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
-    expect(find.text('Game Station'), findsOneWidget);
+    expect(find.text('Zibo Games'), findsOneWidget);
     expect(find.text('Sudoku'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
   });
@@ -165,7 +165,7 @@ void main() {
 
       // Not just "it did not throw": assert the theme actually followed, so a
       // missing darkTheme would fail here rather than pass silently.
-      final context = tester.element(find.text('Game Station'));
+      final context = tester.element(find.text('Zibo Games'));
       expect(Theme.of(context).brightness, brightness);
     });
   }
