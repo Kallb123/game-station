@@ -140,9 +140,21 @@ jobs:
   # demand, and so the APK CI checks is the one people install. It asserts that
   # the built package requests no platform permission — the source-level check
   # above reads the manifest, that one reads the artifact — and uploads it.
+  #
+  # The signing secrets are passed through because the APK people install is
+  # this one: signed with the same key every run, a CI build installs over the
+  # last one instead of demanding an uninstall. Named one by one rather than
+  # `secrets: inherit`, which would hand the build every secret the repository
+  # ever gains. A pull request from a fork is given none of them and falls back
+  # to the debug key, which builds and installs but not over anything.
   build-android:
     name: Build Android
     uses: ./.github/workflows/android-apk.yml
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
   build-linux:
     name: Build Linux

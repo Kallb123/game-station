@@ -11,15 +11,32 @@ name: Android APK
 on:
   # Build on request, from any branch or tag, via the Actions tab.
   workflow_dispatch:
-  # And as the Android leg of CI, and of android-release.yml. Nothing is passed
-  # in: the Flutter pin is read from ci.yml below, because `env` is not in scope
-  # for a called workflow's inputs and a second copy of the pin is a second
-  # thing to forget.
+  # And as the Android leg of CI, and of android-release.yml. No inputs: the
+  # Flutter pin is read from ci.yml below, because `env` is not in scope for a
+  # called workflow's inputs and a second copy of the pin is a second thing to
+  # forget.
   #
   # No paths filter here, and adding one would do nothing: this workflow never
   # triggers on a push, so what decides whether it runs is the caller's filter —
   # ci.yml skips documentation, and this leg skips with it.
   workflow_call:
+    # The signing key, which a caller has to pass through explicitly — a called
+    # workflow sees no secret it was not handed. All four are optional so that a
+    # repository, fork or branch without them still builds; the build falls back
+    # to the debug key and the summary says so.
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: false
+        description: The signing keystore, base64-encoded.
+      ANDROID_KEYSTORE_PASSWORD:
+        required: false
+        description: Password for the keystore itself.
+      ANDROID_KEY_ALIAS:
+        required: false
+        description: Alias of the key inside the keystore.
+      ANDROID_KEY_PASSWORD:
+        required: false
+        description: Password for that key. Often the same as the keystore's.
     outputs:
       apk:
         description: >-
@@ -83,27 +100,138 @@ jobs:
       - run: flutter pub get
         working-directory: app
 
+      # The signing key, from repository secrets, written where Gradle looks for
+      # it: app/android/key.properties and the keystore beside it, both
+      # gitignored and both on a runner that is thrown away afterwards.
+      #
+      # Why this matters beyond the store release: Android identifies an app by
+      # its package name and its signing certificate together, and refuses an
+      # update signed by a different certificate. The debug key is generated per
+      # machine, so every runner signed with a different one and no two builds
+      # from this workflow could be installed over each other — the device asked
+      # for an uninstall first, which throws the saved puzzles away. One key held
+      # in secrets makes every build an update of the last.
+      #
+      # Absent, the build falls back to the debug key rather than failing, so a
+      # fork — which is handed no secrets — still produces an installable APK.
+      # Half-present is a hard failure: three secrets out of four would sign with
+      # the debug key and look exactly like success, which is this bug again.
+      - name: Write the signing config from secrets
+        id: signing
+        working-directory: app/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          # Spelled as an `if` rather than `[ -n "$v" ] && present=...`, whose
+          # exit status is the test's: under `set -e` that reads like a script
+          # that aborts as soon as one secret is unset, and survives only
+          # because of an exemption for && lists. Not worth the second look.
+          present=0
+          for value in "$KEYSTORE_BASE64" "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do
+            if [ -n "$value" ]; then
+              present=$((present + 1))
+            fi
+          done
+
+          if [ "$present" -eq 0 ]; then
+            echo 'key=debug' >> "$GITHUB_OUTPUT"
+            echo 'No signing secrets set — building with the debug key.'
+            echo 'Set ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,' \
+                 'ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD to sign with a stable key.'
+            exit 0
+          fi
+
+          if [ "$present" -ne 4 ]; then
+            echo "Signing is half-configured: $present of the 4 secrets are set." >&2
+            echo 'Set all of ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,' \
+                 'ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD, or none of them.' >&2
+            exit 1
+          fi
+
+          # `base64 --decode` tolerates the line wrapping that `base64` adds by
+          # default, so the secret can have been produced either way.
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > upload-keystore.jks
+
+          # Fail here, with a sentence, rather than inside a Gradle stack trace
+          # forty steps later. `-certreq` rather than `-list` because it needs
+          # the private key, so it exercises all four secrets — `-list` never
+          # touches the key password, leaving the one wrong secret that still
+          # reaches Gradle. The CSR it prints is thrown away; only the exit code
+          # matters, and both streams go to /dev/null because a wrong password
+          # is the message and a right one is not worth risking in a log.
+          if ! keytool -certreq -keystore upload-keystore.jks \
+                 -storepass "$KEYSTORE_PASSWORD" \
+                 -alias "$KEY_ALIAS" -keypass "$KEY_PASSWORD" > /dev/null 2>&1; then
+            echo 'The keystore did not open with these secrets.' >&2
+            echo 'Check that ANDROID_KEYSTORE_BASE64 decodes to the keystore, that the two' \
+                 'passwords are right, and that ANDROID_KEY_ALIAS names a key in it.' >&2
+            exit 1
+          fi
+
+          # storeFile is relative to app/android/, which is where Gradle resolves
+          # it from. Written with printf rather than a heredoc so nothing here
+          # expands a password into the job's shell trace.
+          printf 'storeFile=%s\n' 'upload-keystore.jks' >  key.properties
+          printf 'storePassword=%s\n' "$KEYSTORE_PASSWORD" >> key.properties
+          printf 'keyAlias=%s\n' "$KEY_ALIAS"              >> key.properties
+          printf 'keyPassword=%s\n' "$KEY_PASSWORD"        >> key.properties
+          chmod 600 key.properties upload-keystore.jks
+
+          echo 'key=release' >> "$GITHUB_OUTPUT"
+          echo 'Signing with the keystore from repository secrets.'
+
       # Release, not debug: the debug manifest adds INTERNET for hot reload, and
       # it is the release artifact whose permissions are the promise.
       #
-      # Signed with Flutter's debug key, which is what app/android/app/
-      # build.gradle.kts configures for now — enough to sideload, not enough for
-      # a store. Real signing keys arrive with the Phase 6 release (PLAN.md §7),
-      # kept in secrets rather than in the repository.
+      # Signed with the key written above when there is one, and with Flutter's
+      # debug key otherwise — app/android/app/build.gradle.kts decides, from
+      # whether key.properties exists. A store release still needs the rest of
+      # Phase 6 (PLAN.md §7); this only fixes installing one build over another.
       - name: Build the release APK
         run: flutter build apk --release
         working-directory: app
+
+      # Deleted as soon as the build no longer needs it, and on failure too. The
+      # runner is discarded either way, so this is defence in depth against a
+      # later step — one added in a hurry, or one from an action — reading the
+      # workspace and printing what it finds.
+      - name: Remove the signing material
+        if: always()
+        run: rm -f app/android/key.properties app/android/upload-keystore.jks
 
       # Belt and braces: tool/check_offline.dart reads the manifest source, this
       # reads the built package. Release checklist item — see PLAN.md §9.
       - name: Assert the APK requests no platform permissions
         run: tool/check_apk_permissions.sh app/build/app/outputs/flutter-apk/app-release.apk
 
+      # Which certificate actually signed the package, read back from the
+      # package rather than assumed from the secrets. It answers the one
+      # question a failed install raises — "why will this not go over the build
+      # I already have" — since Android accepts an update only from the same
+      # certificate. Two runs are interchangeable on a device exactly when this
+      # fingerprint matches, so it is worth having on the page.
+      - name: Report the signing certificate
+        id: cert
+        run: |
+          set -euo pipefail
+          tool/apk_signing_cert.sh app/build/app/outputs/flutter-apk/app-release.apk |
+            tee "$RUNNER_TEMP/signing.txt"
+          sha=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/signing.txt" | head -1)
+          echo "sha256=${sha:-unknown}" >> "$GITHUB_OUTPUT"
+
       # Named after what it contains, since a downloaded app-release.apk tells
       # you nothing about which build it came from. The version is pubspec's, so
       # the file name matches the version the app reports.
       - name: Name the APK after its version and commit
         id: apk
+        env:
+          SIGNING_KEY: ${{ steps.signing.outputs.key }}
+          SIGNING_SHA256: ${{ steps.cert.outputs.sha256 }}
         run: |
           version=$(sed -n 's/^version: *//p' app/pubspec.yaml | head -1)
           name="game-station-${version/+/-build}-${GITHUB_SHA::7}"
@@ -112,6 +240,11 @@ jobs:
           echo "path=$RUNNER_TEMP/$name.apk" >> "$GITHUB_OUTPUT"
 
           size=$(du -h "$RUNNER_TEMP/$name.apk" | cut -f1)
+          if [ "$SIGNING_KEY" = 'release' ]; then
+            key='repository signing key'
+          else
+            key='Flutter debug key — generated per machine'
+          fi
           {
             echo "## $name.apk"
             echo
@@ -121,13 +254,22 @@ jobs:
             echo "| Commit | \`$GITHUB_SHA\` |"
             echo "| Size | $size |"
             echo "| Permissions | none, asserted against the package |"
+            echo "| Signed with | $key |"
+            echo "| Certificate | \`$SIGNING_SHA256\` |"
             echo
             echo 'Download it from **Artifacts** below, then install with'
             echo '`adb install -r <file>.apk`, or copy it to the device and open it.'
             echo
-            echo 'Signed with the Flutter debug key, so Android will warn about an'
-            echo 'unknown source and it cannot be published to a store. Store signing'
-            echo 'arrives with the Phase 6 release.'
+            if [ "$SIGNING_KEY" = 'release' ]; then
+              echo 'It installs over any other build carrying the same certificate, keeping'
+              echo 'saved puzzles. Android still warns about an unknown source, and a store'
+              echo 'release needs the rest of Phase 6.'
+            else
+              echo '**No signing secrets are set, so this build used the debug key, which is'
+              echo 'different on every machine.** It will not install over a build from another'
+              echo 'run — Android will ask for an uninstall first, which discards saved puzzles.'
+              echo 'See the README on setting `ANDROID_KEYSTORE_BASE64` and friends.'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Fourteen days rather than the default ninety: CI runs this on every pull

@@ -22,10 +22,19 @@ concurrency:
 
 jobs:
   # The same build CI runs, from the tag. Inherits this workflow's default
-  # read-only token, since it neither reads secrets nor writes anything back.
+  # read-only token, since it writes nothing back; the signing secrets are
+  # handed over one by one, because a called workflow sees only what it is
+  # given. This is the build that ends up on the release page, so it is the one
+  # that most needs the stable key — a release APK that will not install over
+  # the previous release is the whole complaint.
   build:
     name: Build
     uses: ./.github/workflows/android-apk.yml
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
   attach:
     name: Attach to the release

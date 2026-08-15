@@ -29,20 +29,7 @@ if [ ! -r "$apk" ]; then
   exit 2
 fi
 
-# aapt2 ships per build-tools version rather than on PATH, so take the newest
-# installed one. Sorted by version, not lexically: 34.0.0 sorts before 9.0.0
-# without -V, which would silently pick an ancient build-tools.
-aapt=$(command -v aapt2 || true)
-if [ -z "$aapt" ]; then
-  sdk=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}
-  if [ -n "$sdk" ] && [ -d "$sdk/build-tools" ]; then
-    aapt=$(find "$sdk/build-tools" -name aapt2 -type f | sort -V | tail -1)
-  fi
-fi
-if [ -z "$aapt" ]; then
-  echo "aapt2 not found: put it on PATH, or set ANDROID_HOME to an SDK that has build-tools." >&2
-  exit 2
-fi
+aapt=$("$(dirname "$0")/android_sdk_tool.sh" aapt2)
 
 permissions=$("$aapt" dump permissions "$apk" |
   sed -n "s/^uses-permission: name='\([^']*\)'.*/\1/p")
