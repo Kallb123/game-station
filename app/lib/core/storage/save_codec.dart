@@ -232,6 +232,15 @@ Profile _readProfile(Map<String, Object?> raw, String path) => Profile(
           _string(raw['mistakeFeedback'], _at(path, 'mistakeFeedback')),
           _at(path, 'mistakeFeedback'),
         ),
+  arcadeEasyMode: _optBool(raw, 'arcadeEasyMode', path, false),
+  arcadeAutoFire: _optBool(raw, 'arcadeAutoFire', path, false),
+  padSide: raw['padSide'] == null
+      ? PadSide.right
+      : _enum(
+          PadSide.values,
+          _string(raw['padSide'], _at(path, 'padSide')),
+          _at(path, 'padSide'),
+        ),
 );
 
 SudokuProgress _readSudoku(Map<String, Object?> raw, String path) =>
@@ -311,6 +320,7 @@ HighScore _readHighScore(Map<String, Object?> raw, String path) => HighScore(
   score: _int(_required(raw, 'score', path), _at(path, 'score')),
   wave: _optInt(raw, 'wave', path, 0),
   at: raw['at'] == null ? null : _dateTime(raw['at'], _at(path, 'at')),
+  easy: _optBool(raw, 'easy', path, false),
 );
 
 // --- writing ----------------------------------------------------------------
@@ -341,6 +351,9 @@ Map<String, Object?> _writeProfile(Profile profile) => {
   'sudoku': _writeSudoku(profile.sudoku),
   'arcade': _sorted(profile.arcade.games, _writeArcadeGame),
   'mistakeFeedback': profile.mistakeFeedback.name,
+  'arcadeEasyMode': profile.arcadeEasyMode,
+  'arcadeAutoFire': profile.arcadeAutoFire,
+  'padSide': profile.padSide.name,
 };
 
 Map<String, Object?> _writeSudoku(SudokuProgress sudoku) => {
@@ -378,6 +391,7 @@ Map<String, Object?> _writeArcadeGame(ArcadeGameProgress game) => {
         'score': score.score,
         'wave': score.wave,
         if (score.at != null) 'at': _writeDateTime(score.at!),
+        'easy': score.easy,
       },
   ],
   'gamesPlayed': game.gamesPlayed,

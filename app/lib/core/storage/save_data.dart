@@ -55,6 +55,20 @@ enum MistakeFeedback {
   atCompletion,
 }
 
+/// Which side of the on-screen pad holds LEFT and RIGHT.
+///
+/// Per profile rather than device-wide, the same reasoning as
+/// [MistakeFeedback]: handedness belongs to the child holding the tablet, not
+/// to the tablet itself (`PLAN-phase-4.md` §4.9).
+enum PadSide {
+  /// LEFT and RIGHT bottom-left, FIRE bottom-right. The default
+  /// (`PLAN.md` §4.2).
+  right,
+
+  /// The mirror image, for a left-handed player.
+  left,
+}
+
 /// The settings shared by every profile.
 ///
 /// Settings are device-wide rather than per-profile on purpose: sound and
@@ -307,7 +321,12 @@ class SudokuProgress {
 /// contains it, so storing it again would be a second copy that can disagree
 /// with the first.
 class HighScore {
-  const HighScore({required this.score, this.wave = 0, this.at});
+  const HighScore({
+    required this.score,
+    this.wave = 0,
+    this.at,
+    this.easy = false,
+  });
 
   /// Points.
   final int score;
@@ -320,15 +339,25 @@ class HighScore {
   /// [SolvedPuzzle.solvedAt]: a score with no date is still a score.
   final DateTime? at;
 
+  /// Whether the run that set it was played in easy mode.
+  ///
+  /// A flag rather than a second game id (`"invaders:easy"`), so the two
+  /// lifetime counters on [ArcadeGameProgress] stay single numbers instead of
+  /// two that would need adding at every read (`PLAN-phase-4.md` §3). The
+  /// top-five cap in `ProgressRepository` applies within one value of this
+  /// flag, so a normal-mode score can never evict an easy-mode one.
+  final bool easy;
+
   @override
   bool operator ==(Object other) =>
       other is HighScore &&
       other.score == score &&
       other.wave == wave &&
-      other.at == at;
+      other.at == at &&
+      other.easy == easy;
 
   @override
-  int get hashCode => Object.hash(score, wave, at);
+  int get hashCode => Object.hash(score, wave, at, easy);
 }
 
 /// One profile's history for one arcade game.
@@ -396,6 +425,9 @@ class Profile {
     this.sudoku = const SudokuProgress(),
     this.arcade = const ArcadeProgress(),
     this.mistakeFeedback = MistakeFeedback.immediate,
+    this.arcadeEasyMode = false,
+    this.arcadeAutoFire = false,
+    this.padSide = PadSide.right,
   }) : assert(createdAt.isUtc, 'createdAt must be UTC');
 
   /// `"p1"`, `"p2"`, … — a counter, never random and never a clock reading, so
@@ -420,12 +452,26 @@ class Profile {
   /// When a wrong Sudoku digit is flagged. Per profile — see [MistakeFeedback].
   final MistakeFeedback mistakeFeedback;
 
+  /// Fewer rows, more lives, slower aliens (`PLAN.md` §4.1). A child's choice,
+  /// not the tablet's — see [PadSide].
+  final bool arcadeEasyMode;
+
+  /// The ship fires on its own, so a small player only has to steer
+  /// (`PLAN.md` §4.1).
+  final bool arcadeAutoFire;
+
+  /// Which side LEFT and RIGHT sit on.
+  final PadSide padSide;
+
   Profile copyWith({
     String? name,
     AvatarId? avatar,
     SudokuProgress? sudoku,
     ArcadeProgress? arcade,
     MistakeFeedback? mistakeFeedback,
+    bool? arcadeEasyMode,
+    bool? arcadeAutoFire,
+    PadSide? padSide,
   }) => Profile(
     id: id,
     name: name ?? this.name,
@@ -434,6 +480,9 @@ class Profile {
     sudoku: sudoku ?? this.sudoku,
     arcade: arcade ?? this.arcade,
     mistakeFeedback: mistakeFeedback ?? this.mistakeFeedback,
+    arcadeEasyMode: arcadeEasyMode ?? this.arcadeEasyMode,
+    arcadeAutoFire: arcadeAutoFire ?? this.arcadeAutoFire,
+    padSide: padSide ?? this.padSide,
   );
 
   @override
@@ -445,11 +494,24 @@ class Profile {
       other.createdAt == createdAt &&
       other.sudoku == sudoku &&
       other.arcade == arcade &&
-      other.mistakeFeedback == mistakeFeedback;
+      other.mistakeFeedback == mistakeFeedback &&
+      other.arcadeEasyMode == arcadeEasyMode &&
+      other.arcadeAutoFire == arcadeAutoFire &&
+      other.padSide == padSide;
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, avatar, createdAt, sudoku, arcade, mistakeFeedback);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    avatar,
+    createdAt,
+    sudoku,
+    arcade,
+    mistakeFeedback,
+    arcadeEasyMode,
+    arcadeAutoFire,
+    padSide,
+  );
 }
 
 /// The whole save file.

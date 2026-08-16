@@ -57,6 +57,48 @@ void main() {
 
       expect(decodeSave(encodeSave(empty)), empty);
     });
+
+    // The PR's done-criterion (`PLAN-phase-4.md` §6, PR 1): two easy scores,
+    // three normal ones and all three profile options, still schema v1.
+    test(
+      'two easy scores, three normal ones and every arcade option round trip',
+      () {
+        final save = SaveData(
+          activeProfileId: 'p1',
+          profiles: [
+            Profile(
+              id: 'p1',
+              name: 'Ana',
+              avatar: AvatarId.fox,
+              createdAt: DateTime.utc(2026),
+              arcadeEasyMode: true,
+              arcadeAutoFire: true,
+              padSide: PadSide.left,
+              arcade: ArcadeProgress(
+                games: {
+                  'invaders': ArcadeGameProgress(
+                    highScores: const [
+                      HighScore(score: 500, easy: true),
+                      HighScore(score: 400, easy: true),
+                      HighScore(score: 900),
+                      HighScore(score: 800),
+                      HighScore(score: 700),
+                    ],
+                    gamesPlayed: 6,
+                    totalKills: 240,
+                  ),
+                },
+              ),
+            ),
+          ],
+        );
+
+        final decoded = decodeSave(encodeSave(save));
+
+        expect(decoded, save);
+        expect(decoded.schemaVersion, currentSchemaVersion);
+      },
+    );
   });
 
   group('decoding a v1 file', () {
@@ -137,6 +179,12 @@ void main() {
       expect(save.activeProfile.sudoku, const SudokuProgress());
       expect(save.activeProfile.arcade, const ArcadeProgress());
       expect(save.activeProfile.mistakeFeedback, MistakeFeedback.immediate);
+      // A save written before this phase has none of these: a file that
+      // predates `easy`, `arcadeEasyMode`, `arcadeAutoFire` and `padSide`
+      // must still decode, with each at its default (`PLAN-phase-4.md` §4.9).
+      expect(save.activeProfile.arcadeEasyMode, isFalse);
+      expect(save.activeProfile.arcadeAutoFire, isFalse);
+      expect(save.activeProfile.padSide, PadSide.right);
     });
 
     test('timestamps are read back as UTC whatever zone they carry', () {

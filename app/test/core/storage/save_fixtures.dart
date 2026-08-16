@@ -26,6 +26,9 @@ SaveData fullSave() => SaveData(
       avatar: AvatarId.fox,
       createdAt: DateTime.utc(2026, 8, 11, 10),
       mistakeFeedback: MistakeFeedback.atCompletion,
+      arcadeEasyMode: true,
+      arcadeAutoFire: true,
+      padSide: PadSide.left,
       sudoku: SudokuProgress(
         solved: {
           'sudoku:9x9:easy:0': SolvedPuzzle(
@@ -54,6 +57,7 @@ SaveData fullSave() => SaveData(
             highScores: [
               HighScore(score: 15400, wave: 7, at: DateTime.utc(2026, 8, 10)),
               const HighScore(score: 9000, wave: 4),
+              const HighScore(score: 6200, wave: 5, easy: true),
             ],
             gamesPlayed: 22,
             totalKills: 3110,

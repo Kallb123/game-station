@@ -12,6 +12,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import 'package:zibo_games/core/storage/progress_repository.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/arcade/shared/arcade_result.dart';
 
 void main() {
   DateTime clock() => DateTime.utc(2026, 8, 12, 9);
@@ -606,6 +607,138 @@ void main() {
       repository.cachePuzzle(puzzleAt(puzzleCacheCap), 'record-new');
 
       expect(repository.data.puzzleCache.containsKey(pinned.value), isTrue);
+    });
+  });
+
+  group('arcade', () {
+    test('starting a game increments gamesPlayed and nothing else', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      repository.startArcadeGame('invaders');
+
+      final game = repository.activeProfile.arcade.games['invaders']!;
+      expect(game.gamesPlayed, 1);
+      expect(game.highScores, isEmpty);
+      expect(game.totalKills, 0);
+    });
+
+    test('starting counts every run, finished or not', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      repository.startArcadeGame('invaders');
+      repository.startArcadeGame('invaders');
+      repository.startArcadeGame('invaders');
+
+      expect(repository.activeProfile.arcade.games['invaders']!.gamesPlayed, 3);
+    });
+
+    test('recording a result adds a high score and its kills', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      repository.recordArcadeResult(
+        'invaders',
+        const ArcadeResult(score: 1500, wave: 3, kills: 42),
+      );
+
+      final game = repository.activeProfile.arcade.games['invaders']!;
+      expect(game.highScores, [
+        HighScore(score: 1500, wave: 3, at: clock().toUtc()),
+      ]);
+      expect(game.totalKills, 42);
+    });
+
+    test('a zero score is not stored', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      repository.recordArcadeResult(
+        'invaders',
+        const ArcadeResult(score: 0, kills: 5),
+      );
+
+      // Nothing about this run was worth keeping, so the game gains no entry
+      // at all rather than an empty one — `startArcadeGame` is the only thing
+      // that creates one.
+      expect(repository.activeProfile.arcade.games['invaders'], isNull);
+    });
+
+    test('five scores per mode are kept, and the sixth is dropped only when '
+        'it is worse', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      for (final score in [500, 400, 300, 200, 100]) {
+        repository.recordArcadeResult('invaders', ArcadeResult(score: score));
+      }
+
+      // Worse than every entry already there: dropped.
+      repository.recordArcadeResult('invaders', const ArcadeResult(score: 50));
+      var scores =
+          repository.activeProfile.arcade.games['invaders']!.highScores;
+      expect(scores.map((s) => s.score), [500, 400, 300, 200, 100]);
+
+      // Better than the worst entry: keeps five, and the worst is gone.
+      repository.recordArcadeResult('invaders', const ArcadeResult(score: 250));
+      scores = repository.activeProfile.arcade.games['invaders']!.highScores;
+      expect(scores.map((s) => s.score), [500, 400, 300, 250, 200]);
+    });
+
+    test('a normal-mode score never evicts an easy-mode one', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      for (final score in [100, 90, 80, 70, 60]) {
+        repository.recordArcadeResult(
+          'invaders',
+          ArcadeResult(score: score, easy: true),
+        );
+      }
+
+      for (final score in [900, 800, 700, 600, 500, 400]) {
+        repository.recordArcadeResult('invaders', ArcadeResult(score: score));
+      }
+
+      final scores =
+          repository.activeProfile.arcade.games['invaders']!.highScores;
+      expect(
+        scores.where((s) => s.easy).map((s) => s.score).toList(),
+        [100, 90, 80, 70, 60],
+        reason: 'the easy-mode table is untouched by any normal-mode result',
+      );
+      expect(
+        scores.where((s) => !s.easy).map((s) => s.score).toList(),
+        [900, 800, 700, 600, 500],
+        reason: 'the sixth normal result is the one dropped',
+      );
+    });
+
+    test('the arcade options are set per profile, changing only what is '
+        'given', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      repository.createProfile(name: 'Bo', avatar: AvatarId.owl);
+
+      repository.setArcadeOptions(easyMode: true, padSide: PadSide.left);
+
+      expect(repository.activeProfile.arcadeEasyMode, isTrue);
+      expect(repository.activeProfile.arcadeAutoFire, isFalse);
+      expect(repository.activeProfile.padSide, PadSide.left);
+      expect(
+        repository.profiles.firstWhere((p) => p.id == 'p1').arcadeEasyMode,
+        isFalse,
+        reason: 'the option belongs to the child playing, not the tablet',
+      );
+
+      repository.setArcadeOptions(autoFire: true);
+      expect(repository.activeProfile.arcadeEasyMode, isTrue);
+      expect(repository.activeProfile.arcadeAutoFire, isTrue);
+    });
+
+    test('a burst of arcade mutations costs one write', () async {
+      final store = MemorySaveStore(initial: freshSave());
+      final repository = repositoryOver(store);
+
+      repository.startArcadeGame('invaders');
+      for (var i = 0; i < 5; i++) {
+        repository.recordArcadeResult('invaders', ArcadeResult(score: i + 1));
+      }
+      await repository.flush();
+
+      expect(store.writes, 1);
     });
   });
 
