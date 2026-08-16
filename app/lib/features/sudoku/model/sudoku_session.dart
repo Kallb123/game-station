@@ -176,6 +176,18 @@ class SudokuSession extends ChangeNotifier {
   /// stands for digit `d`.
   int notesAt(int index) => _notes[index];
 
+  /// Whether every cell the solution puts [digit] in already holds it.
+  ///
+  /// What the keypad greys a digit out for, once nowhere is left to put it. A
+  /// wrong digit elsewhere on the board neither counts towards this nor blocks
+  /// it: this asks only about the cells [digit] actually belongs in.
+  bool isDigitComplete(int digit) {
+    for (var index = 0; index < _digits.length; index++) {
+      if (_solution[index] == digit && _digits[index] != digit) return false;
+    }
+    return true;
+  }
+
   /// Whether the cell at [index] holds a digit that is not the puzzle's.
   ///
   /// Computed against the stored solution rather than against the cell's peers,

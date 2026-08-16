@@ -96,6 +96,39 @@ void main() {
       expect(session.digitAt(target), 5);
     });
 
+    testWidgets('grey out a digit once every cell it belongs in holds it', (
+      tester,
+    ) async {
+      final session = fixtureSession(large);
+      final record = fixtureRecord(large);
+      int solutionAt(int index) => int.parse(record.solution[index]);
+
+      final digit = solutionAt(firstEmpty(session));
+      final cells = [
+        for (var index = 0; index < session.spec.cells; index++)
+          if (solutionAt(index) == digit && !session.isGiven(index)) index,
+      ];
+
+      await pumpKeypad(tester, session);
+
+      bool enabled() =>
+          tester
+              .widget<FilledButton>(find.widgetWithText(FilledButton, '$digit'))
+              .onPressed !=
+          null;
+
+      expect(enabled(), isTrue);
+
+      for (final index in cells) {
+        session
+          ..select(index)
+          ..enter(digit);
+      }
+      await tester.pump();
+
+      expect(enabled(), isFalse);
+    });
+
     testWidgets('write a pencil mark instead when pencil mode is on', (
       tester,
     ) async {

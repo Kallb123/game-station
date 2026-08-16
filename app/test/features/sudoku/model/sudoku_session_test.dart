@@ -330,6 +330,70 @@ void main() {
     });
   });
 
+  group('a digit being complete', () {
+    /// The digit the solution puts in [firstEmpty], and every other cell it
+    /// belongs in.
+    final digit = solutionAt(firstEmpty);
+    Iterable<int> cellsOf(int digit) sync* {
+      for (var index = 0; index < spec.cells; index++) {
+        if (solutionAt(index) == digit) yield index;
+      }
+    }
+
+    test('is false until every cell it belongs in holds it', () {
+      final session = start();
+      final cells = cellsOf(digit).where((i) => !session.isGiven(i)).toList();
+
+      for (final index in cells.take(cells.length - 1)) {
+        session
+          ..select(index)
+          ..enter(digit);
+        expect(session.isDigitComplete(digit), isFalse);
+      }
+
+      session
+        ..select(cells.last)
+        ..enter(digit);
+      expect(session.isDigitComplete(digit), isTrue);
+    });
+
+    test('is not reached by a wrong digit standing in for it', () {
+      final session = start();
+      final cells = cellsOf(digit).where((i) => !session.isGiven(i)).toList();
+
+      for (final index in cells) {
+        session
+          ..select(index)
+          ..enter(wrongAt(index));
+      }
+
+      expect(session.isDigitComplete(digit), isFalse);
+    });
+
+    test('is not undone by a wrong digit placed elsewhere', () {
+      final session = start();
+      for (final index in cellsOf(digit)) {
+        if (session.isGiven(index)) continue;
+        session
+          ..select(index)
+          ..enter(digit);
+      }
+      expect(session.isDigitComplete(digit), isTrue);
+
+      // A non-given cell the solution puts some other digit in, given a
+      // wrong one.
+      final elsewhere = List<int>.generate(spec.cells, (index) => index)
+          .firstWhere(
+            (index) => solutionAt(index) != digit && !session.isGiven(index),
+          );
+      session
+        ..select(elsewhere)
+        ..enter(wrongAt(elsewhere));
+
+      expect(session.isDigitComplete(digit), isTrue);
+    });
+  });
+
   group('a hint', () {
     test('fills a cell the solution agrees with, and counts', () {
       final session = start();
