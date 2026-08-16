@@ -37,14 +37,3 @@ final Provider<PuzzleSource> puzzleSourceProvider = Provider<PuzzleSource>((
 final Provider<SudokuMenu> sudokuMenuProvider = Provider<SudokuMenu>(
   (ref) => SudokuMenu.of(ref.watch(activeProfileProvider).sudoku),
 );
-
-/// Where the app reads the wall clock for the daily puzzle.
-///
-/// A function rather than a [DateTime], so a screen that stays open across
-/// midnight asks again on its next build instead of holding yesterday's answer.
-/// It is a provider so that a test can fix today: the daily card names a puzzle
-/// id, and a test that had to compute the same id from the real clock would
-/// pass every day except the one it ran across a UTC midnight on.
-final Provider<DateTime Function()> nowProvider = Provider<DateTime Function()>(
-  (ref) => DateTime.now,
-);
