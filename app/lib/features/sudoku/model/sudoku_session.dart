@@ -176,16 +176,20 @@ class SudokuSession extends ChangeNotifier {
   /// stands for digit `d`.
   int notesAt(int index) => _notes[index];
 
-  /// Whether every cell the solution puts [digit] in already holds it.
+  /// Whether [digit] is on the board as many times as a solved puzzle holds
+  /// it — once per row, so [SudokuSpec.digits] times.
   ///
-  /// What the keypad greys a digit out for, once nowhere is left to put it. A
-  /// wrong digit elsewhere on the board neither counts towards this nor blocks
-  /// it: this asks only about the cells [digit] actually belongs in.
+  /// What the keypad greys a digit out for. A raw count of what is on the
+  /// board, given or entered, right or wrong: this is the one place the board
+  /// is not asked whether a digit is *correct*, because a child playing under
+  /// [MistakeFeedback.atCompletion] has asked not to be told that, and a
+  /// keypad that greyed out only correct digits would tell them anyway.
   bool isDigitComplete(int digit) {
-    for (var index = 0; index < _digits.length; index++) {
-      if (_solution[index] == digit && _digits[index] != digit) return false;
+    var count = 0;
+    for (final placed in _digits) {
+      if (placed == digit) count++;
     }
-    return true;
+    return count >= spec.digits;
   }
 
   /// Whether the cell at [index] holds a digit that is not the puzzle's.

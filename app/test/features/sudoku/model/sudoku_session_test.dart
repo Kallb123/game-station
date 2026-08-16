@@ -331,20 +331,25 @@ void main() {
   });
 
   group('a digit being complete', () {
-    /// The digit the solution puts in [firstEmpty], and every other cell it
-    /// belongs in.
-    final digit = solutionAt(firstEmpty);
-    Iterable<int> cellsOf(int digit) sync* {
-      for (var index = 0; index < spec.cells; index++) {
-        if (solutionAt(index) == digit) yield index;
-      }
-    }
+    // A board with no clues at all, so every cell is open and nothing is on
+    // it yet: what matters here is the raw count of a digit on the board, not
+    // whether it agrees with the solution, and a clueless board keeps that
+    // count starting from zero without the test having to work out how many
+    // of a digit a real puzzle's clues already gave away.
+    SudokuSession blank() => SudokuSession.start(
+      id: id,
+      record: PuzzleRecord(
+        clues: PuzzleRecord.emptyCell * spec.cells,
+        solution: record.solution,
+      ),
+    );
 
-    test('is false until every cell it belongs in holds it', () {
-      final session = start();
-      final cells = cellsOf(digit).where((i) => !session.isGiven(i)).toList();
+    const digit = 1;
 
-      for (final index in cells.take(cells.length - 1)) {
+    test('is false until it is on the board as many times as a row', () {
+      final session = blank();
+
+      for (var index = 0; index < spec.digits - 1; index++) {
         session
           ..select(index)
           ..enter(digit);
@@ -352,45 +357,53 @@ void main() {
       }
 
       session
-        ..select(cells.last)
+        ..select(spec.digits - 1)
         ..enter(digit);
       expect(session.isDigitComplete(digit), isTrue);
     });
 
-    test('is not reached by a wrong digit standing in for it', () {
-      final session = start();
-      final cells = cellsOf(digit).where((i) => !session.isGiven(i)).toList();
+    test('does not count a different digit placed instead', () {
+      final session = blank();
+      final other = digit % spec.digits + 1;
 
-      for (final index in cells) {
+      for (var index = 0; index < spec.digits; index++) {
         session
           ..select(index)
-          ..enter(wrongAt(index));
+          ..enter(other);
       }
 
       expect(session.isDigitComplete(digit), isFalse);
     });
 
-    test('is not undone by a wrong digit placed elsewhere', () {
-      final session = start();
-      for (final index in cellsOf(digit)) {
-        if (session.isGiven(index)) continue;
+    test('does not care whether the placements agree with the solution', () {
+      // Every cell here disagrees with the real solution but for the digit
+      // itself, since a blank board's "solution" is still the real puzzle's —
+      // and that is exactly the point: this asks nothing about correctness.
+      final session = blank();
+
+      for (var index = 0; index < spec.digits; index++) {
+        session
+          ..select(index)
+          ..enter(digit);
+      }
+
+      expect(session.isDigitComplete(digit), isTrue);
+    });
+
+    test('goes back to false once a placement is erased below the count', () {
+      final session = blank();
+      for (var index = 0; index < spec.digits; index++) {
         session
           ..select(index)
           ..enter(digit);
       }
       expect(session.isDigitComplete(digit), isTrue);
 
-      // A non-given cell the solution puts some other digit in, given a
-      // wrong one.
-      final elsewhere = List<int>.generate(spec.cells, (index) => index)
-          .firstWhere(
-            (index) => solutionAt(index) != digit && !session.isGiven(index),
-          );
       session
-        ..select(elsewhere)
-        ..enter(wrongAt(elsewhere));
+        ..select(0)
+        ..erase();
 
-      expect(session.isDigitComplete(digit), isTrue);
+      expect(session.isDigitComplete(digit), isFalse);
     });
   });
 

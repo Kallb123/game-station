@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 import 'package:zibo_games/core/ui/theme.dart';
 import 'package:zibo_games/core/ui/tokens.dart';
+import 'package:zibo_games/features/sudoku/data/puzzle_record.dart';
 import 'package:zibo_games/features/sudoku/model/sudoku_session.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_keypad.dart';
 
@@ -96,38 +97,42 @@ void main() {
       expect(session.digitAt(target), 5);
     });
 
-    testWidgets('grey out a digit once every cell it belongs in holds it', (
-      tester,
-    ) async {
-      final session = fixtureSession(large);
-      final record = fixtureRecord(large);
-      int solutionAt(int index) => int.parse(record.solution[index]);
+    testWidgets(
+      'grey out a digit once it is on the board as many times as a row',
+      (tester) async {
+        // A clueless board, so the count starts at zero and the test does not
+        // depend on how many of the digit the fixture's own clues happen to
+        // give away.
+        final session = SudokuSession.start(
+          id: large,
+          record: PuzzleRecord(
+            clues: PuzzleRecord.emptyCell * large.spec.cells,
+            solution: fixtureRecord(large).solution,
+          ),
+        );
+        const digit = 5;
+        await pumpKeypad(tester, session);
 
-      final digit = solutionAt(firstEmpty(session));
-      final cells = [
-        for (var index = 0; index < session.spec.cells; index++)
-          if (solutionAt(index) == digit && !session.isGiven(index)) index,
-      ];
+        bool enabled() =>
+            tester
+                .widget<FilledButton>(
+                  find.widgetWithText(FilledButton, '$digit'),
+                )
+                .onPressed !=
+            null;
 
-      await pumpKeypad(tester, session);
+        expect(enabled(), isTrue);
 
-      bool enabled() =>
-          tester
-              .widget<FilledButton>(find.widgetWithText(FilledButton, '$digit'))
-              .onPressed !=
-          null;
+        for (var index = 0; index < session.spec.digits; index++) {
+          session
+            ..select(index)
+            ..enter(digit);
+        }
+        await tester.pump();
 
-      expect(enabled(), isTrue);
-
-      for (final index in cells) {
-        session
-          ..select(index)
-          ..enter(digit);
-      }
-      await tester.pump();
-
-      expect(enabled(), isFalse);
-    });
+        expect(enabled(), isFalse);
+      },
+    );
 
     testWidgets('write a pencil mark instead when pencil mode is on', (
       tester,

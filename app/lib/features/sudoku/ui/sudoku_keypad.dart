@@ -44,8 +44,8 @@ class SudokuKeypad extends StatelessWidget {
                       // a pad that greys out until a cell is tapped teaches a
                       // child that the buttons are broken, and the fix — tap a
                       // cell — is the next thing they will do anyway. Greyed
-                      // out once every cell it belongs in already holds it, so
-                      // there is nowhere left to enter it.
+                      // out once the digit is on the board as many times as it
+                      // belongs there, right or wrong.
                       onPressed:
                           session.isDigitComplete(row * spec.boxCols + col + 1)
                           ? null
