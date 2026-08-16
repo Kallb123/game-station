@@ -1,6 +1,6 @@
-// `/arcade/invaders` end to end (`PLAN-phase-4.md` §6, PR 4): reachable from
-// the temporary button on `/arcade`, and driven by the temporary keyboard
-// handling that stands in for `OnScreenPad` until PR 5.
+// `/arcade/invaders` end to end (`PLAN-phase-4.md` §6, PR 4 and PR 5):
+// reachable from the temporary button on `/arcade`, driven by the keyboard
+// mirror and `OnScreenPad`.
 //
 // Every test here uses bounded `tester.pump` calls rather than
 // `tester.pumpAndSettle`: `InvadersGame` runs a live Flame ticker once
@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/clock.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
 import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
+import 'package:zibo_games/features/arcade/shared/on_screen_pad.dart';
 
 import '../../../app_harness.dart';
 
@@ -77,6 +78,76 @@ void main() {
 
     expect(game.debugStepsDone, greaterThan(stepsBefore));
     expect(game.sim.player.x, greaterThan(startX));
+
+    await tester.tap(find.byTooltip('Back').last);
+    await _pumpFrames(tester, 5);
+  });
+
+  testWidgets(
+    'a key event hides the pad, a touch on the field brings it back',
+    (tester) async {
+      await pumpApp(
+        tester,
+        store: MemorySaveStore(initial: freshSave()),
+        overrides: [nowProvider.overrideWithValue(testClock)],
+      );
+
+      await tester.tap(find.text('Arcade'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Play Invaders (dev build)'));
+      await _pumpFrames(tester, 5);
+
+      expect(find.byType(OnScreenPad), findsOneWidget);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      await _pumpFrames(tester, 1);
+      expect(
+        find.byType(OnScreenPad),
+        findsNothing,
+        reason: 'a keyboard player has no use for the pad',
+      );
+
+      await tester.tapAt(
+        tester.getCenter(find.byType(GameWidget<InvadersGame>)),
+      );
+      await _pumpFrames(tester, 1);
+      expect(
+        find.byType(OnScreenPad),
+        findsOneWidget,
+        reason: 'a touch means the pad is back in use',
+      );
+
+      await tester.tap(find.byTooltip('Back').last);
+      await _pumpFrames(tester, 5);
+    },
+  );
+
+  testWidgets('the screen fits at 200% text scale with no overflow', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+
+    await pumpApp(
+      tester,
+      store: MemorySaveStore(initial: freshSave()),
+      overrides: [nowProvider.overrideWithValue(testClock)],
+    );
+
+    await tester.tap(find.text('Arcade'));
+    await tester.pumpAndSettle();
+    // The button can sit below the fold at this scale on this surface — the
+    // placeholder screen's own reason for being a `SingleChildScrollView`
+    // (`app.dart`).
+    await tester.ensureVisible(find.text('Play Invaders (dev build)'));
+    await tester.tap(find.text('Play Invaders (dev build)'));
+    await _pumpFrames(tester, 5);
+
+    expect(find.byType(GameWidget<InvadersGame>), findsOneWidget);
+    expect(tester.takeException(), isNull);
 
     await tester.tap(find.byTooltip('Back').last);
     await _pumpFrames(tester, 5);
