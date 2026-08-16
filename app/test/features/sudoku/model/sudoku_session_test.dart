@@ -330,6 +330,83 @@ void main() {
     });
   });
 
+  group('a digit being complete', () {
+    // A board with no clues at all, so every cell is open and nothing is on
+    // it yet: what matters here is the raw count of a digit on the board, not
+    // whether it agrees with the solution, and a clueless board keeps that
+    // count starting from zero without the test having to work out how many
+    // of a digit a real puzzle's clues already gave away.
+    SudokuSession blank() => SudokuSession.start(
+      id: id,
+      record: PuzzleRecord(
+        clues: PuzzleRecord.emptyCell * spec.cells,
+        solution: record.solution,
+      ),
+    );
+
+    const digit = 1;
+
+    test('is false until it is on the board as many times as a row', () {
+      final session = blank();
+
+      for (var index = 0; index < spec.digits - 1; index++) {
+        session
+          ..select(index)
+          ..enter(digit);
+        expect(session.isDigitComplete(digit), isFalse);
+      }
+
+      session
+        ..select(spec.digits - 1)
+        ..enter(digit);
+      expect(session.isDigitComplete(digit), isTrue);
+    });
+
+    test('does not count a different digit placed instead', () {
+      final session = blank();
+      final other = digit % spec.digits + 1;
+
+      for (var index = 0; index < spec.digits; index++) {
+        session
+          ..select(index)
+          ..enter(other);
+      }
+
+      expect(session.isDigitComplete(digit), isFalse);
+    });
+
+    test('does not care whether the placements agree with the solution', () {
+      // Every cell here disagrees with the real solution but for the digit
+      // itself, since a blank board's "solution" is still the real puzzle's —
+      // and that is exactly the point: this asks nothing about correctness.
+      final session = blank();
+
+      for (var index = 0; index < spec.digits; index++) {
+        session
+          ..select(index)
+          ..enter(digit);
+      }
+
+      expect(session.isDigitComplete(digit), isTrue);
+    });
+
+    test('goes back to false once a placement is erased below the count', () {
+      final session = blank();
+      for (var index = 0; index < spec.digits; index++) {
+        session
+          ..select(index)
+          ..enter(digit);
+      }
+      expect(session.isDigitComplete(digit), isTrue);
+
+      session
+        ..select(0)
+        ..erase();
+
+      expect(session.isDigitComplete(digit), isFalse);
+    });
+  });
+
   group('a hint', () {
     test('fills a cell the solution agrees with, and counts', () {
       final session = start();

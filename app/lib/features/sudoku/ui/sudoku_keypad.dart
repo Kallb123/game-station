@@ -43,8 +43,13 @@ class SudokuKeypad extends StatelessWidget {
                       // Enabled with nothing selected, where it does nothing:
                       // a pad that greys out until a cell is tapped teaches a
                       // child that the buttons are broken, and the fix — tap a
-                      // cell — is the next thing they will do anyway.
-                      onPressed: session.enter,
+                      // cell — is the next thing they will do anyway. Greyed
+                      // out once the digit is on the board as many times as it
+                      // belongs there, right or wrong.
+                      onPressed:
+                          session.isDigitComplete(row * spec.boxCols + col + 1)
+                          ? null
+                          : session.enter,
                     ),
                   ),
                 ],
@@ -102,11 +107,13 @@ class _DigitButton extends StatelessWidget {
   const _DigitButton({required this.digit, required this.onPressed});
 
   final int digit;
-  final void Function(int digit) onPressed;
+
+  /// Null greys the button out and disables it.
+  final void Function(int digit)? onPressed;
 
   @override
   Widget build(BuildContext context) => FilledButton.tonal(
-    onPressed: () => onPressed(digit),
+    onPressed: onPressed == null ? null : () => onPressed!(digit),
     style: FilledButton.styleFrom(
       // Wider than tall by default in a row this size; the floor is what
       // matters, and it is the theme's (`AppTapTargets.min`). The horizontal
