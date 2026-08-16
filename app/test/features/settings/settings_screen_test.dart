@@ -117,10 +117,11 @@ void main() {
     await tester.tap(find.text('Arcade'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
-    final partway = tester.getTopLeft(find.text('Coming soon!'));
+    final partway = tester.getTopLeft(find.text('More games are on the way!'));
     await tester.pumpAndSettle();
 
-    return partway == tester.getTopLeft(find.text('Coming soon!'));
+    return partway ==
+        tester.getTopLeft(find.text('More games are on the way!'));
   }
 
   /// The switch drawn for [label].

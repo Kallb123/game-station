@@ -24,18 +24,23 @@ void main() {
 
   // Every card leads somewhere, and every somewhere leads back. A card that
   // opened a screen with no way out would strand a child on it.
+  //
+  // Stops short of the Invaders button `_ArcadePlaceholder` offers: that
+  // screen holds a running `GameWidget`, whose Flame ticker never settles, so
+  // `invaders_screen_test.dart` drives it with bounded `tester.pump` calls
+  // instead of `pumpAndSettle`.
   testWidgets('Arcade opens its screen and comes back', (tester) async {
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
     await tester.tap(find.text('Arcade'));
     await tester.pumpAndSettle();
-    expect(find.text('Coming soon!'), findsOneWidget);
+    expect(find.text('More games are on the way!'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Sudoku'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
-    expect(find.text('Coming soon!'), findsNothing);
+    expect(find.text('More games are on the way!'), findsNothing);
   });
 
   testWidgets('Sudoku opens its menu and comes back', (tester) async {

@@ -25,4 +25,9 @@ abstract final class AppRoutes {
 
   /// The arcade, from phase 4.
   static const String arcade = '/arcade';
+
+  /// Space Invaders (`PLAN-phase-4.md` §6, PR 4). Takes no arguments: the
+  /// options a run starts with come from the profile, so there is no second
+  /// copy to disagree with the stored one (`PLAN-phase-4.md` §4.10).
+  static const String arcadeInvaders = '/arcade/invaders';
 }
