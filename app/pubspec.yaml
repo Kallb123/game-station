@@ -17,6 +17,13 @@ environment:
 # here — `tool/check_offline.dart` fails the build if one appears, including
 # transitively through pubspec.lock.
 dependencies:
+  # The arcade's game loop, viewport letterboxing and `GameWidget` bridge
+  # (`PLAN-phase-4.md` §1, §3). Adds exactly two packages to the resolved
+  # graph — itself and `ordered_set` — neither in `tool/check_offline.dart`'s
+  # network or forbidden lists; `vector_math` and `meta` were already pulled
+  # in through Flutter. `InvadersSim` (`features/arcade/invaders/model/`)
+  # holds all of the game's own state and imports none of this.
+  flame: ^1.38.0
   flutter:
     sdk: flutter
   # State and dependency injection (PLAN.md §2). Pinned to 2.x rather than 3.x:
