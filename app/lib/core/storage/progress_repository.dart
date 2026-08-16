@@ -24,6 +24,7 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:puzzle_engine/puzzle_engine.dart' as engine;
 
+import '../../features/arcade/shared/arcade_result.dart';
 import 'save_data.dart';
 import 'save_store.dart';
 
@@ -36,6 +37,10 @@ const int maxProfileNameLength = 12;
 /// How many puzzles [ProgressRepository.cachePuzzle] keeps at once
 /// (`PLAN.md` §5.2, `PLAN-phase-3.md` §4.1).
 const int puzzleCacheCap = 30;
+
+/// How many high scores [ProgressRepository.recordArcadeResult] keeps per
+/// game, per mode (`PLAN.md` §4.3, `PLAN-phase-4.md` §4.9).
+const int arcadeHighScoreCap = 5;
 
 /// Holds the save in memory and writes it back on a debounce.
 class ProgressRepository extends ChangeNotifier {
@@ -330,6 +335,92 @@ class ProgressRepository extends ChangeNotifier {
         _data.activeProfileId,
         (profile) => profile.copyWith(sudoku: update(profile.sudoku)),
       );
+
+  // --- arcade ------------------------------------------------------------
+
+  /// Marks a run of [gameId] as started, on the active profile.
+  ///
+  /// `gamesPlayed` counts starts rather than finishes — it is documented as
+  /// lifetime games *started* (`ArcadeGameProgress.gamesPlayed`), and a
+  /// counter that only grew on completion would disagree with its own name
+  /// (`PLAN-phase-4.md` §4.9). Called once, when a run begins; the matching
+  /// [recordArcadeResult] call at the end is what stores its outcome.
+  void startArcadeGame(String gameId) => _updateArcadeGame(
+    gameId,
+    (game) => ArcadeGameProgress(
+      highScores: game.highScores,
+      gamesPlayed: game.gamesPlayed + 1,
+      totalKills: game.totalKills,
+    ),
+  );
+
+  /// Records how a run of [gameId] ended: adds [result] to the top-five table
+  /// for its mode and its kills to the lifetime count.
+  ///
+  /// A run worth zero points is not stored — there is nothing to show for it
+  /// (`PLAN-phase-4.md` §4.8). Quitting mid-run still calls this: a run
+  /// stopped at 3,000 points is still a run.
+  void recordArcadeResult(String gameId, ArcadeResult result) {
+    if (result.score <= 0) return;
+    _updateArcadeGame(
+      gameId,
+      (game) => ArcadeGameProgress(
+        highScores: _withHighScore(
+          game.highScores,
+          HighScore(
+            score: result.score,
+            wave: result.wave,
+            at: _now().toUtc(),
+            easy: result.easy,
+          ),
+        ),
+        gamesPlayed: game.gamesPlayed,
+        totalKills: game.totalKills + result.kills,
+      ),
+    );
+  }
+
+  /// Changes only the given arcade options on the active profile. They belong
+  /// to the child playing, not to the device (`PLAN-phase-4.md` §3), the same
+  /// reasoning as [setMistakeFeedback].
+  void setArcadeOptions({bool? easyMode, bool? autoFire, PadSide? padSide}) =>
+      _replaceProfile(
+        _data.activeProfileId,
+        (profile) => profile.copyWith(
+          arcadeEasyMode: easyMode,
+          arcadeAutoFire: autoFire,
+          padSide: padSide,
+        ),
+      );
+
+  void _updateArcadeGame(
+    String gameId,
+    ArcadeGameProgress Function(ArcadeGameProgress) update,
+  ) => _replaceProfile(_data.activeProfileId, (profile) {
+    final current = profile.arcade.games[gameId] ?? const ArcadeGameProgress();
+    return profile.copyWith(
+      arcade: ArcadeProgress(
+        games: {...profile.arcade.games, gameId: update(current)},
+      ),
+    );
+  });
+
+  /// [existing] with [entry] inserted among the scores that share its
+  /// [HighScore.easy] flag, capped at [arcadeHighScoreCap] within that flag
+  /// alone. The other mode's entries pass through untouched, so a normal-mode
+  /// score can never evict an easy-mode one (`PLAN-phase-4.md` §3, §4.9).
+  List<HighScore> _withHighScore(List<HighScore> existing, HighScore entry) {
+    final otherMode = [
+      for (final score in existing)
+        if (score.easy != entry.easy) score,
+    ];
+    final sameMode = [
+      for (final score in existing)
+        if (score.easy == entry.easy) score,
+      entry,
+    ]..sort((a, b) => b.score.compareTo(a.score));
+    return [...otherMode, ...sameMode.take(arcadeHighScoreCap)];
+  }
 
   // --- writing ---------------------------------------------------------------
 
