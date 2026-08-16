@@ -701,6 +701,14 @@ What differed from the plan, decided while building it:
 - **Done when:** ten minutes of play on phone and desktop shows no jank and no stuck ship, and scores
   survive a restart.
 
+Planned as eight pull requests in [`PLAN-phase-4.md`](PLAN-phase-4.md), as phases 1, 2 and 3 were.
+Two decisions there are worth knowing before reading this section as built: the simulation is pure
+Dart holding all the state, with Flame supplying the loop, the viewport and the widget bridge and
+owning nothing, which is what makes the fixed-step rule above a test rather than a device
+impression; and the on-screen pad is Flutter widgets over raw `Listener`s beside the play field
+rather than Flame components inside it, which is how §4.2's safe-area, tap-target and pointer-cancel
+rules are enforced by the same code that enforces them everywhere else in the app.
+
 ### Phase 5 — polish (4–5 days)
 
 - Sound effects and light music, all mutable, ducked when the app backgrounds.
@@ -801,9 +809,15 @@ complete app.
    `rng_test.dart` and against 700 golden puzzles.
 3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it. **Done.**
 
-The next work is phase 4, and it starts with `GameShell` rather than with Invaders: pause, quit and
-the game-over card are what every later game reuses, and building them under a real game is how they
-end up shaped by one. Nothing phase 3 built is in its way — `/arcade` still opens
+The next work is phase 4. Nothing phase 3 built is in its way — `/arcade` still opens
 `ComingSoonScreen`, and the save's `arcade` block has been declared since v1 (§5.2).
+
+This section previously said phase 4 starts with `GameShell` rather than with Invaders, on the
+grounds that pause, quit and the game-over card are what every later game reuses and that building
+them under a real game is how they end up shaped by one. `PLAN-phase-4.md` §10 keeps the second half
+and inverts the first: the shell is built at its PR 6, under a game that already runs, because a
+shell written before the game it wraps is shaped by a guess rather than by one. The phase starts with
+the save fields and the seeded RNG instead — both are what everything above stores and draws through,
+and both are answers a child's file will hold.
 
 Space Invaders is the easier and more enjoyable half, so it makes a better reward than a warm-up.
