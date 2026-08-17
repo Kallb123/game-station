@@ -153,6 +153,30 @@ class AlienBlock {
   double get width => alienColumns * alienColumnPitch;
   double get height => rows * alienRowPitch;
 
+  /// The leftmost column with a surviving alien, or `null` if the block is
+  /// empty. Used for the wall check so a column wiped out at the marching
+  /// edge shrinks the box the formation bounces off, rather than the
+  /// formation reversing against a column that is no longer there.
+  int? get firstAliveColumn {
+    for (var col = 0; col < alienColumns; col++) {
+      for (var row = 0; row < rows; row++) {
+        if (isAliveAt(row, col)) return col;
+      }
+    }
+    return null;
+  }
+
+  /// The rightmost column with a surviving alien, or `null` if the block is
+  /// empty. See [firstAliveColumn].
+  int? get lastAliveColumn {
+    for (var col = alienColumns - 1; col >= 0; col--) {
+      for (var row = 0; row < rows; row++) {
+        if (isAliveAt(row, col)) return col;
+      }
+    }
+    return null;
+  }
+
   AlienBlock copyWith({
     double? originX,
     double? originY,
@@ -341,9 +365,16 @@ class InvadersSim {
     final nextOriginX =
         _aliens.originX +
         (movingRight ? _alienStepDistance : -_alienStepDistance);
+
+    // The wall check uses the surviving columns' own bounding box, not the
+    // full 11-column grid: once a column at the marching edge is wiped out,
+    // there is no alien left to hit the wall, so the box the formation
+    // bounces off shrinks and it takes longer to reach the real edge.
+    final firstCol = _aliens.firstAliveColumn ?? 0;
+    final lastCol = _aliens.lastAliveColumn ?? (alienColumns - 1);
     final hitsWall = movingRight
-        ? nextOriginX + _aliens.width > fieldWidth
-        : nextOriginX < 0;
+        ? nextOriginX + (lastCol + 1) * alienColumnPitch > fieldWidth
+        : nextOriginX + firstCol * alienColumnPitch < 0;
 
     final interval = _currentStepInterval();
     _aliens = hitsWall
