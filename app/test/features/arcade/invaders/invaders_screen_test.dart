@@ -1,5 +1,5 @@
-// `/arcade/invaders` end to end (`PLAN-phase-4.md` §6, PR 4 and PR 5):
-// reachable from the temporary button on `/arcade`, driven by the keyboard
+// `/arcade/invaders` end to end (`PLAN-phase-4.md` §6, PR 4, PR 5 and PR 7):
+// reachable from the arcade menu's Invaders card, driven by the keyboard
 // mirror and `OnScreenPad`.
 //
 // Every test here uses bounded `tester.pump` calls rather than
@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/clock.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/arcade/arcade_menu_screen.dart';
 import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
 import 'package:zibo_games/features/arcade/shared/on_screen_pad.dart';
 
@@ -45,7 +46,7 @@ void main() {
 
     await tester.tap(find.text('Arcade'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Play Invaders (dev build)'));
+    await tester.tap(find.text(playInvadersLabel));
     await _pumpFrames(tester, 20); // past the page transition, several frames
 
     expect(find.byType(GameWidget<InvadersGame>), findsOneWidget);
@@ -71,7 +72,7 @@ void main() {
 
     await tester.tap(find.text('Arcade'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Play Invaders (dev build)'));
+    await tester.tap(find.text(playInvadersLabel));
     await _pumpFrames(tester, 5);
 
     final game = tester
@@ -102,7 +103,7 @@ void main() {
 
       await tester.tap(find.text('Arcade'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Play Invaders (dev build)'));
+      await tester.tap(find.text(playInvadersLabel));
       await _pumpFrames(tester, 5);
 
       expect(find.byType(OnScreenPad), findsOneWidget);
@@ -147,10 +148,10 @@ void main() {
     await tester.tap(find.text('Arcade'));
     await tester.pumpAndSettle();
     // The button can sit below the fold at this scale on this surface — the
-    // placeholder screen's own reason for being a `SingleChildScrollView`
-    // (`app.dart`).
-    await tester.ensureVisible(find.text('Play Invaders (dev build)'));
-    await tester.tap(find.text('Play Invaders (dev build)'));
+    // arcade menu's own reason for being a `SingleChildScrollView`
+    // (`arcade_menu_screen.dart`).
+    await tester.ensureVisible(find.text(playInvadersLabel));
+    await tester.tap(find.text(playInvadersLabel));
     await _pumpFrames(tester, 5);
 
     expect(find.byType(GameWidget<InvadersGame>), findsOneWidget);

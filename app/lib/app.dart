@@ -6,9 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/storage/providers.dart';
 import 'core/storage/save_data.dart';
-import 'core/ui/screen_scaffold.dart';
 import 'core/ui/theme.dart';
-import 'core/ui/tokens.dart';
+import 'features/arcade/arcade_menu_screen.dart';
 import 'features/arcade/invaders/invaders_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profiles/profile_screen.dart';
@@ -192,7 +191,7 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.settings => (context) => const SettingsScreen(),
   AppRoutes.sudoku => (context) => const SudokuMenuScreen(),
   AppRoutes.sudokuPlay => _playScreen(settings.arguments),
-  AppRoutes.arcade => (context) => const _ArcadePlaceholder(),
+  AppRoutes.arcade => (context) => const ArcadeMenuScreen(),
   AppRoutes.arcadeInvaders => (context) => const InvadersScreen(),
   _ => null,
 };
@@ -205,49 +204,3 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
 WidgetBuilder? _playScreen(Object? arguments) => arguments is SudokuPlayArgs
     ? (context) => SudokuPlayScreen(args: arguments)
     : null;
-
-/// `/arcade` until PR 7's `arcade_menu_screen.dart` replaces it
-/// (`PLAN-phase-4.md` §6, PR 4 and PR 7).
-///
-/// The one button here is what PR 7 deletes along with this whole class —
-/// the real menu's Invaders card takes over reaching [AppRoutes.arcadeInvaders].
-class _ArcadePlaceholder extends StatelessWidget {
-  const _ArcadePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return ScreenScaffold(
-      title: 'Arcade',
-      // A scroll view, as `ComingSoonScreen` had, rather than a bare `Center`:
-      // at 200% text scale the heading alone can outgrow the space
-      // `ScreenScaffold`'s header leaves, and a `Column` with nothing to
-      // scroll would overflow instead.
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              homeArcadeIcon,
-              size: AppTapTargets.primary,
-              color: theme.disabledColor,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'More games are on the way!',
-              style: theme.textTheme.headlineMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(context).pushNamed(AppRoutes.arcadeInvaders),
-              child: const Text('Play Invaders (dev build)'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
