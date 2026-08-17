@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'safe_pop.dart';
 import 'tokens.dart';
 
 /// The frame every screen in the app sits in: safe-area insets, screen-edge
@@ -49,7 +50,7 @@ class ScreenScaffold extends StatelessWidget {
                 children: [
                   if (showBack) ...[
                     IconButton(
-                      onPressed: onBack ?? () => Navigator.of(context).pop(),
+                      onPressed: onBack ?? () => popIfPossible(context),
                       icon: const Icon(
                         Icons.arrow_back,
                         size: AppIconSizes.large,
