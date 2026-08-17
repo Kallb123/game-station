@@ -1,6 +1,5 @@
-// `/arcade/invaders` (`PLAN-phase-4.md` §6, PR 4 through PR 6), reachable for
-// now from a temporary button on `/arcade` that PR 7 deletes once the real
-// menu card exists (`arcade_menu_screen.dart`).
+// `/arcade/invaders` (`PLAN-phase-4.md` §6, PR 4 through PR 6), reachable from
+// `/arcade`'s Invaders card (`arcade_menu_screen.dart`).
 //
 // Thin on purpose: everything about *playing* a run — the HUD, pause, quit
 // confirmation, the game-over card and the write to the save — is

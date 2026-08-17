@@ -14,6 +14,7 @@ import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
 import 'package:zibo_games/core/ui/screen_scaffold.dart';
 import 'package:zibo_games/core/ui/tokens.dart';
+import 'package:zibo_games/features/arcade/arcade_menu_screen.dart';
 import 'package:zibo_games/features/settings/settings_screen.dart';
 
 import '../../app_harness.dart';
@@ -117,11 +118,10 @@ void main() {
     await tester.tap(find.text('Arcade'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
-    final partway = tester.getTopLeft(find.text('More games are on the way!'));
+    final partway = tester.getTopLeft(find.text(invadersTitle));
     await tester.pumpAndSettle();
 
-    return partway ==
-        tester.getTopLeft(find.text('More games are on the way!'));
+    return partway == tester.getTopLeft(find.text(invadersTitle));
   }
 
   /// The switch drawn for [label].

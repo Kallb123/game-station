@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/arcade/arcade_menu_screen.dart';
 import 'package:zibo_games/features/sudoku/data/providers.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_menu_screen.dart';
 import 'package:zibo_games/routes.dart';
@@ -25,8 +26,8 @@ void main() {
   // Every card leads somewhere, and every somewhere leads back. A card that
   // opened a screen with no way out would strand a child on it.
   //
-  // Stops short of the Invaders button `_ArcadePlaceholder` offers: that
-  // screen holds a running `GameWidget`, whose Flame ticker never settles, so
+  // Stops short of the Invaders card the arcade menu offers: that screen
+  // holds a running `GameWidget`, whose Flame ticker never settles, so
   // `invaders_screen_test.dart` drives it with bounded `tester.pump` calls
   // instead of `pumpAndSettle`.
   testWidgets('Arcade opens its screen and comes back', (tester) async {
@@ -34,13 +35,13 @@ void main() {
 
     await tester.tap(find.text('Arcade'));
     await tester.pumpAndSettle();
-    expect(find.text('More games are on the way!'), findsOneWidget);
+    expect(find.text(invadersTitle), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Sudoku'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
-    expect(find.text('More games are on the way!'), findsNothing);
+    expect(find.text(invadersTitle), findsNothing);
   });
 
   testWidgets('Sudoku opens its menu and comes back', (tester) async {
