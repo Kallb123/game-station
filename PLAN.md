@@ -724,7 +724,11 @@ rules are enforced by the same code that enforces them everywhere else in the ap
 
 - Icon, splash, store artwork and per-platform screenshots. The icon landed early, with the rename to
   Zibo Games: `app/assets/images/` holds the master and the two sizes an Amazon listing asks for, and
-  `tool/icon/generate_platform_icons.py` derives every launcher size from the master.
+  `tool/icon/generate_platform_icons.py` derives every launcher size from the master. Android's
+  adaptive icon (foreground, background and monochrome layers at every density, plus the
+  `mipmap-anydpi-v26` XML and the background colour resource) also landed early, under
+  `app/android/app/src/main/res`; those layers came from the design tool rather than the script above,
+  so a new icon means re-exporting them by hand, the same as the master.
 - Android, and the **Amazon Appstore is the primary target** rather than Play. That suits what is
   already built: Amazon takes the signed APK the `android-apk` and `android-release` workflows
   produce, so the artifact needs no new build path, and its kids programme rules out ads, tracking
