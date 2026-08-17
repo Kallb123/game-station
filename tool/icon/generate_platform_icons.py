@@ -16,6 +16,13 @@ It needs Pillow (`pip install pillow`) and is deliberately not wired into
 having an image library installed. The check that matters is reading the
 regenerated PNGs in the diff, not re-deriving them on every run.
 
+This script does not touch Android's adaptive icon layers
+(`mipmap-*/ic_launcher_{background,foreground,monochrome}.png`,
+`mipmap-anydpi-v26/ic_launcher*.xml`, `values/ic_launcher_background.xml`): those
+came from the design tool as separate foreground/background/monochrome layers, not
+a single flat master, so a new icon means re-exporting them by hand rather than
+re-running this.
+
 Two platform rules are encoded here rather than left to whoever runs it:
 
 - iOS icons are written without an alpha channel. App Store submission rejects a
