@@ -20,10 +20,13 @@ import 'dart:ui';
 import 'package:flame/camera.dart';
 import 'package:flame/components.dart' show Component;
 import 'package:flame/game.dart';
-import 'package:flutter/foundation.dart'
-    show ValueListenable, visibleForTesting;
+import 'package:flutter/foundation.dart' show ValueNotifier, visibleForTesting;
+import 'package:flutter/widgets.dart' show BuildContext, Widget;
 
+import '../shared/arcade_controller.dart';
+import '../shared/arcade_result.dart';
 import '../shared/pad_input.dart';
+import 'model/invaders_rules.dart';
 import 'model/invaders_sim.dart';
 import 'model/sprites.dart' as sprites;
 
@@ -34,20 +37,29 @@ import 'model/sprites.dart' as sprites;
 /// where chasing it would fire shots nobody saw coming.
 const int maxStepsPerFrame = 8;
 
-/// Drives [InvadersSim] on Flame's frame loop and draws its current state.
+/// Drives [InvadersSim] on Flame's frame loop, draws its current state, and
+/// is the first [ArcadeGameController] `GameShell` wraps
+/// (`PLAN-phase-4.md` §4.8).
 ///
 /// Takes every colour it draws with at construction, rather than reading
 /// `Theme.of(context)`: a `FlameGame` is not built with a `BuildContext`
 /// (`PLAN-phase-4.md` §4.5).
-class InvadersGame extends FlameGame {
-  InvadersGame({required this.sim, required this.input, required Color color})
-    : _field = _InvadersField(sim: sim, color: color),
-      super(
-        camera: CameraComponent.withFixedResolution(
-          width: fieldWidth,
-          height: fieldHeight,
-        ),
-      ) {
+class InvadersGame extends FlameGame implements ArcadeGameController {
+  InvadersGame({
+    required InvadersSim sim,
+    required this.seed,
+    required this.input,
+    required Color color,
+  }) : _sim = sim,
+       _field = _InvadersField(sim: sim, color: color),
+       hud = ValueNotifier(_hudOf(sim)),
+       isOver = ValueNotifier(sim.isOver),
+       super(
+         camera: CameraComponent.withFixedResolution(
+           width: fieldWidth,
+           height: fieldHeight,
+         ),
+       ) {
     // The default viewfinder centres world point (0, 0) in the viewport; the
     // sim's field runs from (0, 0) to (fieldWidth, fieldHeight), so centring
     // the field's own centre point is what makes the two rectangles coincide
@@ -57,14 +69,70 @@ class InvadersGame extends FlameGame {
   }
 
   /// The run this game is drawing and driving. Every position, timer and
-  /// counter lives here; [InvadersGame] only reads it.
-  final InvadersSim sim;
+  /// counter lives here; [InvadersGame] only reads it. Replaced wholesale by
+  /// [restart], which is why this is not `final`.
+  InvadersSim _sim;
 
-  /// Where this frame's [PadInput] comes from — `OnScreenPad` from PR 5, this
-  /// screen's temporary keyboard handling until then, or a test.
-  final ValueListenable<PadInput> input;
+  /// The current run, for a test or a caller that wants more than [hud] and
+  /// [isOver] expose — `invaders_screen_test.dart` reads `sim.player.x` this
+  /// way.
+  InvadersSim get sim => _sim;
+
+  /// A fresh seed for [restart] — the injected clock, the same way the first
+  /// run's seed reaches this game (`PLAN-phase-4.md` §4.3), so a test can fix
+  /// it and a child gets a different run each time.
+  final int Function() seed;
+
+  @override
+  final ValueNotifier<PadInput> input;
+
+  @override
+  final ValueNotifier<ArcadeHud> hud;
+
+  @override
+  final ValueNotifier<bool> isOver;
 
   final _InvadersField _field;
+
+  @override
+  Widget buildView(BuildContext context) =>
+      // `autofocus: false`: `GameWidget` requests its own focus by default,
+      // which would win it away from `GameShell`'s `Focus` node the moment
+      // the screen builds — declining that here is what lets the outer node
+      // keep it, so the keyboard mirror above this game keeps being called.
+      GameWidget(game: this, autofocus: false);
+
+  @override
+  void pause() => pauseEngine();
+
+  @override
+  void resume() => resumeEngine();
+
+  @override
+  void restart() {
+    _sim = InvadersSim(
+      rules: _sim.rules,
+      seed: seed(),
+      autoFire: _sim.autoFire,
+    );
+    _field.sim = _sim;
+    _elapsed = 0;
+    _consumedSteps = 0;
+    hud.value = _hudOf(_sim);
+    isOver.value = false;
+    resumeEngine();
+  }
+
+  @override
+  ArcadeResult get result => ArcadeResult(
+    score: _sim.score,
+    wave: _sim.wave,
+    kills: _sim.kills,
+    easy: identical(_sim.rules, InvadersRules.easy),
+  );
+
+  static ArcadeHud _hudOf(InvadersSim sim) =>
+      ArcadeHud(score: sim.score, lives: sim.lives, wave: sim.wave);
 
   /// Repaints every sprite in this colour from the next frame on.
   ///
@@ -112,7 +180,7 @@ class InvadersGame extends FlameGame {
     final target = (_elapsed / InvadersSim.fixedStep).floor();
     var steps = 0;
     while (_consumedSteps < target && steps < maxStepsPerFrame) {
-      sim.step(input.value);
+      _sim.step(input.value);
       _consumedSteps++;
       _totalSteps++;
       steps++;
@@ -121,6 +189,15 @@ class InvadersGame extends FlameGame {
     // letting the next frame try to make it up in one go (`PLAN-phase-4.md`
     // §4.2).
     if (steps == maxStepsPerFrame) _consumedSteps = target;
+
+    // Skipped when nothing stepped: a `ValueNotifier` already drops a write
+    // that equals its current value, but a run that is over settles at one
+    // unchanging [ArcadeHud] forever, and there is no reason to keep
+    // rebuilding it every frame after that.
+    if (steps > 0) {
+      hud.value = _hudOf(_sim);
+      if (_sim.isOver) isOver.value = true;
+    }
   }
 
   @override
@@ -144,7 +221,10 @@ class _InvadersField extends Component {
   _InvadersField({required this.sim, required Color color})
     : _paint = Paint()..color = color;
 
-  final InvadersSim sim;
+  /// Replaced by [InvadersGame.restart], which is why this is not `final`:
+  /// the field draws whichever run is current rather than the one it was
+  /// built with.
+  InvadersSim sim;
   final Paint _paint;
 
   set color(Color value) => _paint.color = value;

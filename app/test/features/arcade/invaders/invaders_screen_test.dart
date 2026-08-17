@@ -25,6 +25,16 @@ Future<void> _pumpFrames(WidgetTester tester, int count) async {
   }
 }
 
+/// Leaves the game through `GameShell`'s quit confirmation
+/// (`game_shell_test.dart` covers the confirmation itself; this is just what
+/// a test that only wants to tidy up before ending needs).
+Future<void> _quit(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('Back').last);
+  await tester.pump(); // opens "Stop playing?"
+  await tester.tap(find.text('Stop'));
+  await _pumpFrames(tester, 5);
+}
+
 void main() {
   testWidgets('opening Invaders renders a playable field', (tester) async {
     await pumpApp(
@@ -49,8 +59,7 @@ void main() {
     // Leaves the screen instead of letting the test end mid-run, so the
     // game's ticker is disposed along with the route rather than outliving
     // the test.
-    await tester.tap(find.byTooltip('Back').last);
-    await _pumpFrames(tester, 5);
+    await _quit(tester);
   });
 
   testWidgets('holding the right arrow moves the player right', (tester) async {
@@ -79,8 +88,7 @@ void main() {
     expect(game.debugStepsDone, greaterThan(stepsBefore));
     expect(game.sim.player.x, greaterThan(startX));
 
-    await tester.tap(find.byTooltip('Back').last);
-    await _pumpFrames(tester, 5);
+    await _quit(tester);
   });
 
   testWidgets(
@@ -118,8 +126,7 @@ void main() {
         reason: 'a touch means the pad is back in use',
       );
 
-      await tester.tap(find.byTooltip('Back').last);
-      await _pumpFrames(tester, 5);
+      await _quit(tester);
     },
   );
 
@@ -149,7 +156,6 @@ void main() {
     expect(find.byType(GameWidget<InvadersGame>), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byTooltip('Back').last);
-    await _pumpFrames(tester, 5);
+    await _quit(tester);
   });
 }
