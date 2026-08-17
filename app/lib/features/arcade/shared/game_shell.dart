@@ -26,6 +26,7 @@ import 'package:flutter/services.dart' show KeyDownEvent, LogicalKeyboardKey;
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/save_data.dart' show HighScore, PadSide;
 import '../../../core/ui/big_button.dart';
+import '../../../core/ui/safe_pop.dart';
 import '../../../core/ui/tokens.dart';
 import 'arcade_controller.dart';
 import 'on_screen_pad.dart';
@@ -173,7 +174,7 @@ class _GameShellState extends State<GameShell> {
     // the game-over card is not a run being abandoned, so it needs no
     // confirmation.
     if (widget.controller.isOver.value) {
-      Navigator.of(context).pop();
+      popIfPossible(context);
       return;
     }
 
@@ -199,7 +200,7 @@ class _GameShellState extends State<GameShell> {
 
     if (shouldQuit ?? false) {
       _record();
-      Navigator.of(context).pop();
+      popIfPossible(context);
       return;
     }
     _setPaused(wasPaused);
@@ -428,7 +429,7 @@ class _GameShellState extends State<GameShell> {
                   BigButton(
                     icon: Icons.arrow_back,
                     label: backLabel,
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () => popIfPossible(context),
                   ),
                 ],
               ),

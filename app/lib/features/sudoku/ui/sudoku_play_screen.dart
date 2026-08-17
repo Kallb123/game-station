@@ -21,6 +21,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/save_data.dart';
+import '../../../core/ui/safe_pop.dart';
 import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';
 import '../../../routes.dart';
@@ -217,7 +218,7 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
         // it: a back arrow that does nothing is worse than no arrow.
         if (Navigator.of(context).canPop()) ...[
           IconButton(
-            onPressed: Navigator.of(context).pop,
+            onPressed: () => popIfPossible(context),
             icon: const Icon(Icons.arrow_back, size: AppIconSizes.large),
             tooltip: 'Back',
           ),
@@ -300,7 +301,7 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
           mistakes: session.mistakes,
           clean: session.hints == 0 && session.mistakes == 0,
           onNext: _nextPuzzle(session.id) == null ? null : _playNext,
-          onBack: Navigator.of(context).pop,
+          onBack: () => popIfPossible(context),
         ),
       ],
     );
