@@ -17,10 +17,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
 import 'package:zibo_games/features/arcade/invaders/model/invaders_rules.dart';
 import 'package:zibo_games/features/arcade/invaders/model/invaders_sim.dart';
+import 'package:zibo_games/features/arcade/shared/arcade_controller.dart';
 import 'package:zibo_games/features/arcade/shared/pad_input.dart';
 
 InvadersGame _newGame() => InvadersGame(
   sim: InvadersSim(rules: InvadersRules.normal, seed: 1),
+  seed: () => 1,
   input: ValueNotifier(PadInput.none),
   color: Colors.green,
 );
@@ -110,4 +112,58 @@ void main() {
       );
     },
   );
+
+  test('pause and resume, the ArcadeGameController members, reach the same '
+      'engine as pauseEngine and resumeEngine', () {
+    final game = _newGame();
+
+    game.pause();
+    game.update(InvadersSim.fixedStep);
+    expect(game.debugStepsDone, 0, reason: 'no steps while paused');
+
+    game.resume();
+    game.update(InvadersSim.fixedStep);
+    expect(game.debugStepsDone, 1);
+  });
+
+  test('hud reflects the sim after a step', () {
+    final game = _newGame();
+
+    expect(game.hud.value, ArcadeHud(score: 0, lives: game.sim.lives, wave: 1));
+
+    game.update(InvadersSim.fixedStep);
+
+    expect(
+      game.hud.value,
+      ArcadeHud(
+        score: game.sim.score,
+        lives: game.sim.lives,
+        wave: game.sim.wave,
+      ),
+    );
+  });
+
+  test('restart begins a fresh run with a new sim', () {
+    final game = _newGame();
+    final firstRun = game.sim;
+
+    game.update(InvadersSim.fixedStep);
+    final stepsBeforeRestart = game.debugStepsDone;
+    game.pauseEngine(); // stands in for the game-over pause `GameShell` applies
+    game.restart();
+
+    expect(identical(game.sim, firstRun), isFalse);
+    expect(game.isOver.value, isFalse);
+    expect(game.hud.value, ArcadeHud(score: 0, lives: game.sim.lives, wave: 1));
+    expect(game.paused, isFalse, reason: 'restart resumes the engine');
+
+    game.update(InvadersSim.fixedStep);
+    expect(
+      game.debugStepsDone,
+      stepsBeforeRestart + 1,
+      reason:
+          'the accumulator was reset, not carrying a backlog into the '
+          'new run',
+    );
+  });
 }
