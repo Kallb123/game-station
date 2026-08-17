@@ -28,6 +28,25 @@ void main() {
       expect(sim.aliens.originY, greaterThan(startY));
     });
 
+    test('a dead edge column shrinks the wall box so the block marches '
+        'further before reversing', () {
+      const rules = InvadersRules.normal;
+      final full = InvadersSim(rules: rules, seed: 1);
+      final shrunk = InvadersSim(rules: rules, seed: 1);
+
+      // Kill only the rightmost column, the one the formation is
+      // marching toward first (`direction` starts at +1): its wall box
+      // is now one column narrower on that side than the full grid.
+      shrunk.debugSetAliveRows(
+        _aliveRowsMissingColumn(rules.alienRows, alienColumns - 1),
+      );
+
+      final fullOriginXAtReverse = _originXWhenReversed(full);
+      final shrunkOriginXAtReverse = _originXWhenReversed(shrunk);
+
+      expect(shrunkOriginXAtReverse, greaterThan(fullOriginXAtReverse));
+    });
+
     test('the march interval shrinks as aliens die and hits its floor', () {
       const rules = InvadersRules.normal;
       const total = 5 * 11;
@@ -188,6 +207,23 @@ void main() {
       }
     });
   });
+}
+
+/// [rows] rows' worth of otherwise-full alive bitmasks with [deadCol] dead
+/// in every row.
+List<int> _aliveRowsMissingColumn(int rows, int deadCol) =>
+    List<int>.filled(rows, ((1 << alienColumns) - 1) & ~(1 << deadCol));
+
+/// Steps [sim] until its block reverses direction, returning the `originX`
+/// it reversed at — the wall box's edge is what decides that value, so a
+/// narrower box (fewer alive edge columns) reverses at a larger `originX`.
+double _originXWhenReversed(InvadersSim sim) {
+  final startDirection = sim.aliens.direction;
+  for (var i = 0; i < 20000; i++) {
+    sim.step(PadInput.none);
+    if (sim.aliens.direction != startDirection) return sim.aliens.originX;
+  }
+  throw StateError('the block never reversed');
 }
 
 /// [rows] rows' worth of alive bitmasks totalling exactly [aliveCount]
