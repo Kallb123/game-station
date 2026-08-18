@@ -310,9 +310,11 @@ Also test:
   would otherwise cost a write a second.
 - The timer is visible but small, and can be switched off in settings. It runs either way: a child
   who hid it has not asked to stop being timed.
-- Completion shows confetti, honouring the reduced-motion setting. **The sound is phase 5**: it needs
-  `flutter_soloud`, and a dependency three phases early is one carried through every intervening
-  review (`PLAN-phase-3.md` §2).
+- Completion shows confetti, honouring the reduced-motion setting. **Playing the sound is phase 5**:
+  it needs `flutter_soloud`, and a dependency three phases early is one carried through every
+  intervening review (`PLAN-phase-3.md` §2). The fanfare itself is already in the tree — see phase 5
+  below, and `app/assets/audio/README.md` for why the placement tick says nothing about whether the
+  digit was right.
 
 ---
 
@@ -861,7 +863,12 @@ What differed from the plan, decided while building it:
 
 ### Phase 5 — polish (4–5 days)
 
-- Sound effects and light music, all mutable, ducked when the app backgrounds.
+- Sound effects and light music, all mutable, ducked when the app backgrounds. **The six Sudoku
+  motifs already exist**, ahead of this phase: `tool/audio/generate_motifs.py` synthesises them and
+  `app/assets/audio/sudoku/` holds the output (`app/assets/audio/README.md`). Only assets and a
+  script landed early, which carries no dependency and no code through an intervening review — what
+  remains here is `flutter_soloud`, the mute-aware wrapper in `lib/core/audio/`, the calls from the
+  play screen, and the arcade's own set.
 - Haptics on mobile only.
 - Accessibility: screen-reader labels on every control, a colourblind-safe palette that never uses
   colour as the only signal, text-scale support, and `reduceMotion` suppressing confetti.

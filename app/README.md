@@ -36,3 +36,6 @@ lib/
   manifests do, because hot reload needs it; neither is merged into a release build.
 - `macos/Runner/Release.entitlements` must not grant a network entitlement.
 - Fonts are bundled files, never fetched. See [`assets/fonts/README.md`](assets/fonts/README.md).
+- Sounds are synthesised by [`../tool/audio/generate_motifs.py`](../tool/audio/generate_motifs.py)
+  rather than sampled, so no third-party audio licence enters the tree. See
+  [`assets/audio/README.md`](assets/audio/README.md).
