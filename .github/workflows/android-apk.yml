@@ -59,7 +59,7 @@ jobs:
     outputs:
       apk: ${{ steps.apk.outputs.name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # One pinned version for the whole project, read rather than copied — the
       # same single home that tool/install_flutter.sh reads. See README.md.
@@ -86,7 +86,7 @@ jobs:
       # hashes them), or after seven days without a hit, or when the
       # repository's cache allowance evicts it. What is left is a rare flake
       # instead of a regular one, and re-running the job clears it.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -284,7 +284,7 @@ jobs:
       # Fourteen days rather than the default ninety: CI runs this on every pull
       # request, and a ~20 MB package per run is not worth three months of it.
       # A build that matters outlives the retention by being downloaded.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.apk.outputs.name }}
           path: ${{ steps.apk.outputs.path }}
