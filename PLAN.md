@@ -310,8 +310,13 @@ Also test:
 
 ### 4.1 Space Invaders
 
-A Flame `FlameGame` driven on a fixed logic step — a constant `fixedDeltaTime` with leftover delta
-accumulated across frames — so a 60 Hz phone and a 144 Hz PC play at the same speed.
+A Flame `FlameGame` driven on a fixed logic step of 1/120 s, so a 60 Hz phone and a 144 Hz PC play
+at the same speed. As built the accumulator keeps a running total of frame time and a count of the
+steps already taken from it, rather than subtracting a leftover each frame: the subtractive form
+rounds two frame rates to different remainders at exactly the point their totals should agree, which
+is the bug `app/test/features/arcade/invaders/invaders_sim_equivalence_test.dart` was written to
+catch. A frame that arrives more than eight steps late has its backlog dropped rather than chased,
+and resuming from a pause zeroes the accumulator, because the delta across a pause is not game time.
 
 - The player ship moves left and right along the bottom.
 - A 5 x 11 alien block marches sideways; on reaching a wall it drops one row, reverses, and speeds up.
@@ -327,20 +332,40 @@ Settings for younger players:
 - **Auto-fire:** the ship fires on its own, so a small player only has to steer.
 - No harsh failure screen — "Good try! Play again?" rather than "GAME OVER".
 
+As built, the simulation is plain Dart under `app/lib/features/arcade/invaders/model/` and holds
+every position, timer and counter; the `FlameGame` owns the accumulator and one render pass and
+nothing else, which is what makes the fixed-step rule above a test rather than a device impression.
+Two details are finer than the list: the wall the block bounces off is the bounding box of its
+*surviving* columns, so wiping out an edge column widens the field the formation has left to cross
+instead of leaving it turning against an alien that is no longer there; and auto-fire is applied
+inside the simulation rather than synthesised by the control pad, because a pad that held FIRE down
+for the player would make the cooldown depend on the frame rate. Every number in this section is a
+field on `InvadersRules` rather than a literal at a call site (`PLAN-phase-4.md` §4.4), so easy mode
+is a second row of that table rather than a branch, and tuning is a diff to one file.
+
 ### 4.2 On-screen controls
 
 Large **LEFT**, **RIGHT** and **FIRE** buttons.
 
-- Minimum 56 dp touch targets; 72 dp for the two movement buttons.
-- LEFT and RIGHT bottom-left, FIRE bottom-right, swappable in settings for left-handed players.
-- **Hold to move**, not tap-to-nudge, via `onTapDown`/`onTapUp` or Flame's `HudButtonComponent`.
-  Handle pointer-cancel: if a finger slides off the button, movement must stop, otherwise the ship
-  drifts forever. This is a common bug in on-screen D-pads; cover it with a test.
-- Support two simultaneous touches, via Flame's `MultiTouch` detectors, so the player can move and
-  fire at once. Flutter's gesture arena can claim the second pointer, so implement each button with a
-  raw `Listener` rather than `GestureDetector`.
+- Minimum 56 dp touch targets; 72 dp for all three as built, FIRE included — it is held as
+  continuously as the other two are.
+- LEFT and RIGHT bottom-left, FIRE bottom-right, swapped as a pair by the profile's `padSide`. It is
+  a profile option rather than a device setting: siblings sharing a tablet do not share a hand.
+- **Hold to move**, not tap-to-nudge. As built each button is a raw `Listener` — neither
+  `GestureDetector` nor Flame's `HudButtonComponent`, because the pad is Flutter widgets beside the
+  play field rather than Flame components inside it, which is how the tap-target, safe-area and
+  pointer-cancel rules here are enforced by the same code that enforces them on every other screen.
+  Three things release a button: pointer-up, pointer-cancel, and a move that leaves its bounds. The
+  third is the one Flutter's routing makes easy to miss — a move is delivered to whichever widget
+  the pointer went down on, however far it has slid since — and each has a test.
+- Support two simultaneous touches, so the player can move and fire at once. Flutter's gesture arena
+  can claim the second pointer, which is the reason for the raw `Listener` above; Flame's `MultiTouch`
+  detectors are not used, because none of the pad is inside Flame. Each button tracks its own pointer
+  id, so a second finger arriving on FIRE cannot release LEFT.
 - Respect safe areas. Never place FIRE under the iOS home indicator or the Android gesture bar.
-- Buttons are semi-transparent but never invisible, and never overlap the play field.
+- Never overlap the play field. As built the pad sits in its own band below the field inside a
+  `SafeArea` rather than being drawn over it, and is therefore opaque: the semi-transparency this
+  section asked for is what an overlay needs, and there is no overlay (`PLAN-phase-4.md` §4.6).
 
 Desktop adds keyboard control: arrows or A/D to move, space to fire, P or Esc to pause. Hide the
 on-screen buttons after keyboard input and restore them on the next touch, so a touchscreen PC gets
@@ -348,9 +373,16 @@ both. Gamepad support (`gamepads`) comes later, not in the first release.
 
 ### 4.3 Score persistence
 
-- Top five scores per game per difficulty, shown on the game-over card and in the menu.
-- Each entry stores score, wave reached, date and profile.
-- Lifetime counters: games played, total aliens destroyed.
+- Top five scores per game per mode — easy and normal keep separate tables — shown on the game-over
+  card and in the menu. The cap is applied at write time within one mode, so a normal-mode score can
+  never evict an easy-mode one, and the menu shows the table for whichever mode the toggles currently
+  select rather than both: a child playing easy is not shown a table they cannot reach.
+- Each entry stores score, wave reached, the date, and which mode it was set in. Not the profile: it
+  is the profile that contains the entry, and a second copy is a second thing that can disagree.
+- Lifetime counters: games *started*, total aliens destroyed. Started rather than finished, because a
+  counter that disagrees with its own name is worse than a slightly generous number.
+- A run worth zero points stores nothing. Quitting mid-run stores what the run was worth, because a
+  run stopped at 3,000 points is still a run, and the five-cap keeps the junk out.
 
 ### 4.4 Later games
 
@@ -392,6 +424,7 @@ so there is no setup wall.
   "profiles": [{
     "id": "p1", "name": "Ana", "avatar": "fox", "createdAt": "2026-08-11T10:00:00Z",
     "mistakeFeedback": "atCompletion",
+    "arcadeEasyMode": true, "arcadeAutoFire": true, "padSide": "left",
     "sudoku": {
       "solved": {
         "sudoku:9x9:easy:0": { "timeMs": 244000, "hints": 0, "mistakes": 2,
@@ -406,7 +439,8 @@ so there is no setup wall.
       "bestTimeMs": { "9x9:easy": 180000, "9x9:medium": 402000 }
     },
     "arcade": {
-      "invaders": { "highScores": [{ "score": 15400, "wave": 7, "at": "..." }],
+      "invaders": { "highScores": [{ "score": 15400, "wave": 7, "at": "...", "easy": false },
+                                   { "score": 6200, "wave": 5, "easy": true }],
                     "gamesPlayed": 22, "totalKills": 3110 }
     }
   }],
@@ -434,6 +468,16 @@ tablet. `PLAN-phase-1.md` §4.2 declared v1 "in full" and missed it, which is re
 left as two documents disagreeing: adding an optional field to an existing object is not a shape
 change, so `schemaVersion` stays 1 and no migration step exists for it. The block shows
 `atCompletion` for the same reason it shows `day`.
+
+`arcadeEasyMode`, `arcadeAutoFire` and `padSide` arrived with phase 4 and sit on the profile for the
+same reason `mistakeFeedback` does: they belong to the child playing rather than to the tablet, and
+siblings sharing one do not agree about easy mode or about which hand fires. A high-score entry gained
+`easy` in the same phase — a flag rather than a second game id (`"invaders:easy"`), so the two lifetime
+counters stay single numbers instead of two that would need adding at every read. All four are
+optional, defaulting to `false`, `false`, `right` and `false`, so a file written before phase 4 decodes
+with nothing lost and `schemaVersion` stays 1; the block above sets the three profile options to
+non-defaults for the same reason it shows `day` and `atCompletion`, and carries a second score because
+one entry cannot show a per-mode table.
 
 A `puzzleCache` value is `"<clues>|<solution>"`, not the clue string alone. Immediate mistake feedback
 needs the digit that belongs in a cell, and nothing exported from the engine recovers it from the
@@ -500,11 +544,21 @@ game-station/
    │  │  ├─ settings/
    │  │  ├─ sudoku/                 # grid widget, keypad, controller
    │  │  └─ arcade/
-   │  │     ├─ shared/              # OnScreenPad, GameShell, pause, HUD
-   │  │     └─ invaders/            # FlameGame and components
+   │  │     ├─ arcade_menu_screen.dart   # the game card, the three toggles, the top five
+   │  │     ├─ shared/
+   │  │     │  ├─ arcade_controller.dart # what GameShell drives, and the HUD it draws
+   │  │     │  ├─ arcade_result.dart     # what one finished run reports to storage
+   │  │     │  ├─ game_rng.dart          # the arcade's seeded PRNG, clock-seeded per run
+   │  │     │  ├─ game_shell.dart        # HUD, pause, quit confirmation, game-over card
+   │  │     │  ├─ on_screen_pad.dart     # LEFT / RIGHT / FIRE over raw Listeners
+   │  │     │  └─ pad_input.dart         # one value type for the pad and the keyboard
+   │  │     └─ invaders/
+   │  │        ├─ invaders_game.dart     # the accumulator and one render pass, no state
+   │  │        ├─ invaders_screen.dart   # builds the run, hands it to GameShell
+   │  │        └─ model/                 # the simulation, its tuning table, the sprites
    ├─ assets/{fonts,images,audio}/  # bundled, never fetched; licensed per file
    ├─ test/                         # widget tests
-   ├─ integration_test/             # on-device smoke tests, from phase 3
+   ├─ integration_test/             # on-device smoke tests, from phases 3 and 4
    └─ pubspec.yaml
 ```
 
@@ -688,7 +742,7 @@ What differed from the plan, decided while building it:
   source did its job — nothing generates in a widget test — but the whole-app tests, each launching
   the app over its own store, are the bulk of it, and they are the ones the resume criterion needs.
 
-### Phase 4 — arcade shell and Space Invaders (5–7 days)
+### Phase 4 — arcade shell and Space Invaders (5–7 days) — done, except on a 144 Hz desktop
 
 - `GameShell`: pause, resume, quit confirmation, lives and score HUD, game-over card with high
   scores.
@@ -707,7 +761,66 @@ Dart holding all the state, with Flame supplying the loop, the viewport and the 
 owning nothing, which is what makes the fixed-step rule above a test rather than a device
 impression; and the on-screen pad is Flutter widgets over raw `Listener`s beside the play field
 rather than Flame components inside it, which is how §4.2's safe-area, tap-target and pointer-cancel
-rules are enforced by the same code that enforces them everywhere else in the app.
+rules are enforced by the same code that enforces them everywhere else in the app. §4.1, §4.2, §4.3
+and §5.2 above have been reconciled with what shipped, and §6's tree now names the files.
+
+**The done-criterion, quoted with its result:** *"ten minutes of play on phone and desktop shows no
+jank and no stuck ship, and scores survive a restart."*
+
+- **Phone and tablet: met.** Ten minutes of play on a Pixel 6 and on a Fire HD tablet showed no jank
+  and no stuck ship, and high scores survived a relaunch on both.
+- **Desktop: not met, because it was not attempted.** No 144 Hz display has run this build. The
+  clause is left standing rather than quietly reworded, and three things stay open with it:
+  `PLAN-phase-4.md` §8's 144 Hz line, its §9 question of whether 1/120 s is the right fixed step —
+  the device pass was the only thing that was going to answer it — and the frame-budget measurement
+  its §7 deferred to this pull request, which a phone and a tablet answer for a phone and a tablet
+  and not for a display running at more than twice their rate. What *is* checked on every commit is
+  the arithmetic underneath: `invaders_sim_equivalence_test.dart` compares ten seconds of state
+  between a 60 Hz and a 144 Hz frame sequence, and it was seen failing against a `dt`-stepped
+  simulation before it was trusted. That is evidence about the accumulator, not about a display, and
+  the two are not interchangeable.
+- **Scores survive a restart: met**, on the device and in the suite — the widget test plays a run to
+  game over, relaunches over the same store and finds the score on the card, and the storage suite
+  round-trips the entry through `save.json`.
+
+**PR 8's tuning pass produced no diff.** `PLAN-phase-4.md` §6 expected the numbers in
+`invaders_rules.dart` to move after ten minutes of play, and on the hardware that was played there
+was nothing to move them for. Moving them on the strength of a machine nobody played would be
+inventing the evidence the pass exists to collect, so the table still holds its starting values and
+`PLAN-phase-4.md` §9's "are the §4.1 starting numbers playable for a six-year-old" is still open —
+as is §9's line below about a six-year-old playing unaided.
+
+**`app/integration_test/invaders_smoke_test.dart` has run headless, not on hardware.** It plays a
+run through two simultaneous pointers on the pad, backgrounds and foregrounds the app, quits, and
+reads the score back out of a real `save.json`; `-d flutter-tester` passes it in about eight seconds.
+`AGENTS.md` says how to run it on a device and records that CI still does not — an emulator job stays
+§9's open question, unchanged from phase 3 and accepted again.
+
+What differed from the plan, decided while building it:
+
+- **The accumulator keeps a running total, not a subtractive leftover** (§4.1). The form the phase
+  plan sketched rounds 60 Hz and 144 Hz to different remainders at exactly the point their totals
+  should agree; the equivalence test found it, which is the only reason the difference is a line
+  here rather than a bug on a desktop.
+- **The renderer is a child `Component` in `world`, not an override of `FlameGame.render`.** The
+  camera's `FixedResolutionViewport` transform then applies to it for free, instead of being
+  reimplemented by hand around a manually-drawn canvas — and that transform is what §4.1's "a phone
+  and a tablet run the same game" actually rests on.
+- **The pad is opaque, in a band of its own below the field** (§4.2). §4.2 asked for
+  semi-transparent buttons, which is what an overlay drawn over the play field needs; a pad that has
+  its own band does not overlap anything to see through.
+- **FIRE is 72 dp, like LEFT and RIGHT** (§4.2). It is held as continuously as they are, and the
+  56 dp floor is for controls that are tapped.
+- **`GameShell` does not resume when the app returns to the foreground.** It pauses on the way out
+  the way any screen would, and comes back to the paused card: a shooter that started moving aliens
+  again the instant a tablet unlocked would drop a child back into a run before they had looked at
+  the screen. *Resume* is then the same explicit tap it is after the pause button.
+- **Two defects found by playing landed as their own pull requests rather than waiting for this
+  one.** The alien block's wall check used its nominal eleven-column width, so wiping out an edge
+  column did not let the formation march any further; and every back control in the app called
+  `Navigator.pop()` without rechecking `canPop()` at the moment of the pop, which a confirm dialog
+  resolving after the stack had changed underneath it could turn into a blank screen. Both are
+  behaviour a reader of this phase would otherwise have to re-derive from the diff.
 
 ### Phase 5 — polish (4–5 days)
 
@@ -813,8 +926,11 @@ complete app.
    `rng_test.dart` and against 700 golden puzzles.
 3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it. **Done.**
 
-The next work is phase 4. Nothing phase 3 built is in its way — `/arcade` still opens
-`ComingSoonScreen`, and the save's `arcade` block has been declared since v1 (§5.2).
+The next work is phase 5. Phase 4 is done bar the 144 Hz desktop pass above, and nothing it built is
+in phase 5's way: sound, haptics, landscape and the accessibility pass are all additive to screens
+that exist. The one thing phase 5 inherits rather than adds is the desktop clause — a rotation and
+accessibility pass is another reason to have the app in front of a desktop display, and running the
+ten minutes then closes phase 4's criterion without a phase of its own.
 
 This section previously said phase 4 starts with `GameShell` rather than with Invaders, on the
 grounds that pause, quit and the game-over card are what every later game reuses and that building
