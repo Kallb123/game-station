@@ -517,14 +517,13 @@ the child who would turn it on is the one it exists to gate. The block above sho
 reason it shows `day` — a value that is not the default proves the field is read rather than
 defaulted.
 
-`settings.music` is the one field in the block above whose **default changes after it shipped**: phase
-5 flips it from `false` to `true`, because Invaders without its march is the game with its clock
-switched off and a child cannot ask for a sound they have never heard. It is not a shape change —
-every save the app has written carries the key, so the default only applies to a file missing it and
-`schemaVersion` stays 1 with no migration step. The block still shows `false` for the same reason it
-shows `day`: a value that is not the default proves the field is read rather than defaulted, and the
-flip makes that row a stronger test than it was. The switch is on the settings screen either way, so a
-development save written before phase 5 is one tap from the new behaviour (`PLAN-phase-5.md` §4.6).
+`settings.music` is the one field in the block above that **nothing reads**, and phase 5 — the phase
+that was going to consume it — leaves it that way: there is no music in the app, so a switch for it
+would change nothing, and `PLAN-phase-1.md` §4.5's rule against a control that does nothing applies
+(`PLAN-phase-5.md` §4.6). It stays in the schema at its `false` default rather than being removed,
+because removing it is a shape change to a format whose whole design is that v1 is final, and because
+the field is what a later change would need if music is ever wanted. It is still written and read
+back, so the decode test over the block above still proves the codec round-trips it.
 
 A `puzzleCache` value is `"<clues>|<solution>"`, not the clue string alone. Immediate mistake feedback
 needs the digit that belongs in a cell, and nothing exported from the engine recovers it from the
@@ -897,11 +896,15 @@ guards, and the eleven arcade motifs are a synthesiser session rather than a cod
   shipped graph, and `minisound_ffi`'s `RECORD_AUDIO` is removed from the merged manifest and checked
   on the built APK. This is the phase's load-bearing decision and its first pull request, so it is
   answered on hardware before anything is built on it.
-- **Music is the arcade's march and nothing else.** No bed under the home, menu or Sudoku screens: a
-  loop playing under a puzzle is the first thing a parent switches off. Invaders gets the four
-  descending notes, one per alien step, so the tempo is `InvadersSim`'s own march interval and there
-  is no tempo state to keep in sync (`PLAN-phase-5.md` §3.4). `settings.music` gains its first control
-  and its default flips to `true`; `schemaVersion` stays 1 (§5.2).
+- **No music, and an arcade sound set instead.** §7 asked for "light music"; there is none, on any
+  screen — a loop playing in a room with other people in it is the first thing a parent switches off.
+  Invaders gets nine generated sounds: shoot, hit, enemy shoot, enemy hit, enemy move, the special
+  enemy's warble and its hit, a wave clear and the bonus life (`PLAN-phase-5.md` §4.1). The enemy-move
+  sound is one motif fired once per step of the alien block, so the pulse accelerates as the formation
+  thins with no tempo state anywhere — `InvadersSim._currentStepInterval()` already computes it, from
+  0.70 s to 0.09 s. The arcade original's four descending notes were drafted and cut: four pitched
+  notes in rotation is music by another name (§3.4). `settings.music` therefore gets no control and
+  stays at its `false` default (§5.2).
 - Haptics on mobile only, through `HapticFeedback`'s three permission-free calls. `vibrate()` and
   `heavyImpact` need `android.permission.VIBRATE` and are banned by a scanner test, so the phase adds
   no permission.
