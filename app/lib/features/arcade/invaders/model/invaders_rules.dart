@@ -6,8 +6,14 @@
 // enumerates, and the device-pass tuning in PR 8 is a diff to this file
 // alone.
 //
-// The starting values match the original cabinet's feel and are expected to
-// move after that pass; moving them is not a plan change.
+// The starting values match the original cabinet's feel. PR 8's tuning pass
+// moved none of them: ten minutes of play on a Pixel 6 and on a Fire HD
+// tablet found nothing to move them for, and the two questions that would
+// have — whether a 144 Hz display plays at the same speed, and whether a
+// six-year-old can play the normal table unaided — were not answered, because
+// neither the display nor the child was in front of the build (`PLAN.md` §7).
+// So the table below is still the starting one rather than a tuned one, and
+// moving it when either question is answered is not a plan change.
 
 import 'package:flutter/foundation.dart';
 

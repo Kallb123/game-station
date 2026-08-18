@@ -76,9 +76,10 @@ SaveData fullSave() => SaveData(
 );
 
 /// `PLAN.md` §5.2's example document, with its `"…"` placeholders filled in and
-/// nothing else changed. The plan elides four values — two timestamps, the
-/// in-progress board, and the two halves of the cached record — and each is
-/// filled with something of the right shape.
+/// nothing else changed but the line the longest of them no longer fits on.
+/// The plan elides four values — two timestamps, the in-progress board, and the
+/// two halves of the cached record — and each is filled with something of the
+/// right shape.
 ///
 /// Short of the 81 characters a real 9x9 record holds on each side of the `|`,
 /// as the plan's own example is: the codec stores the value as an opaque string
@@ -96,6 +97,7 @@ const String planExampleJson = '''
   "profiles": [{
     "id": "p1", "name": "Ana", "avatar": "fox", "createdAt": "2026-08-11T10:00:00Z",
     "mistakeFeedback": "atCompletion",
+    "arcadeEasyMode": true, "arcadeAutoFire": true, "padSide": "left",
     "sudoku": {
       "solved": {
         "sudoku:9x9:easy:0": { "timeMs": 244000, "hints": 0, "mistakes": 2,
@@ -110,7 +112,9 @@ const String planExampleJson = '''
       "bestTimeMs": { "9x9:easy": 180000, "9x9:medium": 402000 }
     },
     "arcade": {
-      "invaders": { "highScores": [{ "score": 15400, "wave": 7, "at": "2026-08-10T00:00:00Z" }],
+      "invaders": { "highScores": [{ "score": 15400, "wave": 7,
+                                     "at": "2026-08-10T00:00:00Z", "easy": false },
+                                   { "score": 6200, "wave": 5, "easy": true }],
                     "gamesPlayed": 22, "totalKills": 3110 }
     }
   }],

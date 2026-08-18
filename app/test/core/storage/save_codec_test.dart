@@ -118,6 +118,11 @@ void main() {
       // Not the default, so this asserts the field is read rather than filled
       // in — the same reason the plan's example carries `"theme": "day"`.
       expect(profile.mistakeFeedback, MistakeFeedback.atCompletion);
+      // The three phase-4 profile options, each away from its default for the
+      // same reason (`PLAN.md` §5.2).
+      expect(profile.arcadeEasyMode, isTrue);
+      expect(profile.arcadeAutoFire, isTrue);
+      expect(profile.padSide, PadSide.left);
 
       expect(
         profile.sudoku.solved['sudoku:9x9:easy:0'],
@@ -151,11 +156,16 @@ void main() {
         '9x9:easy': 180000,
         '9x9:medium': 402000,
       });
+      // Two entries, one per mode: the plan's example carries both because a
+      // single entry cannot show that `easy` is read rather than defaulted,
+      // and the second has no `at` for the same reason the second solved
+      // puzzle above has no `solvedAt`.
       expect(
         profile.arcade.games['invaders'],
         ArcadeGameProgress(
           highScores: [
             HighScore(score: 15400, wave: 7, at: DateTime.utc(2026, 8, 10)),
+            const HighScore(score: 6200, wave: 5, easy: true),
           ],
           gamesPlayed: 22,
           totalKills: 3110,

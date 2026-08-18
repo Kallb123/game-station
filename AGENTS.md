@@ -65,20 +65,31 @@ will tell us" is a gap to state, not to hide.
 
 **`app/integration_test/` is the one suite neither of them runs.** `flutter test` collects `app/test`
 only, `tool/verify.sh` does not name it, and CI has no emulator to run it on — an emulator job is
-`PLAN.md` §9's open question, and until it exists this is a check somebody performs rather than one a
-merge waits for (`PLAN-phase-3.md` §7). Run it by hand, against a device from `flutter devices`:
+`PLAN.md` §9's open question, and until it exists these are checks somebody performs rather than ones
+a merge waits for (`PLAN-phase-3.md` §7, `PLAN-phase-4.md` §7). There are two, and they are run by
+hand against a device from `flutter devices`:
 
 ```sh
 cd app && flutter test -d <device-id> integration_test/sudoku_smoke_test.dart
+cd app && flutter test -d <device-id> integration_test/invaders_smoke_test.dart
 ```
 
-`-d flutter-tester` runs it headless on the host in about ten seconds, and is worth doing before a
-device run because it still exercises the generation isolate, the codec and a real filesystem. It is
-not a substitute: no plugin answers there, so `path_provider` falls back to a temp directory, and the
-whole reason this suite exists is the part only a device can answer. Run it on hardware for anything
-that touches generation, the save, or the play screen's lifecycle, and say in the pull request which
-device it ran on. What covers the same ground on every commit is
-`app/test/features/sudoku/resume_test.dart`, over a fake puzzle source and an in-memory store.
+| File | What only a device answers | What covers the same ground on every commit |
+|---|---|---|
+| `sudoku_smoke_test.dart` | `compute` really spawns an isolate for a 9x9 Medium, and `path_provider` really resolves the directory `save.json` is written into. | `app/test/features/sudoku/resume_test.dart`, over a fake puzzle source and an in-memory store. |
+| `invaders_smoke_test.dart` | Two real fingers on a real touchscreen, which is what the gesture arena is least faithfully simulated for, and a real frame clock driving the fixed-step accumulator. | `app/test/features/arcade/`, over synthetic pointers and a fake controller. |
+
+`-d flutter-tester` runs either headless on the host in about ten seconds, and is worth doing before
+a device run because it still exercises the real accumulator, the real codec and a real filesystem.
+It is not a substitute: no plugin answers there, so `path_provider` falls back to a temp directory,
+and the whole reason this suite exists is the part only a device can answer. Run them on hardware for
+anything that touches generation, the save, a screen's lifecycle, or the control pad, and say in the
+pull request which device each ran on.
+
+Neither of them is the ten minutes of play `PLAN.md` §7's phase-4 criterion asks for. An automated
+run confirms that the path works; whether the aliens are too fast for a six-year-old, and whether a
+144 Hz display plays at the same speed as a 60 Hz one, are answered by playing on the hardware and
+saying so — the numbers to move are all in `invaders_rules.dart` (`PLAN-phase-4.md` §4.4).
 
 The toolchain is already there: `.claude/hooks/session-start.sh` puts the pinned Flutter SDK on
 `PATH` and resolves both packages before the session starts, so the commands above work from the
