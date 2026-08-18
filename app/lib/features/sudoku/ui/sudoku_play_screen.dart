@@ -477,17 +477,52 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     _save();
   }
 
-  /// What every change to the board leads to: it is written down, and if it
-  /// finished the puzzle, that is written down instead.
+  /// What every change to the board leads to: a sound, and it is written
+  /// down — or, if it finished the puzzle, that is written down instead.
+  ///
+  /// The event is drained before the `isSolved` check rather than after, so
+  /// the slot never carries a stale `SudokuEvent.solved` into a puzzle played
+  /// on: [_finish] plays the fanfare itself, and [_play] is never reached
+  /// with one (`PLAN-phase-5.md` §4.3).
   void _onSessionChanged() {
     final session = _session;
     if (session == null || _solved) return;
 
+    final event = session.takeEvent();
     if (session.isSolved) {
       _finish(session);
       return;
     }
+    if (event != null) _play(event);
     _save();
+  }
+
+  /// Turns [event] into the one sound it names — the one call site for seven
+  /// of the fifteen motifs in the app, because the session is what knows what
+  /// happened rather than the keypad or the grid's tap handlers
+  /// (`PLAN-phase-5.md` §3.3, §4.3).
+  void _play(SudokuEvent event) {
+    final audio = ref.read(appAudioProvider);
+    switch (event) {
+      case SudokuEvent.placed:
+        audio.play(Motif.sudokuPlace);
+      case SudokuEvent.placedCorrect:
+        audio.play(Motif.sudokuCorrect);
+      case SudokuEvent.placedWrong:
+        audio.play(Motif.sudokuWrong);
+      case SudokuEvent.noted:
+        // A pencil mark is a lighter version of the same act as a placement.
+        audio.play(Motif.sudokuPlace, gain: 0.7);
+      case SudokuEvent.erased:
+      case SudokuEvent.restored:
+        audio.play(Motif.sudokuErase);
+      case SudokuEvent.hinted:
+        audio.play(Motif.sudokuHint);
+      case SudokuEvent.solved:
+        // Never reached: `_onSessionChanged` returns through `_finish` before
+        // calling this whenever the session hands back this event.
+        break;
+    }
   }
 
   /// Stops the clock, records the result, and puts the card over the board.

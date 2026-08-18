@@ -22,6 +22,42 @@ import '../../../core/storage/save_data.dart';
 import '../data/puzzle_record.dart';
 import 'session_codec.dart';
 
+/// What a mutation did, for the screen above to turn into a sound
+/// (`PLAN-phase-5.md` §4.3). [SudokuSession.takeEvent] clears the slot it
+/// comes from, so an event plays once and only once.
+enum SudokuEvent {
+  /// A digit was entered, on a profile that does not say whether it was right
+  /// until the grid is full.
+  placed,
+
+  /// A digit was entered, and it was right, on a profile that flags mistakes
+  /// immediately.
+  placedCorrect,
+
+  /// A digit was entered, and it was wrong, on a profile that flags mistakes
+  /// immediately.
+  placedWrong,
+
+  /// A pencil mark was toggled, on or off.
+  noted,
+
+  /// A cell was cleared.
+  erased,
+
+  /// A hint fired — pointing at a mistake already on the board and revealing
+  /// a cell are the same event, because both tell a child the same thing:
+  /// look here.
+  hinted,
+
+  /// An undo or a redo changed the board back.
+  restored,
+
+  /// The move that filled the last cell the solution agrees with. Replaces
+  /// whichever of the above the move would otherwise have been, so a
+  /// finishing digit is one sound, not two 20 ms apart.
+  solved,
+}
+
 /// A puzzle in play (`PLAN-phase-3.md` §4.3).
 ///
 /// Built either [start]ed from a generated puzzle or [resume]d from what a
@@ -157,6 +193,9 @@ class SudokuSession extends ChangeNotifier {
   int _mistakes = 0;
   int _hints;
 
+  /// What the last mutation did, for [takeEvent].
+  SudokuEvent? _event;
+
   /// The wrong cell a [hint] pointed at, or null when none has.
   ///
   /// Flagged whatever [mistakeFeedback] says (see [isFlagged]): a child who
@@ -164,6 +203,14 @@ class SudokuSession extends ChangeNotifier {
   /// Not stored — the schema has no field for it, and a hint given before a
   /// force-quit is not something to bring back.
   int? _pointedAt;
+
+  /// What the last mutation did, for the screen above to turn into a sound
+  /// (`PLAN-phase-5.md` §4.3). Cleared by the read: an event is played once.
+  SudokuEvent? takeEvent() {
+    final event = _event;
+    _event = null;
+    return event;
+  }
 
   /// The digit in the cell at [index], or 0 when it is empty.
   int digitAt(int index) => _digits[index];
@@ -318,13 +365,20 @@ class SudokuSession extends ChangeNotifier {
       if (_digits[index] != 0) return;
       _record(index);
       _notes[index] ^= 1 << (digit - 1);
+      _emit(SudokuEvent.noted);
     } else {
       if (_digits[index] == digit) return;
       _record(index);
       _digits[index] = digit;
       // The marks were about which digit went here, and one has.
       _notes[index] = 0;
-      if (digit != _solution[index]) _mistakes++;
+      final correct = digit == _solution[index];
+      if (!correct) _mistakes++;
+      _emit(
+        mistakeFeedback == MistakeFeedback.immediate
+            ? (correct ? SudokuEvent.placedCorrect : SudokuEvent.placedWrong)
+            : SudokuEvent.placed,
+      );
     }
     notifyListeners();
   }
@@ -341,6 +395,7 @@ class SudokuSession extends ChangeNotifier {
     _record(index);
     _digits[index] = 0;
     _notes[index] = 0;
+    _emit(SudokuEvent.erased);
     notifyListeners();
   }
 
@@ -387,6 +442,7 @@ class SudokuSession extends ChangeNotifier {
       // has to repaint it, and [select] returns early on a selection that has
       // not moved.
       _selected = wrong;
+      _emit(SudokuEvent.hinted);
       notifyListeners();
       return;
     }
@@ -404,6 +460,7 @@ class SudokuSession extends ChangeNotifier {
     _notes[index] = 0;
     _hints++;
     _selected = index;
+    _emit(SudokuEvent.hinted);
     notifyListeners();
   }
 
@@ -446,11 +503,21 @@ class SudokuSession extends ChangeNotifier {
     // The cell that moved is selected, so a child watching the board sees which
     // one changed rather than hunting for it.
     _selected = move.index;
+    _emit(SudokuEvent.restored);
     notifyListeners();
   }
 
   SudokuMove _stateOf(int index) =>
       SudokuMove(index: index, digit: _digits[index], notes: _notes[index]);
+
+  /// Records [event] as what this mutation did — or [SudokuEvent.solved]
+  /// instead, when the mutation just left every cell agreeing with the
+  /// solution. Checked after the mutation rather than before, so the same
+  /// digit that finishes the grid plays the trumpet instead of its own tick
+  /// (`PLAN-phase-5.md` §4.3).
+  void _emit(SudokuEvent event) {
+    _event = isSolved ? SudokuEvent.solved : event;
+  }
 
   /// The lowest-numbered cell holding a digit the solution disagrees with, or
   /// null when there is none. Lowest rather than nearest the selection, so the
