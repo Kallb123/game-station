@@ -15,6 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/audio/motif.dart';
+import 'package:zibo_games/core/audio/providers.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
@@ -26,6 +28,7 @@ import 'package:zibo_games/features/sudoku/ui/sudoku_grid_view.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_menu_screen.dart';
 
 import '../../../app_harness.dart';
+import '../../../core/audio/recording_audio.dart';
 import '../puzzle_fixtures.dart';
 
 /// The board these tests finish.
@@ -58,11 +61,15 @@ void main() {
   Future<ProviderContainer> openTheBoard(
     WidgetTester tester, {
     SaveData? save,
+    List<Override> overrides = const [],
   }) async {
     final container = await pumpApp(
       tester,
       store: MemorySaveStore(initial: save ?? freshSave()),
-      overrides: [puzzleSourceProvider.overrideWithValue(FakePuzzleSource())],
+      overrides: [
+        puzzleSourceProvider.overrideWithValue(FakePuzzleSource()),
+        ...overrides,
+      ],
     );
 
     await tester.tap(find.text('Sudoku'));
@@ -374,6 +381,37 @@ void main() {
         ),
         findsNothing,
       );
+    });
+  });
+
+  group('the completion sound', () {
+    // The fanfare's own gate, not `AppSettings.sound`'s: `RecordingAudio` is a
+    // fake with no dependency on the save at all, so its `sound: false` case
+    // is set directly rather than through a profile
+    // (`PLAN-phase-5.md` §4.2's PR 1 done-criterion).
+    testWidgets('plays once on completion', (tester) async {
+      final audio = RecordingAudio();
+      await openTheBoard(
+        tester,
+        overrides: [appAudioProvider.overrideWithValue(audio)],
+      );
+      await fillBoard(tester);
+
+      expect(audio.played, [Motif.sudokuComplete]);
+      await settleCelebration(tester);
+    });
+
+    testWidgets('stays silent with sound off', (tester) async {
+      final audio = RecordingAudio()
+        ..applySettings(const AppSettings(sound: false));
+      await openTheBoard(
+        tester,
+        overrides: [appAudioProvider.overrideWithValue(audio)],
+      );
+      await fillBoard(tester);
+
+      expect(audio.played, isEmpty);
+      await settleCelebration(tester);
     });
   });
 

@@ -128,6 +128,11 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_web_plugins:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   fuchsia_remote_debug_protocol:
     dependency: transitive
     description: flutter
@@ -234,6 +239,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.18.0"
+  minisound:
+    dependency: "direct main"
+    description:
+      name: minisound
+      sha256: "61c5860e8ad7dc195abbd6a38e42d2f3f6558f232239a066f3ac8279f29284e6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.1"
+  minisound_ffi:
+    dependency: transitive
+    description:
+      name: minisound_ffi
+      sha256: "130336e8246f9f1768049bffd9b622a8cf6ea65e64082b29fe14f8430d8142f8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
+  minisound_platform_interface:
+    dependency: transitive
+    description:
+      name: minisound_platform_interface
+      sha256: "76d3df1c36d8a045d57da50f5f0894edcf51845962d9b978d024d75f3af72d91"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
+  minisound_web:
+    dependency: transitive
+    description:
+      name: minisound_web
+      sha256: "66168008ab2f915e8602acfe2ffd11949a3d63d2f76c3f450247862f85ae1a63"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.1"
   objective_c:
     dependency: transitive
     description:

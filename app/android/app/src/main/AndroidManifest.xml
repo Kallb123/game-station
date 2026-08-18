@@ -1,4 +1,10 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- minisound_ffi declares RECORD_AUDIO for its recorder, which this app
+         never uses. PLAN-phase-5.md §3.2: a children's app requests no
+         microphone, and tool/check_apk_permissions.sh fails the release build
+         if this line stops removing it. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
     <application
         android:label="Zibo Games"
         android:name="${applicationName}"
