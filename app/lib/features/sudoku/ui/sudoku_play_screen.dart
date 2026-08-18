@@ -202,6 +202,10 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
               children: [
                 _header(context),
                 const SizedBox(height: AppSpacing.md),
+                if (_session case final session?) ...[
+                  _ProgressBar(session: session),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
                 Expanded(child: _body()),
               ],
             ),
@@ -522,6 +526,78 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     // of its way to prevent.
     if (session == null || _solved) return;
     _repository.saveInProgress(session.id, session.toSaved());
+  }
+}
+
+/// How much of [session]'s board the child has filled in, across the top of
+/// the screen.
+///
+/// A cell-style listener rather than an [AnimatedBuilder] on the whole
+/// session (`sudoku_cell.dart`): most of what a session notifies about —
+/// which cell is selected, a pencil mark toggled — leaves [SudokuSession.progress]
+/// unchanged, and a bar that repainted on every one of those would be doing
+/// work with nothing to show for it.
+class _ProgressBar extends StatefulWidget {
+  const _ProgressBar({required this.session});
+
+  final SudokuSession session;
+
+  @override
+  State<_ProgressBar> createState() => _ProgressBarState();
+}
+
+class _ProgressBarState extends State<_ProgressBar> {
+  late double _progress = widget.session.progress;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.session.addListener(_onSessionChanged);
+  }
+
+  @override
+  void didUpdateWidget(_ProgressBar old) {
+    super.didUpdateWidget(old);
+    if (old.session == widget.session) return;
+    old.session.removeListener(_onSessionChanged);
+    widget.session.addListener(_onSessionChanged);
+    _progress = widget.session.progress;
+  }
+
+  @override
+  void dispose() {
+    widget.session.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
+  void _onSessionChanged() {
+    final next = widget.session.progress;
+    if (next == _progress) return;
+    setState(() => _progress = next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final role = AppTheme.roleScheme(
+      AppPalette.of(brightness).sudoku,
+      brightness,
+    );
+    final percent = (_progress * 100).round();
+
+    return Semantics(
+      label: 'Progress',
+      value: '$percent%',
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+        child: LinearProgressIndicator(
+          value: _progress,
+          minHeight: AppSpacing.xs,
+          backgroundColor: role.surfaceContainerHighest,
+          valueColor: AlwaysStoppedAnimation<Color>(role.primary),
+        ),
+      ),
+    );
   }
 }
 

@@ -202,6 +202,47 @@ void main() {
     });
   });
 
+  group('the progress bar', () {
+    LinearProgressIndicator barOf(WidgetTester tester) => tester
+        .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator));
+
+    testWidgets('is empty before anything is entered', (tester) async {
+      await pumpPlay(tester);
+      expect(barOf(tester).value, 0);
+    });
+
+    testWidgets('fills as the child enters digits, right or wrong', (
+      tester,
+    ) async {
+      final container = await pumpPlay(tester);
+      final session = sessionOf(tester);
+      final target = firstEmpty(session);
+
+      session
+        ..select(target)
+        ..enter(3);
+      await tester.pump();
+
+      expect(barOf(tester).value, session.progress);
+      // Not zero, and not simply "the puzzle got harder": the same fact the
+      // save holds (`the save` below) is what the bar is drawing.
+      expect(savedIn(container), isNotNull);
+    });
+
+    testWidgets('is absent while the puzzle is still loading', (tester) async {
+      final source = _StalledPuzzleSource();
+      await pumpPlay(tester, source: source);
+      await tester.pump(puzzleSpinnerDelay);
+
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      source.finish(id);
+      await tester.pump();
+
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    });
+  });
+
   group('the save', () {
     testWidgets('holds the board after every move', (tester) async {
       final container = await pumpPlay(tester);
