@@ -2,7 +2,7 @@
 
 A local, offline, ad-free games app for children. Sudoku (9x9 and 6x6, deterministic from a date or
 index) plus retro arcade games driven by on-screen controls, with progress that persists across
-sessions.
+sessions. A drawing board arrives after the release line, as §7's phase 8.
 
 ---
 
@@ -55,6 +55,7 @@ Alternatives rejected:
 | Save location | `path_provider` | Resolves the per-platform app support directory |
 | Audio | `flutter_soloud` | Low latency, works on all six targets including Linux |
 | Haptics | `HapticFeedback` | Built in. Guard by platform check; mobile only |
+| Save a drawing to the photo library | `gal` | Phase 8, used on Android and iOS only although it also supports macOS and Windows. Depends on `flutter` and nothing else, so it adds one package to the resolved graph and no transitive one. Desktop has no photo library: the PNG goes to a folder under `getDownloadsDirectory()` through `dart:io` |
 | Test | `flutter_test`, `test`, `integration_test` | Built in |
 | Lint | `flutter_lints` plus strict analyzer options | Built in |
 
@@ -65,6 +66,15 @@ Banned dependencies:
 - No `google_fonts` — it fetches fonts over the network at runtime. Bundle font files in
   `assets/fonts/` instead.
 - No `http`, no `dio`. If no networking code exists, no networking can leak.
+- No `image_picker` and no `file_selector`, which phase 8 would otherwise have reached for. Both
+  resolve `http` into the **shipped** graph through `image_picker_platform_interface` and
+  `file_selector_platform_interface`, and `tool/check_offline.dart` reads the resolved graph rather
+  than trusting that nothing calls it. Phase 8 reads the photo library through an in-repo platform
+  channel instead (§7).
+- No `photo_manager`. Its graph is clean — `flutter` and `path` — but it enumerates the whole photo
+  library, which means `READ_MEDIA_IMAGES` on Android 13+ and `NSPhotoLibraryUsageDescription` on
+  iOS. A children's app asking to read the family album is a worse trade than writing the picker: the
+  system picker returns one image and asks for no permission at all.
 
 Enforce the constraints in the build rather than by convention:
 
@@ -419,7 +429,8 @@ so there is no setup wall.
   "activeProfileId": "p1",
   "settings": {
     "sound": true, "music": false, "haptics": true,
-    "showTimer": false, "theme": "day", "reduceMotion": false
+    "showTimer": false, "theme": "day", "reduceMotion": false,
+    "allowPhotoImport": true
   },
   "profiles": [{
     "id": "p1", "name": "Ana", "avatar": "fox", "createdAt": "2026-08-11T10:00:00Z",
@@ -442,7 +453,8 @@ so there is no setup wall.
       "invaders": { "highScores": [{ "score": 15400, "wave": 7, "at": "...", "easy": false },
                                    { "score": 6200, "wave": 5, "easy": true }],
                     "gamesPlayed": 22, "totalKills": 3110 }
-    }
+    },
+    "draw": { "drawingCount": 7, "lastDrawingId": "d7", "bytesUsed": 4820112 }
   }],
   "puzzleCache": { "sudoku:9x9:hard:12": "…clue string…|…solution…" }
 }
@@ -479,6 +491,24 @@ with nothing lost and `schemaVersion` stays 1; the block above sets the three pr
 non-defaults for the same reason it shows `day` and `atCompletion`, and carries a second score because
 one entry cannot show a per-mode table.
 
+`draw` arrives with phase 8 and holds three numbers, not the drawings. A drawing is one file under
+`drawings/<profileId>/` (§6), because §5.2's whole point is a save file of a few kilobytes and one
+pencil drawing is tens of them — and because a corrupt file then costs one picture rather than a
+child's entire profile. `bytesUsed` is what the 64 MB per-profile budget is checked against when a
+drawing is written; keeping the total here rather than measuring the directory means the check costs
+no disk read on a cheap tablet. `lastDrawingId` is what the Draw card reopens. Drawing ids are `"d1"`,
+`"d2"`, … — a counter, for the same reason profile ids are one: no ambient randomness anywhere in
+`lib/`, which `app/test/no_random_test.dart` enforces. All three are optional and default to `0`,
+`null` and `0`, so a file written before phase 8 decodes with nothing lost and `schemaVersion` stays
+1.
+
+`settings.allowPhotoImport` also arrives with phase 8, defaults to **false**, and gates only the
+*import* direction — exporting a drawing to the photo library is always available. It sits in
+`settings` rather than on a profile because it is a parental control rather than a child's preference:
+the child who would turn it on is the one it exists to gate. The block above shows `true` for the same
+reason it shows `day` — a value that is not the default proves the field is read rather than
+defaulted.
+
 A `puzzleCache` value is `"<clues>|<solution>"`, not the clue string alone. Immediate mistake feedback
 needs the digit that belongs in a cell, and nothing exported from the engine recovers it from the
 clues — the solution is already a field on `GeneratedPuzzle`, and caching it costs 81 bytes per puzzle
@@ -487,12 +517,15 @@ board representation can change without changing the save format; §4.4 there is
 
 ### 5.3 Rules
 
-- Write on every Sudoku move (debounced 500 ms), on game over, and on app pause or close.
+- Write on every Sudoku move (debounced 500 ms), on game over, and on app pause or close. A finished
+  drawing stroke is the same event, debounced the same way (phase 8).
 - Read once at startup into memory; every later read is from memory. No disk access inside a game
   loop.
 - Never crash on a malformed save. On a parse failure, move the file aside to `save.corrupt.json`,
   start fresh, and tell the child once that the old game could not be found. Losing a high score is
   bad; a boot loop is worse.
+- Drawings live outside `save.json`, one file each under `drawings/<profileId>/`, written through the
+  same tmp-then-rename helper (§2). `save.json` keeps only the counts — see §5.2's `draw`.
 - Export and import the save as a file — the share sheet on mobile, a file picker on desktop. That is
   how a family moves to a new tablet without an account or a server.
 - No cloud sync, by design.
@@ -503,7 +536,7 @@ board representation can change without changing the save format; §4.4 there is
 
 ```
 game-station/
-├─ PLAN.md
+├─ PLAN.md                          # the project plan; PLAN-phase-<n>.md per phase
 ├─ README.md
 ├─ LICENSE                          # MIT for code; assets licensed per file
 ├─ analysis_options.yaml            # strict rules shared by both packages
@@ -543,7 +576,7 @@ game-station/
    │  │  ├─ profiles/
    │  │  ├─ settings/
    │  │  ├─ sudoku/                 # grid widget, keypad, controller
-   │  │  └─ arcade/
+   │  │  ├─ arcade/
    │  │     ├─ arcade_menu_screen.dart   # the game card, the three toggles, the top five
    │  │     ├─ shared/
    │  │     │  ├─ arcade_controller.dart # what GameShell drives, and the HUD it draws
@@ -556,6 +589,10 @@ game-station/
    │  │        ├─ invaders_game.dart     # the accumulator and one render pass, no state
    │  │        ├─ invaders_screen.dart   # builds the run, hands it to GameShell
    │  │        └─ model/                 # the simulation, its tuning table, the sprites
+   │  │  └─ draw/                   # phase 8 (PLAN-phase-8.md §5)
+   │  │     ├─ model/               # Stroke, Drawing, DrawingController — no widgets
+   │  │     ├─ data/                # codec, drawings/<id>/, PNG export, the two platform edges
+   │  │     └─ ui/                  # canvas painter, tool row, the gallery grid
    ├─ assets/{fonts,images,audio}/  # bundled, never fetched; licensed per file
    ├─ test/                         # widget tests
    ├─ integration_test/             # on-device smoke tests, from phases 3 and 4
@@ -865,8 +902,56 @@ What differed from the plan, decided while building it:
 
 One game per minor release from the §4.4 table, each reusing `GameShell` and `OnScreenPad`.
 
+### Phase 8 — drawing board (5–7 days)
+
+A third card on the home screen: a blank sheet a child draws on with a finger, four pencil sizes,
+twelve colours, an eraser, undo and redo, saved to and loaded from the device photo library. Planned
+as seven pull requests in [`PLAN-phase-8.md`](PLAN-phase-8.md), which carries the design, the rejected
+alternatives and the verification checklist. The estimate assumes the same one developer working part
+time as the phases above, and is wide because one of the seven pull requests is Kotlin and Swift that
+CI cannot run and another ends in a device pass.
+
+- **Strokes are data, not pixels.** A drawing is a list of `Stroke`s over a fixed 1600 x 1200 virtual
+  sheet — the same trick as §4.1's 224 x 256 field, and for the same reason: a phone and a tablet draw
+  the same picture. Undo is then dropping a stroke rather than restoring a bitmap, and export
+  rasterises at whatever size the file wants. This is the phase's load-bearing decision; a raster
+  canvas would change the save format, the undo model and the export path together.
+- Four pencil sizes, twelve colours and an eraser, each a 56 dp round target carrying a 3 dp
+  `AppBorders.selected` ring when chosen. Colour-blindness cannot be designed out of a paint box — the
+  swatches *are* the content — so what §7's phase-5 rule buys here is that every swatch carries a
+  spoken name and that *selection* is signalled by the ring and a size change rather than by colour.
+  No control needs a word of text.
+- Undo and redo at 72 dp, `AppTapTargets.primary`, greyed rather than hidden when their stack is
+  empty. The undo horizon is 50 strokes: older strokes are baked into a cached `ui.Image`, which
+  bounds the paint cost and what a repeated tap can undo away in one direction.
+- There is no destructive clear. **New sheet** keeps the current drawing in the in-app gallery, so
+  nothing a child made needs a confirmation dialog to survive.
+- Export rasterises through `dart:ui`'s own PNG encoder — no image package — and hands the bytes to
+  `gal` on Android and iOS (§2). On desktop, where there is no photo library, the PNG goes to a
+  `Zibo Games` folder under `getDownloadsDirectory()`, and that folder is what the import list reads.
+- Import comes through an in-repo `zibo/photos` method channel over Android's `PickVisualMedia` and
+  iOS's `PHPickerViewController`, so the OS returns one image and asks for no permission. The picked
+  photo becomes a locked backdrop the child draws over; it is downscaled to the virtual sheet on the
+  way in, because a phone camera's 12 MP original would cost fifty pencil drawings of disk.
+- Import is off until a parent turns it on: `settings.allowPhotoImport`, default false (§5.2).
+- **Done when:** on an Android phone and one desktop target, a child draws, changes size and colour,
+  erases, undoes and redoes, exports to the photo library and re-imports that image as a backdrop; a
+  force-quit mid-drawing reopens the same strokes; a 500-stroke drawing paints within one 60 Hz frame,
+  asserted by a test rather than by impression; and `tool/check_offline.dart` is still clean with
+  `gal` in the resolved graph.
+
+**Numbered after §4.4's games rather than before them**, and not because it depends on them — it
+reuses nothing from `GameShell` and can start the day phase 6 ships. Renumbering is what it avoids:
+roughly three hundred citations of this file's section and phase numbers live in code comments and in
+the four closed phase plans, and phase 7 is open-ended anyway, so a phase after it is a number rather
+than a queue position.
+
 **Release at the end of Phase 6.** Sudoku in two sizes and four tiers plus Space Invaders is a
-complete app.
+complete app. Phases 7 and 8 are both minor releases after it. The drawing board waits for two
+reasons: §8's feature-creep risk is mitigated by a release line that stays where it was written, and a
+photo-library permission is easier to negotiate with a store that has already listed the app than with
+one seeing it for the first time. Neither reason is about the design — moving it into 1.0 means moving
+the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-phase-8.md` changes.
 
 ---
 
@@ -885,7 +970,12 @@ complete app.
 | iOS needs a Mac, $99/year and review | Medium | Plan early; Android and desktop can ship first |
 | Linux audio flakiness | Low | `flutter_soloud`; audio is optional anyway |
 | Kids-category store rules | Low | Already met: no ads, no network, no data collection |
-| Feature creep — twenty games, none finished | High | Release line fixed at Phase 6 |
+| Feature creep — twenty games, none finished | High | Release line fixed at Phase 6, restated in §7's phase-8 entry where the pressure to move it came from |
+| `gal` is one maintainer's package and stops being maintained | Low | It is reached only through the app's own `GalleryExport` interface, so replacing it is the eighty-odd lines of `MediaStore` and `PHPhotoLibrary` code it wraps, in one file. Checked before adopting it: it depends on `flutter` and nothing else, so there is no transitive graph to inherit |
+| The photo picker is native code CI cannot run | Medium | It is its own pull request (`PLAN-phase-8.md` §6, PR 6) behind a channel that reports itself unavailable, so the phase ships whole without it if a device pass fails. Everything above the channel is Dart and covered by `flutter test` |
+| A child imports a photo nobody meant them to | Medium | The system picker returns one image and takes no library permission; import is off until a parent enables it (§5.2); and nothing can leave the device, which `tool/check_offline.dart` enforces rather than the UI |
+| The drawings folder fills a cheap tablet's disk | Medium | A 64 MB budget per profile, checked against §5.2's `bytesUsed` when a drawing is written rather than by measuring the directory when it is read. The gallery then offers a deletion instead of silently dropping the oldest picture. The bound is bytes and not a count because one imported photo costs what fifty pencil drawings do |
+| A long drawing janks because every stroke repaints every frame | Medium | Strokes below the 50-stroke undo horizon are baked into a `ui.Image`; a test asserts the painter walks at most 51 strokes on a 500-stroke drawing, so the bound is checked on every commit rather than felt on a device |
 
 ---
 
@@ -931,6 +1021,13 @@ in phase 5's way: sound, haptics, landscape and the accessibility pass are all a
 that exist. The one thing phase 5 inherits rather than adds is the desktop clause — a rotation and
 accessibility pass is another reason to have the app in front of a desktop display, and running the
 ten minutes then closes phase 4's criterion without a phase of its own.
+
+**Phase 8's plan is written ahead of its turn**, which none of the others were. The question it had to
+answer was which dependency reads the photo library, and that is answered by resolving a graph rather
+than by reasoning: `image_picker` and `file_selector` both pull `http` into what ships and would fail
+`tool/check_offline.dart`, `photo_manager` is clean but wants the whole album, and `gal` adds one
+package and no transitive one. Knowing that now cost an afternoon; finding it at the phase would have
+cost the phase's shape.
 
 This section previously said phase 4 starts with `GameShell` rather than with Invaders, on the
 grounds that pause, quit and the game-over card are what every later game reuses and that building
