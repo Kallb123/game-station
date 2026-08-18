@@ -1,10 +1,12 @@
-// `InvadersSim`'s behaviour (`PLAN-phase-4.md` §4.1, PR 3).
+// `InvadersSim`'s behaviour (`PLAN-phase-4.md` §4.1, PR 3) and its
+// `InvadersEvent`s (`PLAN-phase-5.md` §4.4, PR 4).
 //
-// Three of the tests below drive the sim through `debugSetAliveRows` and
-// `debugSetAlienTimer`/`debugAwardScore` rather than through real play — each
-// says in its own comment why, and `invaders_sim.dart` says why the seams
-// exist. The rest — the wall reverse, the bunker erosion, auto-fire — go
-// through `step()` alone, the same path a real run takes.
+// Several of the tests below drive the sim through `debugSetAliveRows` and
+// `debugSetAlienTimer`/`debugSetAlienFireTimer`/`debugSetUfoTimer`/
+// `debugAwardScore` rather than through real play — each says in its own
+// comment why, and `invaders_sim.dart` says why the seams exist. The rest —
+// the wall reverse, the bunker erosion, auto-fire — go through `step()`
+// alone, the same path a real run takes.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/features/arcade/invaders/model/invaders_rules.dart';
@@ -205,6 +207,126 @@ void main() {
       for (var i = 1; i < fireTicks.length; i++) {
         expect(fireTicks[i] - fireTicks[i - 1], expectedGap);
       }
+    });
+  });
+
+  group('events', () {
+    test('firing produces a playerShot event, and nothing else', () {
+      final sim = InvadersSim(rules: InvadersRules.normal, seed: 1);
+
+      sim.step(const PadInput(fire: true));
+
+      expect(sim.drainEvents(), [InvadersEvent.playerShot]);
+    });
+
+    test('an alien firing produces an alienShot event', () {
+      final sim = InvadersSim(rules: InvadersRules.normal, seed: 1);
+      sim.debugSetAlienFireTimer(0);
+
+      sim.step(PadInput.none);
+
+      expect(sim.drainEvents(), [InvadersEvent.alienShot]);
+    });
+
+    test('the alien block stepping produces an alienStep event', () {
+      final sim = InvadersSim(rules: InvadersRules.normal, seed: 1);
+      sim.debugSetAlienTimer(0);
+
+      sim.step(PadInput.none);
+
+      expect(sim.drainEvents(), [InvadersEvent.alienStep]);
+    });
+
+    test('an alien killed produces an alienKilled event', () {
+      const rules = InvadersRules.normal;
+      final sim = InvadersSim(rules: rules, seed: 3);
+      // The same front-row setup as the scoring test above: every column of
+      // the front row alive lines up with the player's fixed starting
+      // column, so no aiming is needed for the shot to land.
+      sim.debugSetAliveRows(_aliveRowsWithOnlyRow(rules.alienRows, 4));
+
+      sim.step(const PadInput(fire: true));
+      expect(sim.drainEvents(), [InvadersEvent.playerShot]);
+
+      var killed = false;
+      for (var i = 0; i < 2000 && !killed; i++) {
+        sim.step(PadInput.none);
+        if (sim.drainEvents().contains(InvadersEvent.alienKilled)) {
+          killed = true;
+        }
+      }
+      expect(killed, isTrue, reason: 'the alien was never hit');
+    });
+
+    test('the UFO arriving produces ufoAppeared, leaving produces ufoLeft', () {
+      final sim = InvadersSim(rules: InvadersRules.normal, seed: 1);
+      sim.debugSetUfoTimer(0);
+
+      sim.step(PadInput.none);
+      expect(sim.drainEvents(), contains(InvadersEvent.ufoAppeared));
+
+      var left = false;
+      for (var i = 0; i < 2000 && !left; i++) {
+        sim.step(PadInput.none);
+        if (sim.drainEvents().contains(InvadersEvent.ufoLeft)) left = true;
+      }
+      expect(left, isTrue, reason: 'the UFO never left the field');
+    });
+
+    test('clearing a wave produces a waveCleared event', () {
+      const rules = InvadersRules.normal;
+      final sim = InvadersSim(rules: rules, seed: 1);
+      sim.debugSetAliveRows(List<int>.filled(rules.alienRows, 0));
+
+      sim.step(PadInput.none);
+
+      expect(sim.drainEvents(), contains(InvadersEvent.waveCleared));
+    });
+
+    test('the player being hit produces a playerKilled event', () {
+      // The player never fires and never moves, so the aliens are never
+      // thinned and the block eventually marches down into the player's
+      // row — a deterministic way to reach the event with no RNG-dependent
+      // aim involved (`invaders_sim.dart`'s `_resolveBlockVsPlayerRow`).
+      final sim = InvadersSim(rules: InvadersRules.normal, seed: 1);
+
+      var killed = false;
+      for (var i = 0; i < 20000 && !killed; i++) {
+        sim.step(PadInput.none);
+        if (sim.drainEvents().contains(InvadersEvent.playerKilled)) {
+          killed = true;
+        }
+      }
+      expect(killed, isTrue, reason: 'the player was never hit');
+    });
+
+    test('crossing the bonus-life threshold produces an extraLife event', () {
+      final sim = InvadersSim(rules: InvadersRules.normal, seed: 1);
+
+      sim.debugAwardScore(10000);
+
+      expect(sim.drainEvents(), [InvadersEvent.extraLife]);
+    });
+
+    test('the buffer caps at maxBufferedEvents, dropping the oldest', () {
+      final sim = InvadersSim(rules: InvadersRules.normal, seed: 1);
+      sim.debugSetAlienFireTimer(1e9); // isolate the alienStep events below
+
+      // Ten events pushed first, so they are the ones past the cap drops.
+      for (var i = 0; i < 10; i++) {
+        sim.debugAwardScore(10000); // one extraLife each
+      }
+      // Then exactly `maxBufferedEvents` more, so all of them survive the cap
+      // and none of the ten above do — proof it is the oldest that are
+      // dropped, not an arbitrary ten.
+      for (var i = 0; i < maxBufferedEvents; i++) {
+        sim.debugSetAlienTimer(0);
+        sim.step(PadInput.none);
+      }
+
+      final events = sim.drainEvents();
+      expect(events.length, maxBufferedEvents);
+      expect(events, everyElement(InvadersEvent.alienStep));
     });
   });
 }

@@ -23,6 +23,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart' show ValueNotifier, visibleForTesting;
 import 'package:flutter/widgets.dart' show BuildContext, Widget;
 
+import '../../../core/audio/app_audio.dart';
+import '../../../core/audio/motif.dart';
 import '../shared/arcade_controller.dart';
 import '../shared/arcade_result.dart';
 import '../shared/pad_input.dart';
@@ -50,6 +52,7 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
     required this.seed,
     required this.input,
     required Color color,
+    required this.audio,
   }) : _sim = sim,
        _field = _InvadersField(sim: sim, color: color),
        hud = ValueNotifier(_hudOf(sim)),
@@ -78,6 +81,11 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
   /// way.
   InvadersSim get sim => _sim;
 
+  /// Where every [InvadersEvent] this game drains is turned into a [Motif]
+  /// (`PLAN-phase-5.md` §4.4). Taken at construction like [color]: a
+  /// `FlameGame` is not built with a `BuildContext` to read a provider from.
+  final AppAudio audio;
+
   /// A fresh seed for [restart] — the injected clock, the same way the first
   /// run's seed reaches this game (`PLAN-phase-4.md` §4.3), so a test can fix
   /// it and a child gets a different run each time.
@@ -103,7 +111,14 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
       GameWidget(game: this, autofocus: false);
 
   @override
-  void pause() => pauseEngine();
+  void pause() {
+    pauseEngine();
+    // Not only the app going to the background (`app.dart`'s own lifecycle
+    // listener already silences everything for that): the pause button and
+    // `P`/`Escape` reach here too, and a paused game with the UFO still
+    // warbling has not actually gone quiet (`PLAN-phase-5.md` §4.4).
+    audio.stopAll();
+  }
 
   @override
   void resume() => resumeEngine();
@@ -193,10 +208,44 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
     // Skipped when nothing stepped: a `ValueNotifier` already drops a write
     // that equals its current value, but a run that is over settles at one
     // unchanging [ArcadeHud] forever, and there is no reason to keep
-    // rebuilding it every frame after that.
+    // rebuilding it every frame after that. A dropped backlog drops its
+    // events with it for the same reason it drops everything else about
+    // those steps: the frames they belonged to were never drawn
+    // (`PLAN-phase-5.md` §4.4).
     if (steps > 0) {
+      for (final event in _sim.drainEvents()) {
+        _play(event);
+      }
       hud.value = _hudOf(_sim);
       if (_sim.isOver) isOver.value = true;
+    }
+  }
+
+  /// Turns one [InvadersEvent] into the one [Motif] it names
+  /// (`PLAN-phase-5.md` §4.4). The UFO's arrival and departure are the two
+  /// that drive the loop rather than a one-shot; the rest play once.
+  void _play(InvadersEvent event) {
+    switch (event) {
+      case InvadersEvent.playerShot:
+        audio.play(Motif.arcadePlayerShoot);
+      case InvadersEvent.playerKilled:
+        audio.play(Motif.arcadePlayerHit);
+      case InvadersEvent.alienShot:
+        audio.play(Motif.arcadeAlienShoot);
+      case InvadersEvent.alienKilled:
+        audio.play(Motif.arcadeAlienHit);
+      case InvadersEvent.alienStep:
+        audio.play(Motif.arcadeAlienMove);
+      case InvadersEvent.ufoAppeared:
+        audio.startLoop(Motif.arcadeUfoLoop);
+      case InvadersEvent.ufoLeft:
+        audio.stopLoop(Motif.arcadeUfoLoop);
+      case InvadersEvent.ufoKilled:
+        audio.play(Motif.arcadeUfoHit);
+      case InvadersEvent.waveCleared:
+        audio.play(Motif.arcadeWaveClear);
+      case InvadersEvent.extraLife:
+        audio.play(Motif.arcadeExtraLife);
     }
   }
 

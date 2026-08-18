@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/audio/providers.dart';
 import '../../../core/clock.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
@@ -71,6 +72,12 @@ class _InvadersScreenState extends ConsumerState<InvadersScreen> {
       seed: _seed,
       input: ValueNotifier(PadInput.none),
       color: palette.arcade,
+      // Read once, at construction: `appAudioProvider` hands out the same
+      // instance for the app's whole life, and that instance already watches
+      // `settings.sound` and mutes itself in place
+      // (`core/audio/providers.dart`), so this screen never needs to
+      // re-read it on a later build.
+      audio: ref.read(appAudioProvider),
     );
     // Kept live rather than only set at construction: under `ThemeMode.system`
     // the device can switch brightness while this screen stays open, and

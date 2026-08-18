@@ -1,8 +1,11 @@
-// `InvadersGame`'s accumulator and pause behaviour (`PLAN-phase-4.md` §4.2,
-// §4.5, PR 4). The sim's own logic — the alien march, scoring, collisions —
-// is `invaders_sim_test.dart`'s and `invaders_sim_equivalence_test.dart`'s;
-// this file only exercises the frame-to-fixed-step arithmetic `InvadersGame`
-// adds on top, through the `debugStepsDone` seam.
+// `InvadersGame`'s accumulator, pause behaviour and event-to-sound mapping
+// (`PLAN-phase-4.md` §4.2, §4.5; `PLAN-phase-5.md` §4.4, PR 4). The sim's own
+// logic — the alien march, scoring, collisions, which method emits which
+// `InvadersEvent` — is `invaders_sim_test.dart`'s and
+// `invaders_sim_equivalence_test.dart`'s; this file exercises the
+// frame-to-fixed-step arithmetic `InvadersGame` adds on top, through the
+// `debugStepsDone` seam, and the drain-and-play step that turns a drained
+// event into a `RecordingAudio` call.
 //
 // These are plain `test()` calls driving `update(dt)` directly rather than a
 // pumped `GameWidget`: a real Flame ticker's frame timing is not something a
@@ -14,17 +17,23 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/audio/app_audio.dart';
+import 'package:zibo_games/core/audio/motif.dart';
+import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
 import 'package:zibo_games/features/arcade/invaders/model/invaders_rules.dart';
 import 'package:zibo_games/features/arcade/invaders/model/invaders_sim.dart';
 import 'package:zibo_games/features/arcade/shared/arcade_controller.dart';
 import 'package:zibo_games/features/arcade/shared/pad_input.dart';
 
-InvadersGame _newGame() => InvadersGame(
+import '../../../core/audio/recording_audio.dart';
+
+InvadersGame _newGame({AppAudio audio = const SilentAudio()}) => InvadersGame(
   sim: InvadersSim(rules: InvadersRules.normal, seed: 1),
   seed: () => 1,
   input: ValueNotifier(PadInput.none),
   color: Colors.green,
+  audio: audio,
 );
 
 void main() {
@@ -165,5 +174,68 @@ void main() {
           'the accumulator was reset, not carrying a backlog into the '
           'new run',
     );
+  });
+
+  group('events turn into sounds', () {
+    test('a player shot plays its motif', () {
+      final audio = RecordingAudio();
+      final game = _newGame(audio: audio);
+
+      game.input.value = const PadInput(fire: true);
+      game.update(InvadersSim.fixedStep);
+
+      expect(audio.played, [Motif.arcadePlayerShoot]);
+    });
+
+    test('the alien block stepping plays its motif', () {
+      final audio = RecordingAudio();
+      final game = _newGame(audio: audio);
+
+      game.sim.debugSetAlienTimer(0);
+      game.update(InvadersSim.fixedStep);
+
+      expect(audio.played, [Motif.arcadeAlienMove]);
+    });
+
+    test('the UFO appearing starts its loop, leaving stops it', () {
+      final audio = RecordingAudio();
+      final game = _newGame(audio: audio);
+
+      game.sim.debugSetUfoTimer(0);
+      game.update(InvadersSim.fixedStep);
+      expect(audio.looping, {Motif.arcadeUfoLoop});
+
+      // Drive it off the field's right edge, where it entered.
+      while (game.sim.ufo != null) {
+        game.update(InvadersSim.fixedStep);
+      }
+      expect(audio.looping, isEmpty);
+    });
+
+    test('pause silences everything, including a loop still playing', () {
+      final audio = RecordingAudio();
+      final game = _newGame(audio: audio);
+
+      game.sim.debugSetUfoTimer(0);
+      game.update(InvadersSim.fixedStep);
+      expect(audio.looping, isNotEmpty);
+
+      game.pause();
+
+      expect(audio.looping, isEmpty);
+    });
+
+    test('sound off silences every motif', () {
+      final audio = RecordingAudio()
+        ..applySettings(const AppSettings(sound: false));
+      final game = _newGame(audio: audio);
+
+      game.input.value = const PadInput(fire: true);
+      game.sim.debugSetAlienTimer(0);
+      game.update(InvadersSim.fixedStep);
+
+      expect(audio.played, isEmpty);
+      expect(audio.looping, isEmpty);
+    });
   });
 }

@@ -63,9 +63,10 @@ const String reduceMotionLabel = 'Less moving about';
 
 /// What the grown-up changes, and the child changes back.
 ///
-/// Six controls, and deliberately not seven: `music` is in schema v1 but gets no
-/// control until phase 5 (PLAN-phase-1.md §2), because nothing plays music yet
-/// and a switch that does nothing is worse than an absent one.
+/// Six controls, and deliberately not seven: `music` is in schema v1 but gets
+/// no control at all, because there is no music anywhere in the app to switch
+/// off (`PLAN-phase-5.md` §3.4, §4.6, the owner's instruction) and a switch
+/// that does nothing is worse than an absent one.
 ///
 /// Each row is a switch with a glyph and a label. No section headers over the
 /// four switches: four rows do not need to be grouped, and a heading is one
