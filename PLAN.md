@@ -53,7 +53,7 @@ Alternatives rejected:
 | Game engine | `flame` | Game loop, sprites, collision, on-screen controls |
 | State and DI | `flutter_riverpod` | Small, no code generation |
 | Save location | `path_provider` | Resolves the per-platform app support directory |
-| Audio | `flutter_soloud` | Low latency, works on all six targets including Linux |
+| Audio | `minisound` | Playback on all six targets from one MIT package, with `miniaudio` vendored rather than fetched at build time. **Not `flutter_soloud`**, which `PLAN.md` named until phase 5 resolved the graph: it declares `http: ^1.3.0` at 2.1.7, 3.5.4 and 4.1.7 alike, so `tool/check_offline.dart` fails on it (`PLAN-phase-5.md` §3.1). `minisound_ffi` declares `RECORD_AUDIO` for a recorder this app never uses, which the app's manifest removes with `tools:node="remove"` — the built APK is checked by `tool/check_apk_permissions.sh` in CI (`PLAN-phase-5.md` §3.2) |
 | Haptics | `HapticFeedback` | Built in. Guard by platform check; mobile only |
 | Save a drawing to the photo library | `gal` | Phase 8, used on Android and iOS only although it also supports macOS and Windows. Depends on `flutter` and nothing else, so it adds one package to the resolved graph and no transitive one. Desktop has no photo library: the PNG goes to a folder under `getDownloadsDirectory()` through `dart:io` |
 | Test | `flutter_test`, `test`, `integration_test` | Built in |
@@ -66,6 +66,12 @@ Banned dependencies:
 - No `google_fonts` — it fetches fonts over the network at runtime. Bundle font files in
   `assets/fonts/` instead.
 - No `http`, no `dio`. If no networking code exists, no networking can leak.
+- No `flutter_soloud`, `audioplayers`, `flame_audio`, `assets_audio_player` or `soundpool` — every
+  audio package with a plausible claim to this app except `minisound` resolves `http` into the shipped
+  graph. `flutter_soloud` declares it directly for its `loadUrl`, and `flame_audio` inherits it from
+  `audioplayers`. Resolutions were run against this SDK before phase 5 started rather than reasoned
+  about; `PLAN-phase-5.md` §3.1 has the table, including `flutter_pcm_sound`, which is clean and
+  covers only three of the six targets.
 - No `image_picker` and no `file_selector`, which phase 8 would otherwise have reached for. Both
   resolve `http` into the **shipped** graph through `image_picker_platform_interface` and
   `file_selector_platform_interface`, and `tool/check_offline.dart` reads the resolved graph rather
@@ -311,7 +317,7 @@ Also test:
 - The timer is visible but small, and can be switched off in settings. It runs either way: a child
   who hid it has not asked to stop being timed.
 - Completion shows confetti, honouring the reduced-motion setting. **Playing the sound is phase 5**:
-  it needs `flutter_soloud`, and a dependency three phases early is one carried through every
+  it needs an audio dependency, and a dependency three phases early is one carried through every
   intervening review (`PLAN-phase-3.md` §2). The fanfare itself is already in the tree — see phase 5
   below, and `app/assets/audio/README.md` for why the placement tick says nothing about whether the
   digit was right.
@@ -511,6 +517,14 @@ the child who would turn it on is the one it exists to gate. The block above sho
 reason it shows `day` — a value that is not the default proves the field is read rather than
 defaulted.
 
+`settings.music` is the one field in the block above that **nothing reads**, and phase 5 — the phase
+that was going to consume it — leaves it that way: there is no music in the app, so a switch for it
+would change nothing, and `PLAN-phase-1.md` §4.5's rule against a control that does nothing applies
+(`PLAN-phase-5.md` §4.6). It stays in the schema at its `false` default rather than being removed,
+because removing it is a shape change to a format whose whole design is that v1 is final, and because
+the field is what a later change would need if music is ever wanted. It is still written and read
+back, so the decode test over the block above still proves the codec round-trips it.
+
 A `puzzleCache` value is `"<clues>|<solution>"`, not the clue string alone. Immediate mistake feedback
 needs the digit that belongs in a cell, and nothing exported from the engine recovers it from the
 clues — the solution is already a field on `GeneratedPuzzle`, and caching it costs 81 bytes per puzzle
@@ -571,8 +585,9 @@ game-station/
    │  ├─ routes.dart                # route names, importable without the app root
    │  ├─ core/
    │  │  ├─ storage/                # ProgressRepository, atomic write, migrations
-   │  │  ├─ audio/                  # soloud wrapper, mute-aware
-   │  │  └─ ui/                     # BigButton, ScreenScaffold, design tokens, avatars
+   │  │  ├─ audio/                  # minisound wrapper, mute-aware (PLAN-phase-5.md §4.2)
+   │  │  ├─ haptics.dart            # HapticFeedback, mobile-gated, settings-gated
+   │  │  └─ ui/                     # BigButton, ScreenScaffold, design tokens, avatars, layout
    │  ├─ features/
    │  │  ├─ home/
    │  │  ├─ profiles/
@@ -861,21 +876,52 @@ What differed from the plan, decided while building it:
   resolving after the stack had changed underneath it could turn into a blank screen. Both are
   behaviour a reader of this phase would otherwise have to re-derive from the diff.
 
-### Phase 5 — polish (4–5 days)
+### Phase 5 — polish (6–8 days)
 
-- Sound effects and light music, all mutable, ducked when the app backgrounds. **The six Sudoku
-  motifs already exist**, ahead of this phase: `tool/audio/generate_motifs.py` synthesises them and
+Planned as eight pull requests in [`PLAN-phase-5.md`](PLAN-phase-5.md), which carries the design, the
+rejected alternatives and the verification checklist. The estimate assumes the same one developer
+working part time as the phases above, and is wider than the 4–5 days this entry first carried for
+three reasons named there: the audio dependency had to be replaced, its two platform hazards need
+guards, and the eleven arcade motifs are a synthesiser session rather than a code change.
+
+- Sound effects, all mutable, ducked when the app backgrounds. **The six Sudoku motifs already
+  exist**, ahead of this phase: `tool/audio/generate_motifs.py` synthesises them and
   `app/assets/audio/sudoku/` holds the output (`app/assets/audio/README.md`). Only assets and a
   script landed early, which carries no dependency and no code through an intervening review — what
-  remains here is `flutter_soloud`, the mute-aware wrapper in `lib/core/audio/`, the calls from the
-  play screen, and the arcade's own set.
-- Haptics on mobile only.
+  remains here is the playback package, the mute-aware wrapper in `lib/core/audio/`, the calls from
+  the play screen, and the arcade's own set. Sounds are events out of `SudokuSession` and
+  `InvadersSim` rather than calls from the widgets, because the model is what knows whether anything
+  happened (`PLAN-phase-5.md` §3.3).
+- **`minisound`, not `flutter_soloud`** (§2). Every other audio package resolves `http` into the
+  shipped graph, and `minisound_ffi`'s `RECORD_AUDIO` is removed from the merged manifest and checked
+  on the built APK. This is the phase's load-bearing decision and its first pull request, so it is
+  answered on hardware before anything is built on it.
+- **No music, and an arcade sound set instead.** §7 asked for "light music"; there is none, on any
+  screen — a loop playing in a room with other people in it is the first thing a parent switches off.
+  Invaders gets nine generated sounds: shoot, hit, enemy shoot, enemy hit, enemy move, the special
+  enemy's warble and its hit, a wave clear and the bonus life (`PLAN-phase-5.md` §4.1). The enemy-move
+  sound is one motif fired once per step of the alien block, so the pulse accelerates as the formation
+  thins with no tempo state anywhere — `InvadersSim._currentStepInterval()` already computes it, from
+  0.70 s to 0.09 s. The arcade original's four descending notes were drafted and cut: four pitched
+  notes in rotation is music by another name (§3.4). `settings.music` therefore gets no control and
+  stays at its `false` default (§5.2).
+- Haptics on mobile only, through `HapticFeedback`'s three permission-free calls. `vibrate()` and
+  `heavyImpact` need `android.permission.VIBRATE` and are banned by a scanner test, so the phase adds
+  no permission.
 - Accessibility: screen-reader labels on every control, a colourblind-safe palette that never uses
-  colour as the only signal, text-scale support, and `reduceMotion` suppressing confetti.
-- Portrait and landscape, with a tablet layout that does not stretch the grid.
-- i18n scaffolding (`.arb`), English first. The largely numeric UI keeps later translation cheap.
-- **Done when:** an accessibility pass on TalkBack and VoiceOver passes, and every screen survives
-  rotation.
+  colour as the only signal, text-scale support, and `reduceMotion` suppressing confetti — the last of
+  which phase 1 already built and `Confetti` already honours. The three claims that can be mechanised
+  become tests: contrast ratios over the palette, tap-target floors per control, and a sweep that
+  pumps every route at 200% text scale.
+- Portrait and landscape, with a tablet layout that does not stretch the grid — a 560 dp cap on the
+  board, a 640 dp cap on a column of content, and one sweep test over every route at three sizes and
+  two text scales, since a `RenderFlex` overflow throws in a widget test.
+- **No i18n scaffolding.** `.arb` files and English-first localisation are dropped from this phase:
+  no translation is planned, and a pipeline with one locale in it is a build step and an indirection
+  bought against a need nobody has. The screens already name their strings as public constants because
+  the tests read them, which is the list a future `.arb` would be seeded from.
+- **Done when:** an accessibility pass on TalkBack and VoiceOver passes, every screen survives
+  rotation, and the sound the phase adds can be silenced by two switches with nothing left playing.
 
 ### Phase 6 — release (3–5 days)
 
@@ -975,7 +1021,9 @@ the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-
 | Corrupt save causes a boot loop | High | Catch, move aside, start fresh, never crash |
 | Behaviour is only ever hand-checked on Android, so a platform-specific bug ships | Medium | CI builds all five platforms on `main`, which catches a compile break but not a behaviour one. The save layer's two platform-sensitive parts are the directory `path_provider` returns and the `rename` in the atomic write; both are exercised by the temp-directory suite, which today runs on the Ubuntu job only — see §9. Force-quitting and reopening is a per-target manual check either way |
 | iOS needs a Mac, $99/year and review | Medium | Plan early; Android and desktop can ship first |
-| Linux audio flakiness | Low | `flutter_soloud`; audio is optional anyway |
+| Linux audio flakiness | Low | `minisound` over `miniaudio`, which loads ALSA, PulseAudio or PipeWire at runtime, so a missing backend is a failed `init` rather than a failed link. `AppAudio` catches it and latches silent; audio is optional anyway |
+| A dependency's manifest puts a permission in the APK — `minisound_ffi` declares `RECORD_AUDIO` | High | Removed with `tools:node="remove"` in the app's manifest, and proved on the artifact rather than the source: `tool/check_apk_permissions.sh` fails on any `android.permission.*` and CI's `build-android` leg runs it on the release APK. A children's app that asks for the microphone is a listing liability, so this is a red build rather than a review note |
+| `minisound` is one maintainer's four packages and stops being maintained | Medium | Reached only through the app's own `AppAudio` interface, so swapping it is one file — but the table in `PLAN-phase-5.md` §3.1 leaves no clean alternative, so the real fallback is an in-repo method channel over `SoundPool` and `AVAudioPlayer` with desktop silent. Front-loaded: phase 5's first pull request puts it on hardware before anything depends on it |
 | Kids-category store rules | Low | Already met: no ads, no network, no data collection |
 | Feature creep — twenty games, none finished | High | Release line fixed at Phase 6, restated in §7's phase-8 entry where the pressure to move it came from |
 | `gal` is one maintainer's package and stops being maintained | Low | It is reached only through the app's own `GalleryExport` interface, so replacing it is the eighty-odd lines of `MediaStore` and `PHPhotoLibrary` code it wraps, in one file. Checked before adopting it: it depends on `flutter` and nothing else, so there is no transitive graph to inherit |
@@ -995,7 +1043,9 @@ the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-
 - [ ] The storage suite runs on a Windows and a macOS runner, not only on Ubuntu. `File.rename` over
       an existing file is the one part of the save path that can behave differently per platform (§8),
       and the CI jobs for those two targets build without testing today.
-- [ ] The built Android APK manifest contains no internet permission (verified in the artifact).
+- [ ] The built Android APK requests no platform permission at all — in particular no `INTERNET` and
+      no `RECORD_AUDIO`, which `minisound_ffi` declares and the app's manifest removes
+      (`tool/check_apk_permissions.sh` on the artifact, run by CI's `build-android` leg).
 - [ ] The release APK is signed with the key from repository secrets, not the fallback debug key —
       the run summary names which, and a store upload can never change key afterwards.
 - [ ] The installed build's settings footer names a version and a build time rather than
@@ -1008,7 +1058,10 @@ the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-
 - [ ] High scores survive 100 restarts.
 - [ ] A six-year-old can play Invaders with the on-screen controls unaided.
 - [ ] Simultaneous move and fire works on the cheapest test device.
-- [ ] The grid is readable at 200% system text scale.
+- [ ] The grid is readable at 200% system text scale, and every other screen is too — the sweep test
+      of `PLAN-phase-5.md` §4.8 covers all seven routes, and a real phone confirms the two it cannot
+      judge: reachability and whether a child can still see the whole board.
+- [ ] Every screen survives rotation, and rotating mid-run keeps the run rather than restarting it.
 - [ ] No ad, analytics or HTTP package anywhere in the dependency tree (`dart pub deps` audit).
 - [ ] Cold start under two seconds on an old low-end Android device.
 
@@ -1023,11 +1076,21 @@ the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-
    `rng_test.dart` and against 700 golden puzzles.
 3. Write the brute-force solver with count-to-2. The rest of the Sudoku work builds on it. **Done.**
 
-The next work is phase 5. Phase 4 is done bar the 144 Hz desktop pass above, and nothing it built is
-in phase 5's way: sound, haptics, landscape and the accessibility pass are all additive to screens
-that exist. The one thing phase 5 inherits rather than adds is the desktop clause — a rotation and
-accessibility pass is another reason to have the app in front of a desktop display, and running the
-ten minutes then closes phase 4's criterion without a phase of its own.
+The next work is phase 5, and its plan is [`PLAN-phase-5.md`](PLAN-phase-5.md). Phase 4 is done bar
+the 144 Hz desktop pass above, and nothing it built is in phase 5's way: sound, haptics, landscape and
+the accessibility pass are all additive to screens that exist. The one thing phase 5 inherits rather
+than adds is the desktop clause — a rotation and accessibility pass is another reason to have the app
+in front of a desktop display, and running the ten minutes then closes phase 4's criterion without a
+phase of its own.
+
+**Phase 5 starts with the dependency, not with a sound**, for the reason phase 8's plan was written
+early: which package plays audio is settled by resolving a graph, and the answer changed the phase.
+`flutter_soloud` — named in §2 from the first draft of this document — declares `http` at every
+version, and so do `audioplayers`, `assets_audio_player` and `soundpool`; `flutter_pcm_sound` is clean
+and covers three of the six targets. `minisound` is the one that resolves clean on all six, and it
+arrives with an Android manifest declaring `RECORD_AUDIO`. So the phase's first pull request adds the
+package, removes that permission and proves both on a built APK before a line of the audio wrapper
+exists: if either check fails, what changes is the phase's shape rather than its schedule.
 
 **Phase 8's plan is written ahead of its turn**, which none of the others were. The question it had to
 answer was which dependency reads the photo library, and that is answered by resolving a graph rather
