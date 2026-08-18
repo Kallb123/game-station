@@ -407,6 +407,72 @@ void main() {
     });
   });
 
+  group('progress', () {
+    /// Every cell the puzzle did not already answer.
+    List<int> blanks(SudokuSession session) => [
+      for (var index = 0; index < spec.cells; index++)
+        if (!session.isGiven(index)) index,
+    ];
+
+    test('is 0 before anything is entered', () {
+      expect(start().progress, 0);
+    });
+
+    test('counts a filled cell whether or not it agrees with the solution', () {
+      final session = start();
+      final blank = blanks(session).first;
+
+      session
+        ..select(blank)
+        ..enter(wrongAt(blank));
+
+      expect(session.progress, 1 / blanks(session).length);
+    });
+
+    test('does not count a given', () {
+      final session = start();
+      expect(session.digitAt(firstGiven), isNot(0));
+
+      expect(session.progress, 0, reason: 'only the givens are filled');
+    });
+
+    test('reaches 1 once every blank holds a digit, right or wrong', () {
+      final session = start();
+      for (final index in blanks(session)) {
+        session
+          ..select(index)
+          ..enter(wrongAt(index));
+      }
+
+      expect(session.progress, 1);
+      expect(session.isSolved, isFalse, reason: 'wrong on purpose');
+    });
+
+    test('is 1 for a puzzle whose clues already fill every cell', () {
+      final full = SudokuSession.start(
+        id: id,
+        record: PuzzleRecord(clues: record.solution, solution: record.solution),
+      );
+
+      expect(full.progress, 1);
+    });
+
+    test('comes back down when a filled cell is erased', () {
+      final session = start();
+      final blank = blanks(session).first;
+
+      session
+        ..select(blank)
+        ..enter(wrongAt(blank));
+      expect(session.progress, greaterThan(0));
+
+      session
+        ..select(blank)
+        ..erase();
+      expect(session.progress, 0);
+    });
+  });
+
   group('a hint', () {
     test('fills a cell the solution agrees with, and counts', () {
       final session = start();

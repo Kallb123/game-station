@@ -264,6 +264,27 @@ class SudokuSession extends ChangeNotifier {
   /// (`PLAN.md` §3.7).
   int get hints => _hints;
 
+  /// How much of the child's own share of the board is filled in, from `0` to
+  /// `1`.
+  ///
+  /// Counted over the cells the puzzle did not already answer — a given asks
+  /// nothing of the child, so counting it would start every puzzle short of
+  /// empty and never reach `1` at a board only the givens fill in one corner
+  /// of. A cell counts as filled whether or not it agrees with the solution:
+  /// this is progress through the grid, not correctness, which [isWrong]
+  /// already answers elsewhere. `1` for a puzzle with no blanks at all, rather
+  /// than a division by zero.
+  double get progress {
+    var blanks = 0;
+    var filled = 0;
+    for (var index = 0; index < _digits.length; index++) {
+      if (isGiven(index)) continue;
+      blanks++;
+      if (_digits[index] != 0) filled++;
+    }
+    return blanks == 0 ? 1 : filled / blanks;
+  }
+
   /// Selects the cell at [index], or nothing when it is null.
   ///
   /// A given is selectable: tapping one highlights its digit everywhere, which
