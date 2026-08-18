@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import random
 import struct
 import sys
 import wave
@@ -177,13 +178,21 @@ def _add_voice(out: list[float], voice: Voice, cents: float, share: float) -> No
 
 
 def _envelope(voice: Voice, t: float) -> float:
-    if t < voice.attack:
+    return _amp_envelope(t, voice.duration, voice.attack, voice.decay)
+
+
+def _amp_envelope(t: float, duration: float, attack: float, decay: float) -> float:
+    """The same raised-cosine-attack, exponential-decay shape as `_envelope`,
+    over raw numbers rather than a `Voice` — what the noise-based explosions
+    below need, since they have no pitch or timbre for a `Voice` to carry.
+    """
+    if t < attack:
         # Raised cosine: it reaches full amplitude with zero slope, where a
         # linear ramp arrives at a corner that is audible as a tick.
-        level = 0.5 - 0.5 * math.cos(math.pi * t / voice.attack)
+        level = 0.5 - 0.5 * math.cos(math.pi * t / attack)
     else:
-        level = math.exp(-(t - voice.attack) / voice.decay)
-    remaining = voice.duration - t
+        level = math.exp(-(t - attack) / decay)
+    remaining = duration - t
     if remaining < FADE_OUT:
         level *= max(0.0, remaining / FADE_OUT)
     return level
@@ -194,6 +203,38 @@ def low_pass(samples: list[float], cutoff_hz: float) -> list[float]:
     alpha = 1 - math.exp(-2 * math.pi * cutoff_hz / SAMPLE_RATE)
     out, previous = [], 0.0
     for sample in samples:
+        previous += alpha * (sample - previous)
+        out.append(previous)
+    return out
+
+
+def white_noise(duration: float, seed: int) -> list[float]:
+    """`duration` seconds of noise in [-1, 1], for an explosion rather than a tone.
+
+    `random.Random` rather than the engine's own `Rng` (`packages/puzzle_engine`)
+    deliberately: this script is not `lib/`, `tool/check_determinism.dart` does
+    not scan it, and the outputs are committed rather than generated at build
+    time, so the only property that matters is that the same seed reproduces the
+    same bytes for `--check` — which the standard library's Mersenne Twister
+    already guarantees.
+    """
+    rng = random.Random(seed)
+    return [rng.uniform(-1.0, 1.0) for _ in range(round(duration * SAMPLE_RATE))]
+
+
+def swept_low_pass(
+    samples: list[float], start_hz: float, end_hz: float
+) -> list[float]:
+    """`low_pass`, but the cutoff glides from `start_hz` to `end_hz` across the
+    buffer. A fixed cutoff makes an explosion sound the same throughout; a
+    falling one is what `player_hit` needs to read as a sweep rather than a
+    klaxon (`PLAN-phase-5.md` §4.1).
+    """
+    out, previous = [], 0.0
+    last = max(len(samples) - 1, 1)
+    for i, sample in enumerate(samples):
+        cutoff = start_hz * (end_hz / start_hz) ** (i / last)
+        alpha = 1 - math.exp(-2 * math.pi * cutoff / SAMPLE_RATE)
         previous += alpha * (sample - previous)
         out.append(previous)
     return out
@@ -339,6 +380,132 @@ def complete() -> list[float]:
     return at_peak(low_pass(render(voices, 1.35), 5500), -3)
 
 
+# --- The arcade set (`PLAN-phase-5.md` §4.1) --------------------------------
+#
+# The two shot sounds are exact mirrors of each other — one rises, one falls —
+# so they are told apart by ear rather than by level alone. The three
+# explosions share one enveloped-noise helper and differ only in their filter.
+
+
+def _noise_burst(
+    duration: float, seed: int, attack: float, decay: float
+) -> list[float]:
+    """`duration` seconds of enveloped white noise: the shared raw material
+    under `player_hit`, `alien_hit` and `ufo_hit`, before each one's own
+    filter turns it into a distinct explosion.
+    """
+    noise = white_noise(duration, seed)
+    return [
+        sample * _amp_envelope(i / SAMPLE_RATE, duration, attack, decay)
+        for i, sample in enumerate(noise)
+    ]
+
+
+def player_shoot() -> list[float]:
+    """The ship fires: a quick upward chirp.
+
+    Rises where `alien_shoot` falls (§4.1) — the same interval and the same
+    timbre, reversed, so the two are told apart by ear rather than by level
+    alone.
+    """
+    voices = [
+        Voice(0.0, 0.08, "A5", bend_to="D6", timbre=SOFT, attack=0.002, decay=0.05)
+    ]
+    return at_peak(render(voices, 0.09), -16)
+
+
+def player_hit() -> list[float]:
+    """The ship is destroyed: a descending noise sweep, not a klaxon.
+
+    The loudest motif in the arcade set, and still not scary (`AGENTS.md`):
+    the weight is in the shape, filtered noise whose brightness falls across
+    the whole 500 ms, rather than in a tone with an edge to it.
+    """
+    burst = _noise_burst(0.5, seed=1, attack=0.004, decay=0.16)
+    return at_peak(swept_low_pass(burst, 4000, 250), -8)
+
+
+def alien_shoot() -> list[float]:
+    """An alien fires: `player_shoot`'s chirp falling instead of rising, and
+    2 dB quieter. The sound a child must react to — a shot on its way in — is
+    not allowed to be confusable with the one they just fired themselves.
+    """
+    voices = [
+        Voice(0.0, 0.10, "D6", bend_to="A5", timbre=SOFT, attack=0.002, decay=0.06)
+    ]
+    return at_peak(render(voices, 0.11), -18)
+
+
+def alien_hit() -> list[float]:
+    """An alien is destroyed: a short, dull pop — the smallest of the three
+    explosions, since it is also the one heard most often.
+    """
+    burst = _noise_burst(0.18, seed=2, attack=0.002, decay=0.05)
+    return at_peak(low_pass(burst, 1800), -12)
+
+
+def alien_move() -> list[float]:
+    """One step of the alien block: a single low, muted tick, not a pitched
+    sequence. Cycling four descending notes on every step was drafted and cut
+    — that is music by another name (`PLAN-phase-5.md` §3.4) — so this is one
+    note, low enough to sit under the shots and short enough that the fastest
+    wave's eleven-a-second rate does not run it into itself.
+    """
+    voices = [Voice(0.0, 0.055, "C3", timbre=MUTED, attack=0.002, decay=0.02)]
+    return at_peak(render(voices, 0.07), -16)
+
+
+def ufo_loop() -> list[float]:
+    """The special enemy, while it is on screen: a wavering tone built to
+    loop. Vibrato plus two oscillators 15 cents apart give the "not quite one
+    pitch" warble, and a decay long enough to barely fall across its own
+    length keeps a retrigger (`minisound`'s only way to loop,
+    `PLAN-phase-5.md` §3.1) from reading as a pump.
+    """
+    voices = [
+        Voice(0.0, 0.39, "F4", timbre=MUTED, attack=0.006, decay=2.0,
+              vibrato_hz=6.0, vibrato_cents=60.0, detune_cents=15.0),
+    ]
+    return at_peak(render(voices, 0.40), -20)
+
+
+def ufo_hit() -> list[float]:
+    """The special enemy is destroyed: a bigger, brighter pop than
+    `alien_hit` — a wider sweep and a longer tail, so the enemy that took
+    several shots to line up sounds like it was worth them.
+    """
+    burst = _noise_burst(0.35, seed=3, attack=0.003, decay=0.12)
+    return at_peak(swept_low_pass(burst, 3000, 400), -8)
+
+
+def wave_clear() -> list[float]:
+    """The last alien of a wave dies: a rising bell arpeggio up to a held
+    note — the only progress marker Invaders has, so it is allowed to be the
+    biggest bell sound in the set bar `sudoku/complete.wav` itself.
+    """
+    voices = [
+        Voice(0.00, 0.18, "C6", timbre=BELL, decay=0.15, gain=0.8),
+        Voice(0.09, 0.20, "E6", timbre=BELL, decay=0.16, gain=0.85),
+        Voice(0.18, 0.22, "G6", timbre=BELL, decay=0.18, gain=0.9),
+        Voice(0.27, 0.40, "C7", timbre=BELL, decay=0.30, gain=1.0),
+    ]
+    return at_peak(render(voices, 0.70), -8)
+
+
+def extra_life() -> list[float]:
+    """The 10,000-point bonus life: an octave leap with a shimmer on top,
+    shaped differently from `wave_clear`'s rising triad on purpose — a bonus
+    arriving mid-wave must not be mistaken for the wave ending.
+    """
+    voices = [
+        Voice(0.00, 0.14, "C6", timbre=BELL, decay=0.10, gain=0.8),
+        Voice(0.07, 0.16, "C7", timbre=BELL, decay=0.12, gain=0.9),
+        Voice(0.16, 0.42, "E7", timbre=BELL, decay=0.28, gain=1.0,
+              vibrato_hz=6.0, vibrato_cents=15.0),
+    ]
+    return at_peak(render(voices, 0.60), -8)
+
+
 MOTIFS = {
     "sudoku/place": place,
     "sudoku/correct": correct,
@@ -346,6 +513,15 @@ MOTIFS = {
     "sudoku/erase": erase,
     "sudoku/hint": hint,
     "sudoku/complete": complete,
+    "arcade/player_shoot": player_shoot,
+    "arcade/player_hit": player_hit,
+    "arcade/alien_shoot": alien_shoot,
+    "arcade/alien_hit": alien_hit,
+    "arcade/alien_move": alien_move,
+    "arcade/ufo_loop": ufo_loop,
+    "arcade/ufo_hit": ufo_hit,
+    "arcade/wave_clear": wave_clear,
+    "arcade/extra_life": extra_life,
 }
 
 

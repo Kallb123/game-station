@@ -71,6 +71,7 @@ flutter:
   #   - assets/images/
   assets:
     - assets/audio/sudoku/
+    - assets/audio/arcade/
 
   # Fonts are bundled rather than fetched: google_fonts downloads at runtime,
   # which the no-network rule rules out. See assets/fonts/README.md.

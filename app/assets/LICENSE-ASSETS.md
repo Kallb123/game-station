@@ -27,6 +27,15 @@ or an F-Droid listing.
 | `audio/sudoku/erase.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
 | `audio/sudoku/hint.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
 | `audio/sudoku/complete.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/player_shoot.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/player_hit.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/alien_shoot.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/alien_hit.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/alien_move.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/ufo_loop.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/ufo_hit.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/wave_clear.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/arcade/extra_life.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
 
 The two images above are the app icon, at the two sizes an Amazon Appstore listing asks for: 512 px
 for the large icon, 114 px for the small one (PLAN.md §9, phase 6). The 512 px one is also the master
@@ -34,14 +43,13 @@ that [`tool/icon/generate_platform_icons.py`](../../tool/icon/generate_platform_
 into the Android mipmaps, the two `AppIcon.appiconset`s and the Windows `.ico`, so replacing it and
 re-running that script is the whole of changing the icon.
 
-The six audio files are the Sudoku motifs, and they are the licensing-free case on purpose: they are
-generated from arithmetic by a committed script rather than taken from a sample library, so there is
-no third-party licence in the tree to honour and no attribution to carry into the about screen. See
-[`audio/README.md`](audio/README.md) for what each one plays for and how to change it. A recorded
-or downloaded sound may still be added later, but it needs its own row and has to clear the rules
-above — "free for personal use" is not one of the licences listed there.
+The fifteen audio files are the Sudoku and arcade motifs, and they are the licensing-free case on
+purpose: they are generated from arithmetic by a committed script rather than taken from a sample
+library, so there is no third-party licence in the tree to honour and no attribution to carry into
+the about screen. See [`audio/README.md`](audio/README.md) for what each one plays for and how to
+change it. A recorded or downloaded sound may still be added later, but it needs its own row and has
+to clear the rules above — "free for personal use" is not one of the licences listed there.
 
 Neither of the images is declared in [`pubspec.yaml`](../pubspec.yaml). Nothing in the app draws
 them — they are store and build inputs, not runtime assets — and declaring them would put a 171 kB
-PNG in every build to be read by nothing. The audio is undeclared too, for now: see
-[`audio/README.md`](audio/README.md).
+PNG in every build to be read by nothing. The audio is declared: see [`audio/README.md`](audio/README.md).
