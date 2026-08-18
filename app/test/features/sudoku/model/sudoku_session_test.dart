@@ -678,6 +678,149 @@ void main() {
     });
   });
 
+  group('sound events', () {
+    // `PLAN-phase-5.md` §4.3's table, both `MistakeFeedback` values.
+
+    test('entering a digit emits placedCorrect or placedWrong immediately', () {
+      final session = start()..select(firstEmpty);
+
+      session.enter(solutionAt(firstEmpty));
+      expect(session.takeEvent(), SudokuEvent.placedCorrect);
+
+      session
+        ..select(firstEmpty)
+        ..enter(wrongAt(firstEmpty));
+      expect(session.takeEvent(), SudokuEvent.placedWrong);
+    });
+
+    test('entering a digit always emits placed at completion', () {
+      final session =
+          SudokuSession.start(
+              id: id,
+              record: record,
+              mistakeFeedback: MistakeFeedback.atCompletion,
+            )
+            ..select(firstEmpty)
+            ..enter(wrongAt(firstEmpty));
+      expect(session.takeEvent(), SudokuEvent.placed);
+
+      session
+        ..select(firstEmpty)
+        ..enter(solutionAt(firstEmpty));
+      expect(
+        session.takeEvent(),
+        SudokuEvent.placed,
+        reason: 'this mode never hears placedCorrect or placedWrong',
+      );
+    });
+
+    test('a move that changes nothing emits nothing', () {
+      final session = start();
+
+      session.enter(1);
+      expect(session.takeEvent(), isNull, reason: 'nothing is selected');
+
+      session
+        ..select(firstGiven)
+        ..enter(solutionAt(firstGiven) % spec.digits + 1);
+      expect(session.takeEvent(), isNull, reason: 'the cell is a given');
+
+      session
+        ..select(firstEmpty)
+        ..enter(solutionAt(firstEmpty));
+      session.takeEvent();
+
+      session.enter(solutionAt(firstEmpty));
+      expect(
+        session.takeEvent(),
+        isNull,
+        reason: 'the cell already holds that digit',
+      );
+    });
+
+    test('toggling a pencil mark emits noted', () {
+      final session = start()
+        ..select(firstEmpty)
+        ..pencilMode = true;
+
+      session.enter(1);
+      expect(session.takeEvent(), SudokuEvent.noted);
+    });
+
+    test('erasing a cell emits erased', () {
+      final session = start()..select(firstEmpty);
+      session.enter(solutionAt(firstEmpty));
+      session.takeEvent();
+
+      session.erase();
+      expect(session.takeEvent(), SudokuEvent.erased);
+    });
+
+    test('a hint emits hinted, whether it points or reveals', () {
+      final pointing = start()
+        ..select(firstEmpty)
+        ..enter(wrongAt(firstEmpty));
+      pointing.takeEvent();
+      pointing.hint();
+      expect(pointing.takeEvent(), SudokuEvent.hinted, reason: 'pointing');
+
+      final revealing = start();
+      revealing.hint();
+      expect(revealing.takeEvent(), SudokuEvent.hinted, reason: 'revealing');
+    });
+
+    test('undo and redo both emit restored', () {
+      final session = start()..select(firstEmpty);
+      session.enter(solutionAt(firstEmpty));
+      session.takeEvent();
+
+      session.undo();
+      expect(session.takeEvent(), SudokuEvent.restored);
+
+      session.redo();
+      expect(session.takeEvent(), SudokuEvent.restored);
+    });
+
+    test('selecting a cell emits nothing', () {
+      final session = start();
+      session.select(firstEmpty);
+      expect(session.takeEvent(), isNull);
+    });
+
+    test(
+      'the move that completes the grid emits solved, not its own event',
+      () {
+        final session = start();
+        final blanks = [
+          for (var index = 0; index < spec.cells; index++)
+            if (!session.isGiven(index)) index,
+        ];
+
+        for (final index in blanks.sublist(0, blanks.length - 1)) {
+          session
+            ..select(index)
+            ..enter(solutionAt(index));
+        }
+        session.takeEvent();
+
+        session
+          ..select(blanks.last)
+          ..enter(solutionAt(blanks.last));
+
+        expect(session.isSolved, isTrue);
+        expect(session.takeEvent(), SudokuEvent.solved);
+      },
+    );
+
+    test('an event is played once: the read clears it', () {
+      final session = start()..select(firstEmpty);
+      session.enter(solutionAt(firstEmpty));
+
+      expect(session.takeEvent(), isNotNull);
+      expect(session.takeEvent(), isNull);
+    });
+  });
+
   group('saving and resuming', () {
     /// A board with entries, notes, a wrong digit and history on it.
     SudokuSession played() {

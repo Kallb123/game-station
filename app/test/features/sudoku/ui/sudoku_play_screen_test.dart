@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/audio/app_audio.dart';
+import 'package:zibo_games/core/audio/providers.dart';
 import 'package:zibo_games/core/storage/progress_repository.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
@@ -46,6 +48,7 @@ void main() {
     ThemeData? theme,
     double textScale = 1,
     EdgeInsets padding = EdgeInsets.zero,
+    List<Override> overrides = const [],
   }) async {
     final store = MemorySaveStore(initial: save ?? freshSave());
     final container = ProviderContainer(
@@ -53,6 +56,12 @@ void main() {
         saveStoreProvider.overrideWithValue(store),
         initialSaveProvider.overrideWithValue(await store.load()),
         puzzleSourceProvider.overrideWithValue(source ?? FakePuzzleSource()),
+        // Every placement plays a motif now (`PLAN-phase-5.md` §4.3), and this
+        // harness builds its own scope rather than going through
+        // `app_harness.dart`'s — so it needs the same default no test here
+        // asks for by name.
+        appAudioProvider.overrideWithValue(const SilentAudio()),
+        ...overrides,
       ],
     );
     addTearDown(container.dispose);

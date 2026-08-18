@@ -389,7 +389,9 @@ void main() {
     // fake with no dependency on the save at all, so its `sound: false` case
     // is set directly rather than through a profile
     // (`PLAN-phase-5.md` §4.2's PR 1 done-criterion).
-    testWidgets('plays once on completion', (tester) async {
+    testWidgets('plays once on completion, replacing the placement tick', (
+      tester,
+    ) async {
       final audio = RecordingAudio();
       await openTheBoard(
         tester,
@@ -397,7 +399,14 @@ void main() {
       );
       await fillBoard(tester);
 
-      expect(audio.played, [Motif.sudokuComplete]);
+      // Every correct digit before the last plays `sudokuCorrect`
+      // (`PLAN-phase-5.md` PR 2); the finishing one plays the fanfare instead
+      // of its own tick, not as well as it (§4.3).
+      expect(audio.played.last, Motif.sudokuComplete);
+      expect(
+        audio.played.where((motif) => motif == Motif.sudokuComplete),
+        hasLength(1),
+      );
       await settleCelebration(tester);
     });
 
@@ -412,6 +421,77 @@ void main() {
 
       expect(audio.played, isEmpty);
       await settleCelebration(tester);
+    });
+  });
+
+  group('the rest of the sudoku set', () {
+    // `PLAN-phase-5.md` §4.3: one call site for seven motifs, not six.
+
+    SaveData savedWith(MistakeFeedback feedback) {
+      final save = freshSave();
+      return save.copyWith(
+        profiles: [
+          for (final profile in save.profiles)
+            profile.copyWith(mistakeFeedback: feedback),
+        ],
+      );
+    }
+
+    testWidgets('a placement, an erase, a hint and an undo each sound once', (
+      tester,
+    ) async {
+      final audio = RecordingAudio();
+      await openTheBoard(
+        tester,
+        overrides: [appAudioProvider.overrideWithValue(audio)],
+      );
+      final cell = emptyCells(boardOf(tester)).first;
+      final right = int.parse(fixtureRecord(solvedPuzzle).solution[cell]);
+      final wrong = _wrongDigitFor(cell);
+
+      await tapIn(tester, cell, right);
+      expect(audio.played, [Motif.sudokuCorrect]);
+
+      await tapIn(tester, cell, wrong);
+      expect(audio.played, [Motif.sudokuCorrect, Motif.sudokuWrong]);
+
+      await tester.tap(find.byTooltip('Erase'));
+      await tester.pump();
+      expect(audio.played, [
+        Motif.sudokuCorrect,
+        Motif.sudokuWrong,
+        Motif.sudokuErase,
+      ]);
+
+      await tester.tap(find.byTooltip('Hint'));
+      await tester.pump();
+      expect(audio.played.last, Motif.sudokuHint);
+
+      await tester.tap(find.byTooltip('Undo'));
+      await tester.pump();
+      expect(
+        audio.played.last,
+        Motif.sudokuErase,
+        reason: 'restored maps to the same motif as erased',
+      );
+    });
+
+    testWidgets('an atCompletion profile entering wrong digits logs only '
+        'sudokuPlace', (tester) async {
+      final audio = RecordingAudio();
+      await openTheBoard(
+        tester,
+        save: savedWith(MistakeFeedback.atCompletion),
+        overrides: [appAudioProvider.overrideWithValue(audio)],
+      );
+      final cells = emptyCells(boardOf(tester)).take(3);
+
+      for (final cell in cells) {
+        await tapIn(tester, cell, _wrongDigitFor(cell));
+      }
+
+      expect(audio.played, isNotEmpty);
+      expect(audio.played, everyElement(Motif.sudokuPlace));
     });
   });
 

@@ -29,11 +29,14 @@ and committing both. The numbers are the sound; a diff cannot be reviewed by rea
 Levels are relative to each other and set per motif rather than normalised flat: `place` fires
 hundreds of times per puzzle and `complete` once, so the tick sits 15 dB under the fanfare.
 
-**`place` is deliberately neutral about whether the digit is right.** `MistakeFeedback.atCompletion`
-hides wrongness until the grid is full (`PLAN.md` §3.7), and a placement sound that brightened for a
-correct digit would hand that back through the speaker — the child would learn the tick instead
-of the Sudoku. On those profiles the placement tick is the whole feedback; `correct` and `wrong`
-belong to `MistakeFeedback.immediate`.
+**One sound per placement, not two.** `place` is not layered under `correct` or `wrong` — a digit
+plays exactly one of the three. On `MistakeFeedback.immediate`, `correct` or `wrong` plays *instead
+of* `place`; on `MistakeFeedback.atCompletion`, `place` is what plays for every digit, because that
+mode hides wrongness until the grid is full (`PLAN.md` §3.7) and a placement sound that brightened
+for a correct digit would hand that back through the speaker — the child would learn the tick
+instead of the Sudoku. `noted` plays `place` too, at a lighter volume: a pencil mark is a quieter
+version of the same act. `erase` also covers an undo or a redo, which put a cell back rather than
+clearing it, because both are the board changing back (`PLAN-phase-5.md` §4.3).
 
 ## Not here yet
 
@@ -48,9 +51,10 @@ stays in the schema, unread.
 `lib/core/audio/` plays these through [`minisound`](https://pub.dev/packages/minisound)
 (`PLAN-phase-5.md` §3.1, not `flutter_soloud`, which resolves `http` into the shipped graph). The
 `sound` setting gates every motif inside `AppAudio` rather than at each call site, so a new call site
-cannot forget to check it. `sudoku/complete.wav` is the one motif with a call site so far — the
-fanfare under the completion confetti (`PLAN.md` §3.7) — and the rest arrive with
-`PLAN-phase-5.md`'s PR 2.
+cannot forget to check it. `sudoku/complete.wav` plays under the completion confetti (`PLAN.md`
+§3.7); the rest of the Sudoku set plays from `SudokuSession`'s own events, drained by one listener
+in `sudoku_play_screen.dart` rather than called from the keypad or the grid (`PLAN-phase-5.md` §3.3,
+§4.3).
 
 `assets/audio/sudoku/` is declared in [`pubspec.yaml`](../../pubspec.yaml); `assets/audio/arcade/`
 is declared once PR 3 puts files in it — an asset directory declared before it has content fails the
