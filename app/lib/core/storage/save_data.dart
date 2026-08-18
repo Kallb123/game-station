@@ -83,7 +83,8 @@ class AppSettings {
     this.reduceMotion = false,
   });
 
-  /// Sound effects. Phase 5 consumes it; phase 1 only stores it.
+  /// Sound effects, consumed by `core/audio/app_audio.dart`
+  /// (`PLAN-phase-5.md` §1).
   final bool sound;
 
   /// Background music. No control is drawn for it until phase 5

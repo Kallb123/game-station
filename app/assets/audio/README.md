@@ -37,14 +37,21 @@ belong to `MistakeFeedback.immediate`.
 
 ## Not here yet
 
-Arcade and drawing-board sounds, and the light music of `PLAN.md` §7's phase 5. Adding a motif means
-adding a function to the script and a row above.
+Arcade and drawing-board sounds. Adding a motif means adding a function to the script and a row
+above — the nine arcade files `PLAN-phase-5.md` §4.1 names are rows waiting to be filled in.
 
-Nothing plays any of this yet. Playback is phase 5, with `flutter_soloud` and the mute-aware wrapper
-in `lib/core/audio/`; the `sound` setting exists and is stored, but nothing consumes it
-(`PLAN-phase-1.md` §2).
+There is no music anywhere in the app, by the owner's instruction (`PLAN-phase-5.md` §2): `settings.music`
+stays in the schema, unread.
 
-These files are therefore **not declared in [`pubspec.yaml`](../../pubspec.yaml)**, for the same
-reason the icon PNGs are not: an asset declared before anything reads it is bytes in every
-platform's binary to be read by nothing. Phase 5 declares `assets/audio/` in the commit that first
-plays a sound.
+## Playback
+
+`lib/core/audio/` plays these through [`minisound`](https://pub.dev/packages/minisound)
+(`PLAN-phase-5.md` §3.1, not `flutter_soloud`, which resolves `http` into the shipped graph). The
+`sound` setting gates every motif inside `AppAudio` rather than at each call site, so a new call site
+cannot forget to check it. `sudoku/complete.wav` is the one motif with a call site so far — the
+fanfare under the completion confetti (`PLAN.md` §3.7) — and the rest arrive with
+`PLAN-phase-5.md`'s PR 2.
+
+`assets/audio/sudoku/` is declared in [`pubspec.yaml`](../../pubspec.yaml); `assets/audio/arcade/`
+is declared once PR 3 puts files in it — an asset directory declared before it has content fails the
+build.

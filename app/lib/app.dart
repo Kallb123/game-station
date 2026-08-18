@@ -4,6 +4,7 @@ import 'dart:ui' show AppExitResponse;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/audio/providers.dart';
 import 'core/storage/providers.dart';
 import 'core/storage/save_data.dart';
 import 'core/ui/theme.dart';
@@ -41,9 +42,11 @@ class _ZiboGamesAppState extends ConsumerState<ZiboGamesApp> {
     _lifecycle = AppLifecycleListener(
       // `paused` is the last callback Android and iOS guarantee before a
       // process can be killed, and `detached` covers the desktop window closing
-      // without an exit request.
-      onPause: _flush,
-      onDetach: _flush,
+      // without an exit request. Audio stops with the same two: the one-shots
+      // are all under a second, so what this really silences is a UFO warble
+      // still going when a parent takes a phone call (`PLAN-phase-5.md` §4.2).
+      onPause: _flushAndSilence,
+      onDetach: _flushAndSilence,
       onExitRequested: _flushThenExit,
     );
   }
@@ -78,7 +81,10 @@ class _ZiboGamesAppState extends ConsumerState<ZiboGamesApp> {
   /// Fire and forget: the platform is not waiting for us here, and a write that
   /// fails is recorded on the repository rather than thrown
   /// (`progress_repository.dart`).
-  void _flush() => unawaited(ref.read(progressRepositoryProvider).flush());
+  void _flushAndSilence() {
+    unawaited(ref.read(progressRepositoryProvider).flush());
+    ref.read(appAudioProvider).stopAll();
+  }
 
   /// Desktop asks before it closes, so here the write can actually be waited
   /// for. [ProgressRepository.flush] never throws, so the answer is always

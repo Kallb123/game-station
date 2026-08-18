@@ -18,6 +18,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
+import '../../../core/audio/motif.dart';
+import '../../../core/audio/providers.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/save_data.dart';
@@ -498,6 +500,10 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     _solved = true;
     _stopClock();
     session.removeListener(_onSessionChanged);
+    // Under the confetti, and unaffected by `reduceMotion`: that setting is
+    // about movement, and a child who asked for less of it did not ask for
+    // less celebration (`PLAN.md` §3.7, `PLAN-phase-5.md` §4.3).
+    ref.read(appAudioProvider).play(Motif.sudokuComplete);
 
     _repository.recordSolved(
       session.id,

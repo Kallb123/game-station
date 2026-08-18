@@ -11,7 +11,7 @@ environment:
   sdk: ^3.12.2
 
 # Dependencies arrive with the phase that needs them: flame and flutter_riverpod
-# in phases 1 and 4, path_provider in phase 1, flutter_soloud in phase 5.
+# in phases 1 and 4, path_provider in phase 1, minisound in phase 5.
 #
 # Nothing that talks to a network, shows an ad, or reports a crash may be added
 # here — `tool/check_offline.dart` fails the build if one appears, including
@@ -32,6 +32,14 @@ dependencies:
   # `tool/check_offline.dart` reads the graph rather than trusting reachability,
   # and weakening that check to admit a state library is the wrong trade.
   flutter_riverpod: ^2.6.1
+  # Playback on all six targets from one MIT package, with `miniaudio` vendored
+  # in `minisound_ffi` rather than fetched at build time (`PLAN.md` §2,
+  # `PLAN-phase-5.md` §3.1). Not `flutter_soloud`, which resolves `http` into
+  # the shipped graph at every version and fails `tool/check_offline.dart`.
+  # `minisound_ffi`'s own manifest declares `RECORD_AUDIO` for a recorder this
+  # app never uses; `android/app/src/main/AndroidManifest.xml` removes it with
+  # `tools:node="remove"` (`PLAN-phase-5.md` §3.2).
+  minisound: ^3.0.1
   # Resolves the per-platform application support directory, which is where
   # `save.json` lives. It is the only way to get that path without hard-coding
   # five platform conventions, and it reaches no network: the plugin is a thin
@@ -61,7 +69,8 @@ flutter:
   #
   # assets:
   #   - assets/images/
-  #   - assets/audio/
-  #
+  assets:
+    - assets/audio/sudoku/
+
   # Fonts are bundled rather than fetched: google_fonts downloads at runtime,
   # which the no-network rule rules out. See assets/fonts/README.md.

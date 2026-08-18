@@ -10,6 +10,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/app.dart';
+import 'package:zibo_games/core/audio/app_audio.dart';
+import 'package:zibo_games/core/audio/providers.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
@@ -32,7 +34,10 @@ SaveData freshSave({AppSettings? settings}) {
 ///
 /// [overrides] is where a test that reaches a Sudoku screen puts its
 /// `puzzleSourceProvider`: without one the app generates for real, on an
-/// isolate, in a widget test (`PLAN-phase-3.md` §4.2).
+/// isolate, in a widget test (`PLAN-phase-3.md` §4.2). It is also where a test
+/// that asserts what would have played overrides `appAudioProvider` again,
+/// with a `RecordingAudio` — the default below is a plain [SilentAudio], so no
+/// widget test needs an audio device (`PLAN-phase-5.md` §4.2).
 ///
 /// Called a second time in the same test, it is a relaunch: the previous tree
 /// comes down first. Without that, `pumpWidget` would update the element tree in
@@ -49,6 +54,7 @@ Future<ProviderContainer> pumpApp(
       overrides: [
         saveStoreProvider.overrideWithValue(store),
         initialSaveProvider.overrideWithValue(loaded),
+        appAudioProvider.overrideWithValue(const SilentAudio()),
         ...overrides,
       ],
     ),
