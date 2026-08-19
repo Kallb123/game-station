@@ -339,6 +339,39 @@ void main() {
       expect(killed, isTrue, reason: 'the UFO was never hit');
     });
 
+    test('killing the UFO does not respawn it immediately', () {
+      const rules = InvadersRules.normal;
+      final sim = InvadersSim(rules: rules, seed: 1);
+      sim.debugSetAliveRows(_aliveRowsMissingColumn(rules.alienRows, 5));
+      sim.debugSetUfo(const Ufo(x: 104, direction: 0, score: 100));
+
+      sim.step(const PadInput(fire: true));
+      sim.drainEvents();
+
+      var killed = false;
+      for (var i = 0; i < 500 && !killed; i++) {
+        sim.step(PadInput.none);
+        if (sim.drainEvents().contains(InvadersEvent.ufoKilled)) killed = true;
+      }
+      expect(killed, isTrue, reason: 'the UFO was never hit');
+
+      // The schedule's shortest possible gap (`_ufoInterval - _ufoJitter`)
+      // is 20s; a fraction of that is enough to prove it isn't reappearing
+      // on the very next step, without the test needing the real minimum.
+      var reappeared = false;
+      for (var i = 0; i < 1000 && !reappeared; i++) {
+        sim.step(PadInput.none);
+        if (sim.drainEvents().contains(InvadersEvent.ufoAppeared)) {
+          reappeared = true;
+        }
+      }
+      expect(
+        reappeared,
+        isFalse,
+        reason: 'the UFO respawned right after being killed',
+      );
+    });
+
     test('clearing a wave produces a waveCleared event', () {
       const rules = InvadersRules.normal;
       final sim = InvadersSim(rules: rules, seed: 1);

@@ -607,6 +607,7 @@ class InvadersSim {
         _kills += 1;
         _maybeAwardBonusLife();
         ufo = null;
+        _ufoTimer = _scheduleUfo();
         _emit(InvadersEvent.ufoKilled);
         continue;
       }
