@@ -200,7 +200,13 @@ void main() {
     // that breaking — `flutter analyze` is perfectly happy with `dart:io`
     // anywhere in `lib/` — and it stops being true one convenient import at a
     // time.
-    test('only save_store.dart imports dart:io', () {
+    //
+    // `atomic_write.dart` also imports it, deliberately: it is the
+    // tmp-then-rename helper `save_store.dart` and
+    // `features/draw/data/drawing_repository.dart` both write through
+    // (`PLAN-phase-8.md` §4.5), so a second file touching the filesystem here
+    // is the helper existing, not the boundary eroding.
+    test('only save_store.dart and atomic_write.dart import dart:io', () {
       final storage = Directory('lib/core/storage');
       expect(
         storage.existsSync(),
@@ -220,7 +226,7 @@ void main() {
               .toList()
             ..sort();
 
-      expect(offenders, ['save_store.dart']);
+      expect(offenders, ['atomic_write.dart', 'save_store.dart']);
     });
   });
 

@@ -195,7 +195,60 @@ void main() {
       expect(save.activeProfile.arcadeEasyMode, isFalse);
       expect(save.activeProfile.arcadeAutoFire, isFalse);
       expect(save.activeProfile.padSide, PadSide.right);
+      // A save written before phase 8 has neither `draw` nor
+      // `allowPhotoImport` (`PLAN-phase-8.md` §6, PR 1's own done-criterion).
+      expect(save.settings.allowPhotoImport, isFalse);
+      expect(save.activeProfile.draw, const DrawProgress());
     });
+
+    test('a profile\'s draw block and allowPhotoImport round trip', () {
+      final save = SaveData(
+        activeProfileId: 'p1',
+        settings: const AppSettings(allowPhotoImport: true),
+        profiles: [
+          Profile(
+            id: 'p1',
+            name: 'Ana',
+            avatar: AvatarId.fox,
+            createdAt: DateTime.utc(2026),
+            draw: const DrawProgress(
+              drawingCount: 7,
+              lastDrawingId: 'd7',
+              bytesUsed: 4820112,
+            ),
+          ),
+        ],
+      );
+
+      expect(decodeSave(encodeSave(save)), save);
+    });
+
+    // `PLAN-phase-8.md` §6, PR 1's own done-criterion: `draw` holds three
+    // numbers, not the drawings themselves (`PLAN.md` §5.2), so recording a
+    // large drawing count costs the save file nothing beyond one integer.
+    test(
+      'a save recording 60 drawings for a profile still encodes under 8 KB',
+      () {
+        final save = SaveData(
+          activeProfileId: 'p1',
+          profiles: [
+            Profile(
+              id: 'p1',
+              name: 'Ana',
+              avatar: AvatarId.fox,
+              createdAt: DateTime.utc(2026),
+              draw: const DrawProgress(
+                drawingCount: 60,
+                lastDrawingId: 'd60',
+                bytesUsed: 62914560,
+              ),
+            ),
+          ],
+        );
+
+        expect(encodeSave(save).length, lessThan(8 * 1024));
+      },
+    );
 
     test('a legacy "haptics": true decodes as HapticsLevel.low, once the same '
         'buzz felt too faint to keep as a single fixed tier', () {
