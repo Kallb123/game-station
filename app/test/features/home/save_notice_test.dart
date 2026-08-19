@@ -55,8 +55,10 @@ void main() {
   ) async {
     // The notice is the longest sentence on the home screen and the only one
     // that pushes the two cards down, so it is where an overflow would show.
-    await tester.binding.setSurfaceSize(const Size(360, 640));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     tester.platformDispatcher.textScaleFactorTestValue = 2;
 

@@ -27,6 +27,7 @@ import '../../../core/haptics.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/save_data.dart' show HighScore, PadSide;
 import '../../../core/ui/big_button.dart';
+import '../../../core/ui/layout.dart';
 import '../../../core/ui/safe_pop.dart';
 import '../../../core/ui/tokens.dart';
 import 'arcade_controller.dart';
@@ -304,40 +305,7 @@ class _GameShellState extends State<GameShell> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Column(
-          children: [
-            Expanded(
-              child: Focus(
-                focusNode: _focusNode,
-                autofocus: true,
-                onKeyEvent: _handleKey,
-                // `GameWidget` requests its own focus by default, which
-                // would win it away from the node above the moment this
-                // screen builds — declining that in `InvadersGame.buildView`
-                // is what lets this one keep it (`invaders_screen.dart`'s PR
-                // 4/5 comment recorded the same reasoning).
-                child: Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerDown: (_) => _padVisible.value = true,
-                  child: widget.controller.buildView(context),
-                ),
-              ),
-            ),
-            ValueListenableBuilder<bool>(
-              valueListenable: _padVisible,
-              builder: (context, visible, _) => visible
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.lg),
-                      child: OnScreenPad(
-                        input: widget.controller.input,
-                        side: widget.padSide,
-                        haptics: widget.haptics,
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ],
-        ),
+        _fieldAndPad(context),
         // Sits over the field and the pad alike, the same reason phase 3's
         // completion card has one (`PLAN-phase-3.md` §4.6): a tap reaching
         // FIRE behind a paused or finished game would drive a run the player
@@ -350,6 +318,66 @@ class _GameShellState extends State<GameShell> {
           isOver ? _gameOverCard(theme) : _pausedCard(theme),
         ],
       ],
+    );
+  }
+
+  /// The play field and its pad, arranged for the window's orientation
+  /// (`PLAN-phase-5.md` §4.8).
+  ///
+  /// Portrait keeps the pad below the field, exactly as before this screen
+  /// knew about orientation. Landscape hands the field to [OnScreenPad]
+  /// itself, which draws LEFT/RIGHT and FIRE either side of it instead —
+  /// there is no room left under a landscape field to put a pad below it,
+  /// and the letterboxed space beside it is otherwise empty.
+  Widget _fieldAndPad(BuildContext context) {
+    final field = Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKey,
+      // `GameWidget` requests its own focus by default, which would win it
+      // away from the node above the moment this screen builds — declining
+      // that in `InvadersGame.buildView` is what lets this one keep it
+      // (`invaders_screen.dart`'s PR 4/5 comment recorded the same
+      // reasoning).
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _padVisible.value = true,
+        child: widget.controller.buildView(context),
+      ),
+    );
+
+    if (!isLandscapeWindow(context)) {
+      return Column(
+        children: [
+          Expanded(child: field),
+          ValueListenableBuilder<bool>(
+            valueListenable: _padVisible,
+            builder: (context, visible, _) => visible
+                ? Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.lg),
+                    child: OnScreenPad(
+                      input: widget.controller.input,
+                      side: widget.padSide,
+                      haptics: widget.haptics,
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      );
+    }
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: _padVisible,
+      builder: (context, visible, _) => visible
+          ? OnScreenPad(
+              input: widget.controller.input,
+              side: widget.padSide,
+              haptics: widget.haptics,
+              axis: Axis.vertical,
+              child: field,
+            )
+          : field,
     );
   }
 
@@ -388,57 +416,66 @@ class _GameShellState extends State<GameShell> {
       // Scrolls rather than clips, the same reason the completion card does
       // (`PLAN-phase-3.md` §4.6): a title, two numbers, five scores and two
       // buttons are taller than a small phone at 200% text scale.
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      gameOverTitle,
-                      style: theme.textTheme.titleLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    'Score ${result.score} · Wave ${result.wave}',
-                    style: theme.textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  if (scores.isEmpty)
-                    Text(
-                      noScoresYetMessage,
-                      style: theme.textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    )
-                  else
-                    for (var i = 0; i < scores.length; i++)
-                      Text(
-                        '${i + 1}. ${scores[i].score}',
-                        style: theme.textTheme.bodyMedium,
+      //
+      // Capped at `maxContentWidth`: a `SingleChildScrollView` otherwise
+      // fills the width it is given, which in landscape is the pad's rails
+      // as well as the field — full width there means the card's own
+      // buttons drawn on top of where FIRE or LEFT and RIGHT sit
+      // (`PLAN-phase-5.md` §4.8).
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: maxContentWidth),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        gameOverTitle,
+                        style: theme.textTheme.titleLarge,
                         textAlign: TextAlign.center,
                       ),
-                  const SizedBox(height: AppSpacing.xl),
-                  BigButton(
-                    icon: Icons.replay,
-                    label: playAgainLabel,
-                    onPressed: _restart,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  BigButton(
-                    icon: Icons.arrow_back,
-                    label: backLabel,
-                    onPressed: () => popIfPossible(context),
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      'Score ${result.score} · Wave ${result.wave}',
+                      style: theme.textTheme.bodyLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (scores.isEmpty)
+                      Text(
+                        noScoresYetMessage,
+                        style: theme.textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      )
+                    else
+                      for (var i = 0; i < scores.length; i++)
+                        Text(
+                          '${i + 1}. ${scores[i].score}',
+                          style: theme.textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                    const SizedBox(height: AppSpacing.xl),
+                    BigButton(
+                      icon: Icons.replay,
+                      label: playAgainLabel,
+                      onPressed: _restart,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    BigButton(
+                      icon: Icons.arrow_back,
+                      label: backLabel,
+                      onPressed: () => popIfPossible(context),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

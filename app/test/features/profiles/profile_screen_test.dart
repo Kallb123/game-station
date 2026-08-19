@@ -342,8 +342,10 @@ void main() {
     // The editor is the tightest layout in the app: a field, eight pictures and
     // three actions inside a dialog that cannot grow past the screen. An
     // overflow anywhere here fails the test on its own.
-    await tester.binding.setSurfaceSize(const Size(360, 640));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     tester.platformDispatcher.textScaleFactorTestValue = 2;
 

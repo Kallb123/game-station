@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/storage/providers.dart';
 import '../../core/storage/save_data.dart';
 import '../../core/ui/big_button.dart';
+import '../../core/ui/layout.dart';
 import '../../core/ui/screen_scaffold.dart';
 import '../../core/ui/theme.dart';
 import '../../core/ui/tokens.dart';
@@ -96,47 +97,51 @@ class ArcadeMenuScreen extends ConsumerWidget {
             theme.brightness,
           ),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _InvadersCard(
-                best: best,
-                onPlay: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.arcadeInvaders),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              const _SectionHeading(optionsSectionLabel),
-              const SizedBox(height: AppSpacing.md),
-              BigButton(
-                icon: Icons.sentiment_satisfied_alt,
-                label: easyModeLabel,
-                selected: profile.arcadeEasyMode,
-                onPressed: () => setOptions(easyMode: !profile.arcadeEasyMode),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              BigButton(
-                icon: Icons.bolt,
-                label: autoFireLabel,
-                selected: profile.arcadeAutoFire,
-                onPressed: () => setOptions(autoFire: !profile.arcadeAutoFire),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              BigButton(
-                icon: Icons.swap_horiz,
-                label: padSideLabel,
-                selected: profile.padSide == PadSide.left,
-                onPressed: () => setOptions(
-                  padSide: profile.padSide == PadSide.left
-                      ? PadSide.right
-                      : PadSide.left,
+        child: ContentWidthCap(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _InvadersCard(
+                  best: best,
+                  onPlay: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.arcadeInvaders),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              const _SectionHeading(topScoresSectionLabel),
-              const SizedBox(height: AppSpacing.md),
-              _TopScores(scores: scores),
-            ],
+                const SizedBox(height: AppSpacing.xl),
+                const _SectionHeading(optionsSectionLabel),
+                const SizedBox(height: AppSpacing.md),
+                BigButton(
+                  icon: Icons.sentiment_satisfied_alt,
+                  label: easyModeLabel,
+                  selected: profile.arcadeEasyMode,
+                  onPressed: () =>
+                      setOptions(easyMode: !profile.arcadeEasyMode),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                BigButton(
+                  icon: Icons.bolt,
+                  label: autoFireLabel,
+                  selected: profile.arcadeAutoFire,
+                  onPressed: () =>
+                      setOptions(autoFire: !profile.arcadeAutoFire),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                BigButton(
+                  icon: Icons.swap_horiz,
+                  label: padSideLabel,
+                  selected: profile.padSide == PadSide.left,
+                  onPressed: () => setOptions(
+                    padSide: profile.padSide == PadSide.left
+                        ? PadSide.right
+                        : PadSide.left,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                const _SectionHeading(topScoresSectionLabel),
+                const SizedBox(height: AppSpacing.md),
+                _TopScores(scores: scores),
+              ],
+            ),
           ),
         ),
       ),

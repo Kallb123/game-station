@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/ui/big_button.dart';
+import '../../../core/ui/layout.dart';
 import '../../../core/ui/tokens.dart';
 
 /// What the card says at the top. Public because the tests name the same
@@ -73,47 +74,55 @@ class CompletionCard extends StatelessWidget {
       // Scrolls rather than clips: three rows of numbers and two primary
       // buttons at 200% text scale are taller than a small phone, and a child
       // who cannot reach *Back* is stuck on the screen (`PLAN-phase-3.md` §1).
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      completionTitle,
-                      style: theme.textTheme.titleLarge,
-                      textAlign: TextAlign.center,
+      //
+      // Capped at `maxContentWidth`: a `SingleChildScrollView` otherwise
+      // fills the width it is given, which in landscape is the grid and the
+      // keypad together (`PLAN-phase-5.md` §4.8) — full width there is a
+      // dialog stretched edge to edge over a board it no longer resembles.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: maxContentWidth),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        completionTitle,
+                        style: theme.textTheme.titleLarge,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _Stat(label: completionTimeLabel, value: time),
-                  _Stat(label: completionHintsLabel, value: '$hints'),
-                  _Stat(label: completionMistakesLabel, value: '$mistakes'),
-                  if (clean) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    const _CleanStar(),
-                  ],
-                  const SizedBox(height: AppSpacing.xl),
-                  if (onNext != null) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    _Stat(label: completionTimeLabel, value: time),
+                    _Stat(label: completionHintsLabel, value: '$hints'),
+                    _Stat(label: completionMistakesLabel, value: '$mistakes'),
+                    if (clean) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      const _CleanStar(),
+                    ],
+                    const SizedBox(height: AppSpacing.xl),
+                    if (onNext != null) ...[
+                      BigButton(
+                        icon: Icons.arrow_forward,
+                        label: nextPuzzleLabel,
+                        onPressed: onNext,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
                     BigButton(
-                      icon: Icons.arrow_forward,
-                      label: nextPuzzleLabel,
-                      onPressed: onNext,
+                      icon: Icons.grid_on,
+                      label: backToSudokuLabel,
+                      onPressed: onBack,
                     ),
-                    const SizedBox(height: AppSpacing.md),
                   ],
-                  BigButton(
-                    icon: Icons.grid_on,
-                    label: backToSudokuLabel,
-                    onPressed: onBack,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

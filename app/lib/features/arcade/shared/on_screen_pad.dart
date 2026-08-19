@@ -31,8 +31,13 @@ class OnScreenPad extends StatefulWidget {
     required this.input,
     required this.haptics,
     this.side = PadSide.right,
+    this.axis = Axis.horizontal,
+    this.child,
     super.key,
-  });
+  }) : assert(
+         axis == Axis.horizontal || child != null,
+         'a vertical pad needs the field to place between its two rails',
+       );
 
   /// Written to on every button press and release, combining whichever of
   /// left, right and fire are currently held.
@@ -41,6 +46,19 @@ class OnScreenPad extends StatefulWidget {
   /// Which side FIRE sits on — mirrors a profile's stored `padSide` for a
   /// left-handed player.
   final PadSide side;
+
+  /// [Axis.horizontal] (the default) draws LEFT, RIGHT and FIRE in one strip
+  /// below the play field, as `PLAN.md` §4.2 sketches it.
+  ///
+  /// [Axis.vertical] draws two rails either side of [child] instead: a
+  /// landscape field already letterboxes to empty space on both sides, which
+  /// is where the pad goes rather than below a field with no room left to
+  /// give it (`PLAN-phase-5.md` §4.8).
+  final Axis axis;
+
+  /// The play field, placed between the two rails. Only read when [axis] is
+  /// [Axis.vertical], and required there.
+  final Widget? child;
 
   /// Buzzes a press — not a release, which would double every tap
   /// (`PLAN-phase-5.md` §4.5).
@@ -98,12 +116,36 @@ class _OnScreenPadState extends State<OnScreenPad> {
       haptics: widget.haptics,
       onHeldChanged: (held) => _update(fire: held),
     );
+    final rails = widget.side == PadSide.right
+        ? [movement, fire]
+        : [fire, movement];
+
+    if (widget.axis == Axis.horizontal) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: rails,
+      );
+    }
+
+    // Stretched, so `Expanded(child: widget.child!)` gets the row's full
+    // height for the field — but each rail is wrapped in its own `Center`
+    // first, or that same stretch would hand its fixed-size buttons a tight
+    // height too and force them to fill it, a 72 dp circle stretched into a
+    // bar the height of the screen.
+    Widget rail(Widget buttons) => Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: buttons,
+      ),
+    );
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: widget.side == PadSide.right
-          ? [movement, fire]
-          : [fire, movement],
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        rail(rails[0]),
+        Expanded(child: widget.child!),
+        rail(rails[1]),
+      ],
     );
   }
 }

@@ -6,6 +6,7 @@ import '../../core/haptics.dart' show deviceCanVibrate;
 import '../../core/storage/providers.dart';
 import '../../core/storage/save_data.dart';
 import '../../core/ui/big_button.dart';
+import '../../core/ui/layout.dart';
 import '../../core/ui/screen_scaffold.dart';
 import '../../core/ui/tokens.dart';
 
@@ -100,59 +101,61 @@ class SettingsScreen extends ConsumerWidget {
 
     return ScreenScaffold(
       title: 'Settings',
-      child: ListView(
-        children: [
-          _SettingSwitch(
-            icon: Icons.volume_up,
-            label: soundLabel,
-            value: settings.sound,
-            onChanged: (value) => update(settings.copyWith(sound: value)),
-          ),
-          // Hidden rather than disabled where there is nothing to vibrate: a
-          // control that does nothing on the device in front of you is worse
-          // than an absent one (PLAN-phase-1.md §4.5).
-          if (deviceCanVibrate)
-            _HapticsSlider(
-              value: settings.hapticsLevel,
-              onChanged: (level) =>
-                  update(settings.copyWith(hapticsLevel: level)),
+      child: ContentWidthCap(
+        child: ListView(
+          children: [
+            _SettingSwitch(
+              icon: Icons.volume_up,
+              label: soundLabel,
+              value: settings.sound,
+              onChanged: (value) => update(settings.copyWith(sound: value)),
             ),
-          _SettingSwitch(
-            icon: Icons.timer_outlined,
-            label: showTimerLabel,
-            value: settings.showTimer,
-            onChanged: (value) => update(settings.copyWith(showTimer: value)),
-          ),
-          _SettingSwitch(
-            icon: Icons.slow_motion_video,
-            label: reduceMotionLabel,
-            value: settings.reduceMotion,
-            onChanged: (value) =>
-                update(settings.copyWith(reduceMotion: value)),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          _ChoiceSection<ThemeChoice>(
-            label: themeSectionLabel,
-            choices: themeChoices,
-            chosen: settings.theme,
-            onChosen: (theme) => update(settings.copyWith(theme: theme)),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          // Last, and the only control here that belongs to a profile rather
-          // than to the device: the sections above are about the tablet, and
-          // this one is about the child holding it.
-          _ChoiceSection<MistakeFeedback>(
-            label: mistakeSectionLabel,
-            caption: mistakeSectionCaption(profile.name),
-            choices: mistakeFeedbackChoices,
-            chosen: profile.mistakeFeedback,
-            onChosen: (value) => ref
-                .read(progressRepositoryProvider)
-                .setMistakeFeedback(profile.id, value),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          const _BuildFooter(),
-        ],
+            // Hidden rather than disabled where there is nothing to vibrate: a
+            // control that does nothing on the device in front of you is worse
+            // than an absent one (PLAN-phase-1.md §4.5).
+            if (deviceCanVibrate)
+              _HapticsSlider(
+                value: settings.hapticsLevel,
+                onChanged: (level) =>
+                    update(settings.copyWith(hapticsLevel: level)),
+              ),
+            _SettingSwitch(
+              icon: Icons.timer_outlined,
+              label: showTimerLabel,
+              value: settings.showTimer,
+              onChanged: (value) => update(settings.copyWith(showTimer: value)),
+            ),
+            _SettingSwitch(
+              icon: Icons.slow_motion_video,
+              label: reduceMotionLabel,
+              value: settings.reduceMotion,
+              onChanged: (value) =>
+                  update(settings.copyWith(reduceMotion: value)),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            _ChoiceSection<ThemeChoice>(
+              label: themeSectionLabel,
+              choices: themeChoices,
+              chosen: settings.theme,
+              onChosen: (theme) => update(settings.copyWith(theme: theme)),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            // Last, and the only control here that belongs to a profile rather
+            // than to the device: the sections above are about the tablet, and
+            // this one is about the child holding it.
+            _ChoiceSection<MistakeFeedback>(
+              label: mistakeSectionLabel,
+              caption: mistakeSectionCaption(profile.name),
+              choices: mistakeFeedbackChoices,
+              chosen: profile.mistakeFeedback,
+              onChosen: (value) => ref
+                  .read(progressRepositoryProvider)
+                  .setMistakeFeedback(profile.id, value),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            const _BuildFooter(),
+          ],
+        ),
       ),
     );
   }

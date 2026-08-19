@@ -500,8 +500,10 @@ void main() {
     // Nothing on this screen fits a 360x640 phone at 200%, and it does not have
     // to: it has to scroll without clipping a label or overflowing, which an
     // overflow error here would fail on its own.
-    await tester.binding.setSurfaceSize(const Size(360, 640));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     tester.platformDispatcher.textScaleFactorTestValue = 2;
 
