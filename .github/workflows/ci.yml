@@ -161,9 +161,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # Runners occasionally get a connection to archive.ubuntu.com that
+      # opens but never delivers a byte (observed: stuck on the
+      # noble-security InRelease fetch for the full 5-minute job timeout).
+      # apt's own Acquire::http(s)::Timeout does not reliably bound that —
+      # it never fired during the stall — so the timeout has to be enforced
+      # from outside apt: kill each attempt with `timeout` after 45s and
+      # retry, which opens a fresh connection rather than waiting on the
+      # same stuck one. ForceIPv4 is kept as a second line of defence
+      # against the IPv6-route flakiness this class of hang is usually
+      # caused by.
       - name: Install the Linux desktop toolchain
+        timeout-minutes: 8
         run: |
-          sudo apt-get update
+          echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4
+
+          update_ok=false
+          for attempt in 1 2 3 4 5; do
+            if sudo timeout 45 apt-get update \
+                -o Acquire::Retries=3 \
+                -o Acquire::http::Timeout=10 \
+                -o Acquire::https::Timeout=10; then
+              update_ok=true
+              break
+            fi
+            echo "apt-get update attempt $attempt failed or stalled, retrying..."
+            sleep 5
+          done
+          if [ "$update_ok" != true ]; then
+            echo "::error::apt-get update failed after 5 attempts"
+            exit 1
+          fi
+
           sudo apt-get install -y clang cmake ninja-build pkg-config \
             libgtk-3-dev liblzma-dev libstdc++-12-dev
       - uses: subosito/flutter-action@v2
