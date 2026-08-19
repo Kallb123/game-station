@@ -355,7 +355,10 @@ every position, timer and counter; the `FlameGame` owns the accumulator and one 
 nothing else, which is what makes the fixed-step rule above a test rather than a device impression.
 Two details are finer than the list: the wall the block bounces off is the bounding box of its
 *surviving* columns, so wiping out an edge column widens the field the formation has left to cross
-instead of leaving it turning against an alien that is no longer there; and auto-fire is applied
+instead of leaving it turning against an alien that is no longer there; likewise, the block reaching
+the player's row is judged against its lowest *surviving* row rather than the wave's original row
+count, so thinning out the bottom of the formation buys real room before it reaches the player; and
+auto-fire is applied
 inside the simulation rather than synthesised by the control pad, because a pad that held FIRE down
 for the player would make the cooldown depend on the frame rate. Every number in this section is a
 field on `InvadersRules` rather than a literal at a call site (`PLAN-phase-4.md` §4.4), so easy mode

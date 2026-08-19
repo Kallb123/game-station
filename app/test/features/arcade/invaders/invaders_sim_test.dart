@@ -49,6 +49,47 @@ void main() {
       expect(shrunkOriginXAtReverse, greaterThan(fullOriginXAtReverse));
     });
 
+    test('a dead bottom row means the block must march lower before it '
+        'reaches the player', () {
+      // Regression test: the invasion check used to compare the block's
+      // *original* box (`rows * alienRowPitch`) against the player's row,
+      // so a formation thinned out from the bottom was ruled to have
+      // reached the player before any surviving alien actually had.
+      final rules = InvadersRules(
+        alienRows: InvadersRules.normal.alienRows,
+        lives: InvadersRules.normal.lives,
+        baseStep: InvadersRules.normal.baseStep,
+        minStep: InvadersRules.normal.minStep,
+        waveStepRamp: InvadersRules.normal.waveStepRamp,
+        fireInterval: InvadersRules.normal.fireInterval,
+        minFireInterval: InvadersRules.normal.minFireInterval,
+        fireIntervalRamp: InvadersRules.normal.fireIntervalRamp,
+        // Alien fire is disabled so the only way `playerKilled` fires is
+        // the block reaching the player's row, not a stray shot.
+        maxAlienShots: 0,
+      );
+      final full = InvadersSim(rules: rules, seed: 1);
+      final bottomRowDead = InvadersSim(rules: rules, seed: 1);
+
+      // Kill only the bottom row — the one nearest the player.
+      bottomRowDead.debugSetAliveRows(
+        _aliveRowsMissingRow(rules.alienRows, rules.alienRows - 1),
+      );
+
+      final fullOriginYAtInvasion = _originYWhenPlayerKilled(full);
+      final bottomRowDeadOriginYAtInvasion = _originYWhenPlayerKilled(
+        bottomRowDead,
+      );
+
+      // One fewer row between the surviving aliens and the player means
+      // one more `alienRowPitch` of marching before the invasion line is
+      // crossed.
+      expect(
+        bottomRowDeadOriginYAtInvasion,
+        closeTo(fullOriginYAtInvasion + alienRowPitch, 1e-9),
+      );
+    });
+
     test('the march interval shrinks as aliens die and hits its floor', () {
       const rules = InvadersRules.normal;
       const total = 5 * 11;
@@ -385,6 +426,25 @@ List<int> _aliveRowsWithCount(int rows, int aliveCount) {
     remaining -= take;
   }
   return result;
+}
+
+/// [rows] rows' worth of otherwise-full alive bitmasks with [deadRow]
+/// entirely dead.
+List<int> _aliveRowsMissingRow(int rows, int deadRow) => [
+  for (var row = 0; row < rows; row++)
+    if (row == deadRow) 0 else (1 << alienColumns) - 1,
+];
+
+/// Steps [sim] until it emits `playerKilled`, returning the block's
+/// `originY` at that point.
+double _originYWhenPlayerKilled(InvadersSim sim) {
+  for (var i = 0; i < 20000; i++) {
+    sim.step(PadInput.none);
+    if (sim.drainEvents().contains(InvadersEvent.playerKilled)) {
+      return sim.aliens.originY;
+    }
+  }
+  throw StateError('the player was never hit');
 }
 
 /// [rows] rows' worth of alive bitmasks with every column alive in
