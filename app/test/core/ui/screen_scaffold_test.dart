@@ -30,6 +30,48 @@ void main() {
     expect(find.byIcon(Icons.arrow_back), findsNothing);
   });
 
+  // `canPop` answers for whatever the navigator's stack looks like when this
+  // widget happens to rebuild, which is not necessarily "just now" — the home
+  // screen can sit mounted underneath another route and be rebuilt by an
+  // unrelated provider change while that route makes `canPop` true, then
+  // never rebuild again once the route above is popped and the honest answer
+  // goes back to false (`screen_scaffold.dart`). `hideBack` is the home
+  // screen's way out of that: it must hide the control even where `canPop`
+  // alone would show it.
+  testWidgets(
+    'hideBack hides the control even where there is something to pop',
+    (tester) async {
+      await pumpApp(
+        tester,
+        Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ScreenScaffold(
+                      title: 'Home',
+                      hideBack: true,
+                      child: SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        theme: AppTheme.day(),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back), findsNothing);
+    },
+  );
+
   testWidgets('pops the route when the back control is used', (tester) async {
     await pumpApp(
       tester,

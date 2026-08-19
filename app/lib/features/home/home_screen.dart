@@ -59,6 +59,11 @@ class HomeScreen extends ConsumerWidget {
 
     return ScreenScaffold(
       title: 'Zibo Games',
+      // Nothing under the home screen is ever reachable by popping, so the
+      // back control is forced off rather than left to `canPop` — which can
+      // go stale while this screen sits mounted underneath another route
+      // (`screen_scaffold.dart`).
+      hideBack: true,
       actions: [
         IconButton(
           onPressed: () => Navigator.of(context).pushNamed(AppRoutes.settings),
