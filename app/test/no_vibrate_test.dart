@@ -41,6 +41,10 @@ void main() {
       );
     });
 
+    test('ignores a longer identifier that contains it', () {
+      expect(vibrateCallsIn('MyHapticFeedback.vibrate();'), 0);
+    });
+
     test('counts every match, not just the first', () {
       expect(
         vibrateCallsIn(
@@ -71,7 +75,7 @@ int vibrateCallsIn(String source) {
       .replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), '')
       .replaceAll(RegExp('//.*'), '');
   return RegExp(
-    r'HapticFeedback\.(vibrate|heavyImpact)\s*\(',
+    r'(?<![\w$])HapticFeedback\.(vibrate|heavyImpact)\s*\(',
   ).allMatches(code).length;
 }
 
