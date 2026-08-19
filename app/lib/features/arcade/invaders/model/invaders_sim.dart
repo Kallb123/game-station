@@ -203,6 +203,21 @@ class AlienBlock {
   double get width => alienColumns * alienColumnPitch;
   double get height => rows * alienRowPitch;
 
+  /// The row index of the lowest surviving alien (row 0 is the top), or
+  /// `null` if the block is empty.
+  ///
+  /// Used for the invasion check instead of [height]: [height] is the
+  /// original box the wave started with, so once the bottom row or two are
+  /// wiped out it keeps describing space nothing occupies any more, and the
+  /// block would be ruled to have reached the player before any surviving
+  /// alien actually has.
+  int? get lastAliveRow {
+    for (var row = rows - 1; row >= 0; row--) {
+      if (aliveRows[row] != 0) return row;
+    }
+    return null;
+  }
+
   /// The leftmost column with a surviving alien, or `null` if the block is
   /// empty. Used for the wall check so a column wiped out at the marching
   /// edge shrinks the box the formation bounces off, rather than the
@@ -745,7 +760,11 @@ class InvadersSim {
 
   void _resolveBlockVsPlayerRow() {
     if (_isOver || _aliens.isEmpty) return;
-    if (_aliens.originY + _aliens.height >= playerY) {
+    final lastAliveRow = _aliens.lastAliveRow;
+    if (lastAliveRow == null) return;
+    final blockBottom =
+        _aliens.originY + lastAliveRow * alienRowPitch + alienHeight;
+    if (blockBottom >= playerY) {
       _isOver = true;
       _emit(InvadersEvent.playerKilled);
     }
