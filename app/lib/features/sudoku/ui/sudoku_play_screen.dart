@@ -24,6 +24,7 @@ import '../../../core/haptics.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/save_data.dart';
+import '../../../core/ui/layout.dart';
 import '../../../core/ui/safe_pop.dart';
 import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';
@@ -276,17 +277,7 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
           : const SizedBox.expand();
     }
 
-    final board = Column(
-      children: [
-        Expanded(child: SudokuGridView(session: session)),
-        const SizedBox(height: AppSpacing.md),
-        // The keypad takes the height it needs and the board takes the rest,
-        // rather than the other way round: every button on it has a floor to
-        // clear (`PLAN.md` §4.2) and the board has none, so the board is the
-        // one that can give.
-        SudokuKeypad(session: session),
-      ],
-    );
+    final board = _boardAndKeypad(session);
     if (!_solved) return board;
 
     // The finished board stays where it was, under the card
@@ -311,6 +302,67 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
           onBack: () => popIfPossible(context),
         ),
       ],
+    );
+  }
+
+  /// The grid and the keypad, arranged for the window's orientation
+  /// (`PLAN-phase-5.md` §4.8).
+  ///
+  /// Portrait stacks them, unchanged from before this screen knew about
+  /// orientation: the grid takes what height is left and the keypad takes
+  /// what it needs, because every button on the keypad has a floor to clear
+  /// (`PLAN.md` §4.2) and the grid has none, so the grid is the one that can
+  /// give. Landscape sits them side by side instead, on the same principle
+  /// turned sideways: the keypad is [IntrinsicWidth] rather than a fixed
+  /// share of the row, so its five icon buttons keep their floor on a narrow
+  /// landscape phone rather than being divided out of a flex fraction that
+  /// does not fit them, and the grid takes whatever width that leaves, up to
+  /// [_grid]'s own [maxBoardSide] cap.
+  Widget _boardAndKeypad(SudokuSession session) {
+    if (!isLandscapeWindow(context)) {
+      return Column(
+        children: [
+          Expanded(child: _grid(session)),
+          const SizedBox(height: AppSpacing.md),
+          SudokuKeypad(session: session),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: _grid(session)),
+        const SizedBox(width: AppSpacing.lg),
+        // Scrolls rather than overflows, the same reason `CompletionCard`
+        // does: the digit rows plus the icon row are taller than a
+        // landscape phone's height at 200% text scale leaves for them.
+        IntrinsicWidth(
+          child: Center(
+            child: SingleChildScrollView(child: SudokuKeypad(session: session)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// [SudokuGridView], capped at [maxBoardSide] on an
+  /// [AppFormFactor.expanded] window — a tablet with room to spare stretches
+  /// the board past a size a hand can span otherwise (`PLAN-phase-5.md`
+  /// §4.8). A compact window never has that much room to give it, so the cap
+  /// is skipped there rather than computed and found to be moot.
+  Widget _grid(SudokuSession session) {
+    final grid = SudokuGridView(session: session);
+    if (AppFormFactor.of(context) != AppFormFactor.expanded) return grid;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: maxBoardSide,
+          maxHeight: maxBoardSide,
+        ),
+        child: grid,
+      ),
     );
   }
 

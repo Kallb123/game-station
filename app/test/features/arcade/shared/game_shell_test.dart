@@ -273,8 +273,10 @@ void main() {
 
   testWidgets('the field clears a floor at 360x640 with a notch and a '
       'gesture bar', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(360, 640));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
     final controller = _FakeController();
     await _pumpShell(

@@ -19,6 +19,7 @@ import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
 import 'package:zibo_games/core/ui/theme.dart';
+import 'package:zibo_games/core/ui/tokens.dart';
 import 'package:zibo_games/features/sudoku/data/providers.dart';
 import 'package:zibo_games/features/sudoku/data/puzzle_record.dart';
 import 'package:zibo_games/features/sudoku/data/puzzle_source.dart';
@@ -406,6 +407,60 @@ void main() {
         });
       }
     }
+  }
+
+  // The landscape half of `PLAN-phase-5.md` §4.8: the grid and the keypad
+  // side by side, at the tightest of the three sweep sizes and both text
+  // scales. `layout_sweep_test.dart` already asserts no exception and the
+  // board's own square-and-capped shape across every route; what only this
+  // screen's own test can check is that squeezing the keypad next to the
+  // grid never takes a control below its floor.
+  for (final scale in [1.0, 2.0]) {
+    testWidgets(
+      'the keypad clears its floors beside the grid on a landscape phone '
+      'at ${(scale * 100).round()}% text scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(640, 360);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await pumpPlay(
+          tester,
+          puzzle: PuzzleId.parse('sudoku:9x9:easy:11'),
+          textScale: scale,
+        );
+
+        expect(tester.takeException(), isNull);
+
+        for (final digit in ['1', '2', '3', '4', '5', '6', '7', '8', '9']) {
+          expect(
+            tester
+                .getSize(find.widgetWithText(FilledButton, digit))
+                .shortestSide,
+            greaterThanOrEqualTo(AppTapTargets.min),
+            reason: 'digit $digit',
+          );
+        }
+        for (final tooltip in [
+          'Erase',
+          'Pencil marks',
+          'Undo',
+          'Redo',
+          'Hint',
+        ]) {
+          final button = find.ancestor(
+            of: find.byTooltip(tooltip),
+            matching: find.byType(IconButton),
+          );
+          expect(
+            tester.getSize(button).shortestSide,
+            greaterThanOrEqualTo(AppTapTargets.min),
+            reason: tooltip,
+          );
+        }
+      },
+    );
   }
 }
 

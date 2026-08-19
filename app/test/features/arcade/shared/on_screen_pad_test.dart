@@ -42,6 +42,33 @@ void main() {
     return input;
   }
 
+  /// Pumps [OnScreenPad] in [Axis.vertical] beside [child], the way
+  /// `GameShell` places it in landscape (`PLAN-phase-5.md` §4.8).
+  Future<ValueNotifier<PadInput>> pumpVerticalPad(
+    WidgetTester tester, {
+    PadSide side = PadSide.right,
+    Widget child = const ColoredBox(color: Color(0xFF000000)),
+  }) async {
+    final input = ValueNotifier(PadInput.none);
+    addTearDown(input.dispose);
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: SafeArea(
+          child: OnScreenPad(
+            input: input,
+            side: side,
+            haptics: const SilentHaptics(),
+            axis: Axis.vertical,
+            child: child,
+          ),
+        ),
+      ),
+      theme: AppTheme.day(),
+    );
+    return input;
+  }
+
   final left = find.byKey(OnScreenPad.leftKey);
   final right = find.byKey(OnScreenPad.rightKey);
   final fire = find.byKey(OnScreenPad.fireKey);
@@ -177,5 +204,51 @@ void main() {
         reason: '$button',
       );
     }
+  });
+
+  group('the vertical axis, beside a landscape field', () {
+    testWidgets('every button still clears the 72 dp floor', (tester) async {
+      // The tightest of the three sweep sizes (`PLAN-phase-5.md` §4.8) —
+      // the one a fixed-size button most easily loses its floor on.
+      tester.view.physicalSize = const Size(640, 360);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpVerticalPad(tester);
+
+      for (final button in [left, right, fire]) {
+        expect(
+          tester.getSize(button).shortestSide,
+          greaterThanOrEqualTo(AppTapTargets.primary),
+          reason: '$button',
+        );
+      }
+    });
+
+    testWidgets(
+      'movement and FIRE sit at opposite edges, with the field between them',
+      (tester) async {
+        tester.view.physicalSize = const Size(640, 360);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await pumpVerticalPad(tester);
+
+        final screenWidth = tester.getSize(find.byType(Scaffold)).width;
+
+        expect(tester.getCenter(left).dx, lessThan(screenWidth * 0.25));
+        expect(tester.getCenter(fire).dx, greaterThan(screenWidth * 0.75));
+      },
+    );
+
+    testWidgets('padSide.left puts FIRE on the left of LEFT and RIGHT', (
+      tester,
+    ) async {
+      await pumpVerticalPad(tester, side: PadSide.left);
+
+      expect(tester.getCenter(fire).dx, lessThan(tester.getCenter(left).dx));
+    });
   });
 }

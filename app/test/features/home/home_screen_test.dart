@@ -53,8 +53,10 @@ void main() {
   testWidgets('it fits a small phone at 200% text scale', (tester) async {
     // The narrowest target the app claims to support, at the largest text
     // scale PLAN.md §9 promises. An overflow here fails the test on its own.
-    await tester.binding.setSurfaceSize(const Size(360, 640));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     tester.platformDispatcher.textScaleFactorTestValue = 2;
 

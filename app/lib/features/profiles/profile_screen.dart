@@ -6,6 +6,7 @@ import '../../core/storage/providers.dart';
 import '../../core/storage/save_data.dart';
 import '../../core/ui/avatars.dart';
 import '../../core/ui/big_button.dart';
+import '../../core/ui/layout.dart';
 import '../../core/ui/screen_scaffold.dart';
 import '../../core/ui/theme.dart';
 import '../../core/ui/tokens.dart';
@@ -37,25 +38,27 @@ class ProfileScreen extends ConsumerWidget {
 
     return ScreenScaffold(
       title: 'Players',
-      child: ListView.separated(
-        // The add control is the last row rather than a floating button: it
-        // then scrolls with the list and cannot cover the last profile.
-        itemCount: profiles.length + 1,
-        separatorBuilder: (context, index) =>
-            const SizedBox(height: AppSpacing.lg),
-        itemBuilder: (context, index) {
-          if (index == profiles.length) return const _AddProfileButton();
+      child: ContentWidthCap(
+        child: ListView.separated(
+          // The add control is the last row rather than a floating button:
+          // it then scrolls with the list and cannot cover the last profile.
+          itemCount: profiles.length + 1,
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: AppSpacing.lg),
+          itemBuilder: (context, index) {
+            if (index == profiles.length) return const _AddProfileButton();
 
-          final profile = profiles[index];
-          return _ProfileRow(
-            profile: profile,
-            selected: profile.id == activeId,
-            // The repository refuses to delete the last profile
-            // (`progress_repository.dart`); hiding the control as well means a
-            // child never taps something that then says no.
-            canDelete: profiles.length > 1,
-          );
-        },
+            final profile = profiles[index];
+            return _ProfileRow(
+              profile: profile,
+              selected: profile.id == activeId,
+              // The repository refuses to delete the last profile
+              // (`progress_repository.dart`); hiding the control as well
+              // means a child never taps something that then says no.
+              canDelete: profiles.length > 1,
+            );
+          },
+        ),
       ),
     );
   }

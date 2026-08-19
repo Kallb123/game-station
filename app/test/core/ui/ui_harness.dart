@@ -46,11 +46,18 @@ Future<void> pumpApp(
   );
 }
 
-/// Resizes the test surface to a small phone for the duration of the test.
+/// Resizes the test window to a small phone for the duration of the test.
 ///
 /// The 800x600 default is a tablet. A layout that overflows does it on the
 /// narrowest target first, so the text-scale tests run here.
+///
+/// `tester.view.physicalSize`, not the older `tester.binding.setSurfaceSize`:
+/// the latter changes what gets rendered and hit-tested but not what
+/// `MediaQuery.sizeOf` reports, which is what `core/ui/layout.dart`'s
+/// orientation and form-factor checks read (`PLAN-phase-5.md` §4.8).
 Future<void> usePhoneSurface(WidgetTester tester) async {
-  await tester.binding.setSurfaceSize(const Size(360, 640));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  tester.view.physicalSize = const Size(360, 640);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
 }

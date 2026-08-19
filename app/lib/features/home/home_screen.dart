@@ -5,6 +5,7 @@ import '../../core/storage/providers.dart';
 import '../../core/storage/save_data.dart';
 import '../../core/ui/avatars.dart';
 import '../../core/ui/big_button.dart';
+import '../../core/ui/layout.dart';
 import '../../core/ui/screen_scaffold.dart';
 import '../../core/ui/theme.dart';
 import '../../core/ui/tokens.dart';
@@ -37,6 +38,24 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(activeProfileProvider);
+    final landscape = isLandscapeWindow(context);
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (ref.watch(saveNoticeProvider)) ...[
+          _SaveNotice(
+            onDismissed: () => ref.read(saveNoticeProvider.notifier).dismiss(),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+        Expanded(
+          child: landscape ? const _LandscapeCards() : const _PortraitCards(),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        _ProfileChip(name: profile.name, avatar: profile.avatar),
+      ],
+    );
 
     return ScreenScaffold(
       title: 'Zibo Games',
@@ -52,41 +71,16 @@ class HomeScreen extends ConsumerWidget {
       // tall, and the same screen at 200% text scale with the recovery notice
       // showing does not, which a plain `Column` would report as an overflow
       // and draw over.
+      //
+      // The width cap is skipped in landscape: `_LandscapeCards` caps each
+      // card itself (`PLAN-phase-5.md` §4.8's "cards capped at
+      // maxContentWidth each"), and capping the whole row on top of that
+      // would fight the two cards for the same room on a landscape tablet.
       child: CustomScrollView(
         slivers: [
           SliverFillRemaining(
             hasScrollBody: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (ref.watch(saveNoticeProvider)) ...[
-                  _SaveNotice(
-                    onDismissed: () =>
-                        ref.read(saveNoticeProvider.notifier).dismiss(),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-                const Expanded(
-                  child: _GameCard(
-                    icon: homeSudokuIcon,
-                    label: 'Sudoku',
-                    route: AppRoutes.sudoku,
-                    role: _Role.sudoku,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                const Expanded(
-                  child: _GameCard(
-                    icon: homeArcadeIcon,
-                    label: 'Arcade',
-                    route: AppRoutes.arcade,
-                    role: _Role.arcade,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                _ProfileChip(name: profile.name, avatar: profile.avatar),
-              ],
-            ),
+            child: landscape ? content : ContentWidthCap(child: content),
           ),
         ],
       ),
@@ -96,6 +90,89 @@ class HomeScreen extends ConsumerWidget {
 
 /// Which palette role a card takes its colour from.
 enum _Role { sudoku, arcade }
+
+/// The two cards, stacked full-width — unchanged from before this screen knew
+/// about orientation.
+class _PortraitCards extends StatelessWidget {
+  const _PortraitCards();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _GameCard(
+            icon: homeSudokuIcon,
+            label: 'Sudoku',
+            route: AppRoutes.sudoku,
+            role: _Role.sudoku,
+          ),
+        ),
+        SizedBox(height: AppSpacing.lg),
+        Expanded(
+          child: _GameCard(
+            icon: homeArcadeIcon,
+            label: 'Arcade',
+            route: AppRoutes.arcade,
+            role: _Role.arcade,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// How tall a card is allowed to get once there is more height than a card
+/// needs — a landscape phone has none to spare, and a landscape tablet has
+/// far more than a button wants to stretch across (`PLAN-phase-5.md` §4.8).
+const double _landscapeCardHeight = 200;
+
+/// The two cards, side by side, each letterboxed to [_landscapeCardHeight]
+/// rather than stretched to whatever height a landscape window happens to
+/// leave: unlike a phone in portrait, a phone or tablet in landscape can have
+/// height to spare, and a full-bleed button stretched across all of it reads
+/// as broken rather than generous.
+class _LandscapeCards extends StatelessWidget {
+  const _LandscapeCards();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget cell(Widget card) => Expanded(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: maxContentWidth,
+            maxHeight: _landscapeCardHeight,
+          ),
+          child: card,
+        ),
+      ),
+    );
+
+    return Row(
+      children: [
+        cell(
+          const _GameCard(
+            icon: homeSudokuIcon,
+            label: 'Sudoku',
+            route: AppRoutes.sudoku,
+            role: _Role.sudoku,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.lg),
+        cell(
+          const _GameCard(
+            icon: homeArcadeIcon,
+            label: 'Arcade',
+            route: AppRoutes.arcade,
+            role: _Role.arcade,
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// The "we started fresh" notice.
 ///

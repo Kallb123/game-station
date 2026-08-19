@@ -333,8 +333,10 @@ void main() {
     // *Back to Sudoku* is clipped off the bottom, the puzzle is over and there
     // is no way off the screen (`PLAN-phase-3.md` §1). It scrolls rather than
     // clipping, and this is the assertion that says so.
-    await tester.binding.setSurfaceSize(const Size(360, 640));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     tester.platformDispatcher.textScaleFactorTestValue = 2;
 

@@ -16,6 +16,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../../core/clock.dart';
 import '../../../core/ui/big_button.dart';
+import '../../../core/ui/layout.dart';
 import '../../../core/ui/screen_scaffold.dart';
 import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';
@@ -147,42 +148,44 @@ class _SudokuMenuScreenState extends ConsumerState<SudokuMenuScreen> {
         // row no test — and no screen reader — can find without scrolling
         // first. It still scrolls, which is what a phone at 200% text scale
         // needs.
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (continuing != null) ...[
-                BigButton(
-                  icon: Icons.play_arrow,
-                  label: continueLabel(continuing),
-                  onPressed: () => _play(continuing),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
-              _DailyCard(
-                id: daily,
-                streak: menu.streak,
-                onPlay: () => _play(daily),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _SectionHeading(pickPuzzleTitle),
-              const SizedBox(height: AppSpacing.md),
-              _SizeToggle(
-                chosen: spec,
-                onChosen: (value) => setState(() => _chosenSpec = value),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              for (final difficulty in difficultiesFor(spec))
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: _DifficultyRow(
-                    difficulty: difficulty,
-                    solved: menu.solvedCount(spec, difficulty),
-                    bestTimeMs: menu.bestTimeMs(spec, difficulty),
-                    onPlay: () => _play(menu.nextPuzzle(spec, difficulty)),
+        child: ContentWidthCap(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (continuing != null) ...[
+                  BigButton(
+                    icon: Icons.play_arrow,
+                    label: continueLabel(continuing),
+                    onPressed: () => _play(continuing),
                   ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+                _DailyCard(
+                  id: daily,
+                  streak: menu.streak,
+                  onPlay: () => _play(daily),
                 ),
-            ],
+                const SizedBox(height: AppSpacing.xl),
+                _SectionHeading(pickPuzzleTitle),
+                const SizedBox(height: AppSpacing.md),
+                _SizeToggle(
+                  chosen: spec,
+                  onChosen: (value) => setState(() => _chosenSpec = value),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                for (final difficulty in difficultiesFor(spec))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: _DifficultyRow(
+                      difficulty: difficulty,
+                      solved: menu.solvedCount(spec, difficulty),
+                      bestTimeMs: menu.bestTimeMs(spec, difficulty),
+                      onPlay: () => _play(menu.nextPuzzle(spec, difficulty)),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
