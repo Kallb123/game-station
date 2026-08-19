@@ -14,7 +14,7 @@ SaveData fullSave() => SaveData(
   settings: const AppSettings(
     sound: false,
     music: true,
-    haptics: false,
+    hapticsLevel: HapticsLevel.high,
     showTimer: true,
     theme: ThemeChoice.night,
     reduceMotion: true,
@@ -91,7 +91,7 @@ const String planExampleJson = '''
   "generatorVersion": 1,
   "activeProfileId": "p1",
   "settings": {
-    "sound": true, "music": false, "haptics": true,
+    "sound": true, "music": false, "hapticsLevel": "low",
     "showTimer": false, "theme": "day", "reduceMotion": false
   },
   "profiles": [{

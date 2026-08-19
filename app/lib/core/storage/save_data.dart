@@ -69,6 +69,24 @@ enum PadSide {
   left,
 }
 
+/// How hard [AppSettings] buzzes. Replaces the plain on/off `haptics` bool
+/// PR 5 first shipped, once a device pass found every call too faint to feel
+/// reliably (`PLAN-phase-5.md` §4.5) — `core/haptics.dart` climbs a four-rung
+/// ladder, and this is how far up it starts.
+enum HapticsLevel {
+  /// No buzz anywhere, on any event.
+  off,
+
+  /// The default. Already a step up from the single tier PR 5 first shipped.
+  low,
+  medium,
+
+  /// The strongest single rung `HapticFeedback` offers, repeated when an
+  /// event's own rung is already at the ladder's ceiling — the only way left
+  /// for that event to feel [high] rise further (`core/haptics.dart`).
+  high,
+}
+
 /// The settings shared by every profile.
 ///
 /// Settings are device-wide rather than per-profile on purpose: sound and
@@ -77,7 +95,7 @@ class AppSettings {
   const AppSettings({
     this.sound = true,
     this.music = false,
-    this.haptics = true,
+    this.hapticsLevel = HapticsLevel.low,
     this.showTimer = false,
     this.theme = ThemeChoice.system,
     this.reduceMotion = false,
@@ -92,8 +110,9 @@ class AppSettings {
   /// its default so that a field ever wanting one needs no migration.
   final bool music;
 
-  /// Vibration on mobile. Hidden on desktop, where it does nothing.
-  final bool haptics;
+  /// How hard vibration buzzes on mobile, consumed by `core/haptics.dart`
+  /// (`PLAN-phase-5.md` §4.5). Hidden on desktop, where it does nothing.
+  final HapticsLevel hapticsLevel;
 
   /// Whether the Sudoku timer is visible. Off by default: no time pressure.
   final bool showTimer;
@@ -109,14 +128,14 @@ class AppSettings {
   AppSettings copyWith({
     bool? sound,
     bool? music,
-    bool? haptics,
+    HapticsLevel? hapticsLevel,
     bool? showTimer,
     ThemeChoice? theme,
     bool? reduceMotion,
   }) => AppSettings(
     sound: sound ?? this.sound,
     music: music ?? this.music,
-    haptics: haptics ?? this.haptics,
+    hapticsLevel: hapticsLevel ?? this.hapticsLevel,
     showTimer: showTimer ?? this.showTimer,
     theme: theme ?? this.theme,
     reduceMotion: reduceMotion ?? this.reduceMotion,
@@ -127,14 +146,14 @@ class AppSettings {
       other is AppSettings &&
       other.sound == sound &&
       other.music == music &&
-      other.haptics == haptics &&
+      other.hapticsLevel == hapticsLevel &&
       other.showTimer == showTimer &&
       other.theme == theme &&
       other.reduceMotion == reduceMotion;
 
   @override
   int get hashCode =>
-      Object.hash(sound, music, haptics, showTimer, theme, reduceMotion);
+      Object.hash(sound, music, hapticsLevel, showTimer, theme, reduceMotion);
 }
 
 /// A puzzle this profile has finished.

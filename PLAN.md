@@ -439,7 +439,7 @@ so there is no setup wall.
   "generatorVersion": 1,
   "activeProfileId": "p1",
   "settings": {
-    "sound": true, "music": false, "haptics": true,
+    "sound": true, "music": false, "hapticsLevel": "low",
     "showTimer": false, "theme": "day", "reduceMotion": false,
     "allowPhotoImport": true
   },
@@ -519,6 +519,16 @@ no disk read on a cheap tablet. `lastDrawingId` is what the Draw card reopens. D
 the child who would turn it on is the one it exists to gate. The block above shows `true` for the same
 reason it shows `day` — a value that is not the default proves the field is read rather than
 defaulted.
+
+`settings.hapticsLevel` replaces the plain on/off `settings.haptics` bool phase 5's PR 5 first shipped
+— a device pass found a single tier too faint to reliably feel, and `off`/`low`/`medium`/`high` is
+what a slider draws instead of a switch (`PLAN-phase-5.md` §4.5). A save still holding the old
+`haptics` bool decodes through a compatibility read rather than a `schemaVersion` bump: the app has no
+shipped users yet for the old field to need protecting, unlike a field this section calls final after
+a real release. The block above shows `low` because that already is the default; a value that is not
+the default is how `theme` and `mistakeFeedback` prove themselves read rather than defaulted, and
+`hapticsLevel` has no need of the same proof since its decode path is exercised directly by
+`core/storage/save_codec_test.dart`'s migration case.
 
 `settings.music` is the one field in the block above that **nothing reads**, and phase 5 — the phase
 that was going to consume it — leaves it that way: there is no music in the app, so a switch for it

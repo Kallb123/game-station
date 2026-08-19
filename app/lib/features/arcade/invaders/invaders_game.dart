@@ -25,6 +25,7 @@ import 'package:flutter/widgets.dart' show BuildContext, Widget;
 
 import '../../../core/audio/app_audio.dart';
 import '../../../core/audio/motif.dart';
+import '../../../core/haptics.dart';
 import '../shared/arcade_controller.dart';
 import '../shared/arcade_result.dart';
 import '../shared/pad_input.dart';
@@ -53,6 +54,7 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
     required this.input,
     required Color color,
     required this.audio,
+    required this.haptics,
   }) : _sim = sim,
        _field = _InvadersField(sim: sim, color: color),
        hud = ValueNotifier(_hudOf(sim)),
@@ -85,6 +87,11 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
   /// (`PLAN-phase-5.md` §4.4). Taken at construction like [color]: a
   /// `FlameGame` is not built with a `BuildContext` to read a provider from.
   final AppAudio audio;
+
+  /// Buzzes the ship's destruction and the run's end — the two moments in an
+  /// Invaders run worth feeling (`PLAN-phase-5.md` §4.5). Taken at
+  /// construction for the same reason [audio] is.
+  final AppHaptics haptics;
 
   /// A fresh seed for [restart] — the injected clock, the same way the first
   /// run's seed reaches this game (`PLAN-phase-4.md` §4.3), so a test can fix
@@ -252,6 +259,10 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
         audio.play(Motif.arcadePlayerShoot);
       case InvadersEvent.playerKilled:
         audio.play(Motif.arcadePlayerHit);
+        // Also the run-ending blow: `InvadersSim` emits this same event
+        // whether a life was lost or the last one was, so one call here
+        // covers both moments §4.5's table lists.
+        haptics.impact();
       case InvadersEvent.alienShot:
         audio.play(Motif.arcadeAlienShoot);
       case InvadersEvent.alienKilled:

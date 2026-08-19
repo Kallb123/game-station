@@ -17,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 import 'package:zibo_games/core/audio/motif.dart';
 import 'package:zibo_games/core/audio/providers.dart';
+import 'package:zibo_games/core/haptics.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
@@ -29,6 +30,7 @@ import 'package:zibo_games/features/sudoku/ui/sudoku_menu_screen.dart';
 
 import '../../../app_harness.dart';
 import '../../../core/audio/recording_audio.dart';
+import '../../../core/recording_haptics.dart';
 import '../puzzle_fixtures.dart';
 
 /// The board these tests finish.
@@ -492,6 +494,59 @@ void main() {
 
       expect(audio.played, isNotEmpty);
       expect(audio.played, everyElement(Motif.sudokuPlace));
+    });
+  });
+
+  group('the rest of the haptics set', () {
+    // `PLAN-phase-5.md` §4.5: a wrong digit buzzes differently from a right
+    // one, and neither the erase, the hint nor the undo buzzes at all — only
+    // §4.5's table names a call site for those four.
+
+    testWidgets('a correct digit clicks, a wrong one buzzes harder', (
+      tester,
+    ) async {
+      final haptics = RecordingHaptics();
+      await openTheBoard(
+        tester,
+        overrides: [appHapticsProvider.overrideWithValue(haptics)],
+      );
+      final cell = emptyCells(boardOf(tester)).first;
+      final right = int.parse(fixtureRecord(solvedPuzzle).solution[cell]);
+      final wrong = _wrongDigitFor(cell);
+
+      await tapIn(tester, cell, right);
+      expect(haptics.calls, ['tap']);
+
+      await tapIn(tester, cell, wrong);
+      expect(haptics.calls, ['tap', 'mistake']);
+
+      await tester.tap(find.byTooltip('Erase'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Hint'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('Undo'));
+      await tester.pump();
+      expect(haptics.calls, [
+        'tap',
+        'mistake',
+      ], reason: 'erase, hint and undo are not in the table');
+    });
+
+    testWidgets('buzzing off silences a wrong digit too', (tester) async {
+      // The default save's profile is already `immediate`
+      // (`save_data.dart`), so a wrong digit reaches `mistake` if anything
+      // does.
+      final haptics = RecordingHaptics()
+        ..applySettings(const AppSettings(hapticsLevel: HapticsLevel.off));
+      await openTheBoard(
+        tester,
+        overrides: [appHapticsProvider.overrideWithValue(haptics)],
+      );
+      final cell = emptyCells(boardOf(tester)).first;
+
+      await tapIn(tester, cell, _wrongDigitFor(cell));
+
+      expect(haptics.calls, isEmpty);
     });
   });
 

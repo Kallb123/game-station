@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/build_info.dart';
+import '../../core/haptics.dart' show deviceCanVibrate;
 import '../../core/storage/providers.dart';
 import '../../core/storage/save_data.dart';
 import '../../core/ui/big_button.dart';
@@ -52,7 +52,7 @@ mistakeFeedbackChoices = <MistakeFeedback, ({String label, IconData icon})>{
 /// mattered. Naming the child on the control is the mechanism that says so.
 String mistakeSectionCaption(String name) => 'For $name';
 
-/// The label on each switch.
+/// The label on each switch, and on the haptics slider.
 ///
 /// Named in words a child reads rather than in the words the code uses:
 /// `reduceMotion` is "Less moving about", because that is what changes.
@@ -61,6 +61,16 @@ const String hapticsLabel = 'Buzzing';
 const String showTimerLabel = 'Show the timer';
 const String reduceMotionLabel = 'Less moving about';
 
+/// How each [HapticsLevel] reads on the slider and in its own live label.
+///
+/// Public because the tests name the same strings the screen does.
+const Map<HapticsLevel, String> hapticsLevelLabels = {
+  HapticsLevel.off: 'Off',
+  HapticsLevel.low: 'Low',
+  HapticsLevel.medium: 'Medium',
+  HapticsLevel.high: 'High',
+};
+
 /// What the grown-up changes, and the child changes back.
 ///
 /// Six controls, and deliberately not seven: `music` is in schema v1 but gets
@@ -68,10 +78,13 @@ const String reduceMotionLabel = 'Less moving about';
 /// off (`PLAN-phase-5.md` §3.4, §4.6, the owner's instruction) and a switch
 /// that does nothing is worse than an absent one.
 ///
-/// Each row is a switch with a glyph and a label. No section headers over the
-/// four switches: four rows do not need to be grouped, and a heading is one
-/// more thing to read. The two choice sections below them do have headings,
-/// because a set of buttons with no name is a question with no question.
+/// Three of the four rows are a switch with a glyph and a label; **Buzzing**
+/// is a slider, because a device pass found a plain on/off too coarse to
+/// answer "how hard" (`PLAN-phase-5.md` §4.5) — `core/haptics.dart` has the
+/// four levels it moves between. No section headers over the four rows: four
+/// rows do not need to be grouped, and a heading is one more thing to read.
+/// The two choice sections below them do have headings, because a set of
+/// buttons with no name is a question with no question.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -98,12 +111,11 @@ class SettingsScreen extends ConsumerWidget {
           // Hidden rather than disabled where there is nothing to vibrate: a
           // control that does nothing on the device in front of you is worse
           // than an absent one (PLAN-phase-1.md §4.5).
-          if (_deviceCanVibrate)
-            _SettingSwitch(
-              icon: Icons.vibration,
-              label: hapticsLabel,
-              value: settings.haptics,
-              onChanged: (value) => update(settings.copyWith(haptics: value)),
+          if (deviceCanVibrate)
+            _HapticsSlider(
+              value: settings.hapticsLevel,
+              onChanged: (level) =>
+                  update(settings.copyWith(hapticsLevel: level)),
             ),
           _SettingSwitch(
             icon: Icons.timer_outlined,
@@ -179,24 +191,6 @@ class _BuildFooter extends StatelessWidget {
   }
 }
 
-/// Whether this device has anything to buzz with.
-///
-/// `defaultTargetPlatform` rather than `dart:io`'s `Platform`, so that a test can
-/// override it and so the answer is right on a web build, which `dart:io` cannot
-/// even be imported for.
-///
-/// Private on purpose: phase 5 is the one that has to know whether a *vibration*
-/// will actually happen, which is a question about the plugin and the device's
-/// hardware, not about the platform. This is only what the screen needs to decide
-/// whether to draw a row.
-bool get _deviceCanVibrate => switch (defaultTargetPlatform) {
-  TargetPlatform.android || TargetPlatform.iOS => true,
-  TargetPlatform.fuchsia ||
-  TargetPlatform.linux ||
-  TargetPlatform.macOS ||
-  TargetPlatform.windows => false,
-};
-
 /// One switch, sized for a child's aim.
 ///
 /// A [SwitchListTile] rather than a row with a [Switch] in it: the whole row
@@ -232,6 +226,71 @@ class _SettingSwitch extends StatelessWidget {
       secondary: Icon(icon, size: AppIconSizes.large),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.card),
+      ),
+    );
+  }
+}
+
+/// **Buzzing**'s own row: a glyph and a label like [_SettingSwitch], the
+/// current level spelled out beside them, and a four-stop [Slider] below
+/// rather than a switch.
+///
+/// The slider sits inside its own [SizedBox] at [AppTapTargets.min] rather
+/// than whatever height `Slider` defaults to: the widget's hit-test area is
+/// its full layout box, so this is what actually enlarges the strip a child
+/// can drag from, not only what it looks like.
+class _HapticsSlider extends StatelessWidget {
+  const _HapticsSlider({required this.value, required this.onChanged});
+
+  final HapticsLevel value;
+  final ValueChanged<HapticsLevel> onChanged;
+
+  static const List<HapticsLevel> _levels = HapticsLevel.values;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final index = _levels.indexOf(value).toDouble();
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: AppTapTargets.primary),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.vibration, size: AppIconSizes.large),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(hapticsLabel, style: theme.textTheme.titleMedium),
+                ),
+                Text(
+                  hapticsLevelLabels[value]!,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ],
+            ),
+            SizedBox(
+              height: AppTapTargets.min,
+              child: Slider(
+                value: index,
+                min: 0,
+                max: (_levels.length - 1).toDouble(),
+                divisions: _levels.length - 1,
+                label: hapticsLevelLabels[value],
+                semanticFormatterCallback: (raw) =>
+                    hapticsLevelLabels[_levels[raw.round()]]!,
+                onChanged: (raw) => onChanged(_levels[raw.round()]),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -11,6 +11,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/haptics.dart';
 import 'package:zibo_games/core/storage/progress_repository.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
@@ -94,6 +95,7 @@ Future<ProgressRepository> _pumpShell(
                     gameId: _gameId,
                     repository: repository,
                     padSide: PadSide.right,
+                    haptics: const SilentHaptics(),
                   ),
                 ),
               ),

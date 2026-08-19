@@ -197,6 +197,44 @@ void main() {
       expect(save.activeProfile.padSide, PadSide.right);
     });
 
+    test('a legacy "haptics": true decodes as HapticsLevel.low, once the same '
+        'buzz felt too faint to keep as a single fixed tier', () {
+      final save = decodeSave(
+        _patch(
+          minimalSaveJson,
+          '"activeProfileId"',
+          '"settings": {"haptics": true}, "activeProfileId"',
+        ),
+      );
+
+      expect(save.settings.hapticsLevel, HapticsLevel.low);
+    });
+
+    test('a legacy "haptics": false decodes as HapticsLevel.off', () {
+      final save = decodeSave(
+        _patch(
+          minimalSaveJson,
+          '"activeProfileId"',
+          '"settings": {"haptics": false}, "activeProfileId"',
+        ),
+      );
+
+      expect(save.settings.hapticsLevel, HapticsLevel.off);
+    });
+
+    test('the new hapticsLevel key wins if a file somehow carries both', () {
+      final save = decodeSave(
+        _patch(
+          minimalSaveJson,
+          '"activeProfileId"',
+          '"settings": {"haptics": false, "hapticsLevel": "high"}, '
+              '"activeProfileId"',
+        ),
+      );
+
+      expect(save.settings.hapticsLevel, HapticsLevel.high);
+    });
+
     test('timestamps are read back as UTC whatever zone they carry', () {
       final save = decodeSave(
         _patch(
