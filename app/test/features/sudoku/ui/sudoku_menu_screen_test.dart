@@ -254,6 +254,38 @@ void main() {
       );
     });
 
+    testWidgets('the chosen size is shown as chosen, not just coloured', (
+      tester,
+    ) async {
+      // The colour-alone rule (`AGENTS.md`, `PLAN-phase-5.md` §4.7): selection
+      // is a check icon as well as a colour, so a player who cannot tell the
+      // two container colours apart still sees which size is picked.
+      await pumpMenu(tester);
+
+      bool showsChosen(SudokuSpec spec) => tester
+          .widgetList(
+            find.descendant(
+              of: find.ancestor(
+                of: find.text(spec.label),
+                matching: find.byType(FilledButton),
+              ),
+              matching: find.byIcon(Icons.check_circle),
+            ),
+          )
+          .isNotEmpty;
+
+      // A fresh save has played nothing, so the menu falls back to 9x9
+      // (`sudoku_menu.dart`'s `lastSpec`).
+      expect(showsChosen(SudokuSpec.s9x9), isTrue);
+      expect(showsChosen(SudokuSpec.s6x6), isFalse);
+
+      await tester.tap(find.text(SudokuSpec.s6x6.label));
+      await tester.pump();
+
+      expect(showsChosen(SudokuSpec.s9x9), isFalse);
+      expect(showsChosen(SudokuSpec.s6x6), isTrue);
+    });
+
     testWidgets('shows what each tier has cost so far', (tester) async {
       await pumpMenu(
         tester,
