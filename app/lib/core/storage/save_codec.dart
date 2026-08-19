@@ -209,6 +209,7 @@ AppSettings _readSettings(Map<String, Object?> raw, String path) => AppSettings(
           _at(path, 'theme'),
         ),
   reduceMotion: _optBool(raw, 'reduceMotion', path, false),
+  allowPhotoImport: _optBool(raw, 'allowPhotoImport', path, false),
 );
 
 /// Reads the four-level `hapticsLevel` if present; otherwise falls back to
@@ -251,6 +252,7 @@ Profile _readProfile(Map<String, Object?> raw, String path) => Profile(
   ),
   sudoku: _readSudoku(_optMap(raw, 'sudoku', path), _at(path, 'sudoku')),
   arcade: _readArcade(_optMap(raw, 'arcade', path), _at(path, 'arcade')),
+  draw: _readDraw(_optMap(raw, 'draw', path), _at(path, 'draw')),
   mistakeFeedback: raw['mistakeFeedback'] == null
       ? MistakeFeedback.immediate
       : _enum(
@@ -324,6 +326,14 @@ DailyStreak _readStreak(Map<String, Object?> raw, String path) => DailyStreak(
 ArcadeProgress _readArcade(Map<String, Object?> raw, String path) =>
     ArcadeProgress(games: _readMapOf(raw, path, _readArcadeGame));
 
+DrawProgress _readDraw(Map<String, Object?> raw, String path) => DrawProgress(
+  drawingCount: _optInt(raw, 'drawingCount', path, 0),
+  lastDrawingId: raw['lastDrawingId'] == null
+      ? null
+      : _string(raw['lastDrawingId'], _at(path, 'lastDrawingId')),
+  bytesUsed: _optInt(raw, 'bytesUsed', path, 0),
+);
+
 ArcadeGameProgress _readArcadeGame(Map<String, Object?> raw, String path) {
   final scoresPath = _at(path, 'highScores');
   final scoresRaw = raw['highScores'] == null
@@ -367,6 +377,7 @@ Map<String, Object?> _writeSettings(AppSettings settings) => {
   'showTimer': settings.showTimer,
   'theme': settings.theme.name,
   'reduceMotion': settings.reduceMotion,
+  'allowPhotoImport': settings.allowPhotoImport,
 };
 
 Map<String, Object?> _writeProfile(Profile profile) => {
@@ -376,6 +387,7 @@ Map<String, Object?> _writeProfile(Profile profile) => {
   'createdAt': _writeDateTime(profile.createdAt),
   'sudoku': _writeSudoku(profile.sudoku),
   'arcade': _sorted(profile.arcade.games, _writeArcadeGame),
+  'draw': _writeDraw(profile.draw),
   'mistakeFeedback': profile.mistakeFeedback.name,
   'arcadeEasyMode': profile.arcadeEasyMode,
   'arcadeAutoFire': profile.arcadeAutoFire,
@@ -408,6 +420,12 @@ Map<String, Object?> _writePuzzleInProgress(PuzzleInProgress puzzle) => {
   'elapsedMs': puzzle.elapsedMs,
   'undoStack': puzzle.undoStack,
   'hints': puzzle.hints,
+};
+
+Map<String, Object?> _writeDraw(DrawProgress draw) => {
+  'drawingCount': draw.drawingCount,
+  if (draw.lastDrawingId != null) 'lastDrawingId': draw.lastDrawingId,
+  'bytesUsed': draw.bytesUsed,
 };
 
 Map<String, Object?> _writeArcadeGame(ArcadeGameProgress game) => {

@@ -99,6 +99,7 @@ class AppSettings {
     this.showTimer = false,
     this.theme = ThemeChoice.system,
     this.reduceMotion = false,
+    this.allowPhotoImport = false,
   });
 
   /// Sound effects, consumed by `core/audio/app_audio.dart`
@@ -125,6 +126,14 @@ class AppSettings {
   /// without the child finding this one.
   final bool reduceMotion;
 
+  /// Whether the draw screen's import control reads the photo library
+  /// (`PLAN.md` §5.2, `PLAN-phase-8.md` §1). Off by default and device-wide
+  /// rather than per profile: it is a parental control, not a child's
+  /// preference — the child who would turn it on is the one it exists to
+  /// gate. Gates only the *import* direction; exporting a drawing to the
+  /// photo library is always available.
+  final bool allowPhotoImport;
+
   AppSettings copyWith({
     bool? sound,
     bool? music,
@@ -132,6 +141,7 @@ class AppSettings {
     bool? showTimer,
     ThemeChoice? theme,
     bool? reduceMotion,
+    bool? allowPhotoImport,
   }) => AppSettings(
     sound: sound ?? this.sound,
     music: music ?? this.music,
@@ -139,6 +149,7 @@ class AppSettings {
     showTimer: showTimer ?? this.showTimer,
     theme: theme ?? this.theme,
     reduceMotion: reduceMotion ?? this.reduceMotion,
+    allowPhotoImport: allowPhotoImport ?? this.allowPhotoImport,
   );
 
   @override
@@ -149,11 +160,19 @@ class AppSettings {
       other.hapticsLevel == hapticsLevel &&
       other.showTimer == showTimer &&
       other.theme == theme &&
-      other.reduceMotion == reduceMotion;
+      other.reduceMotion == reduceMotion &&
+      other.allowPhotoImport == allowPhotoImport;
 
   @override
-  int get hashCode =>
-      Object.hash(sound, music, hapticsLevel, showTimer, theme, reduceMotion);
+  int get hashCode => Object.hash(
+    sound,
+    music,
+    hapticsLevel,
+    showTimer,
+    theme,
+    reduceMotion,
+    allowPhotoImport,
+  );
 }
 
 /// A puzzle this profile has finished.
@@ -432,6 +451,54 @@ class ArcadeProgress {
   int get hashCode => _mapHash(games);
 }
 
+/// One profile's drawing history (`PLAN.md` §5.2, `PLAN-phase-8.md` §4.5).
+///
+/// Holds three numbers, not the drawings: a picture is tens of kilobytes,
+/// which is the whole of what `save.json`'s few-kilobyte target would cost if
+/// drawings lived in it. A drawing itself is a file under
+/// `drawings/<profileId>/`, read and written by
+/// `features/draw/data/drawing_repository.dart`.
+class DrawProgress {
+  const DrawProgress({
+    this.drawingCount = 0,
+    this.lastDrawingId,
+    this.bytesUsed = 0,
+  });
+
+  /// How many drawings this profile has made, ever — including ones since
+  /// deleted, so it never repeats an id `"d1"`, `"d2"`, … the way a profile
+  /// id counter never repeats (`PLAN-phase-1.md` §1).
+  final int drawingCount;
+
+  /// The id the Draw card reopens, or null before the first drawing.
+  final String? lastDrawingId;
+
+  /// What the 64 MB per-profile budget is checked against when a drawing is
+  /// written. Kept here rather than measured from the directory, so the
+  /// check costs no disk read on a cheap tablet (`PLAN.md` §5.2).
+  final int bytesUsed;
+
+  DrawProgress copyWith({
+    int? drawingCount,
+    String? lastDrawingId,
+    int? bytesUsed,
+  }) => DrawProgress(
+    drawingCount: drawingCount ?? this.drawingCount,
+    lastDrawingId: lastDrawingId ?? this.lastDrawingId,
+    bytesUsed: bytesUsed ?? this.bytesUsed,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is DrawProgress &&
+      other.drawingCount == drawingCount &&
+      other.lastDrawingId == lastDrawingId &&
+      other.bytesUsed == bytesUsed;
+
+  @override
+  int get hashCode => Object.hash(drawingCount, lastDrawingId, bytesUsed);
+}
+
 /// One child.
 ///
 /// No password and no account: several children share one tablet, and nothing
@@ -444,6 +511,7 @@ class Profile {
     required this.createdAt,
     this.sudoku = const SudokuProgress(),
     this.arcade = const ArcadeProgress(),
+    this.draw = const DrawProgress(),
     this.mistakeFeedback = MistakeFeedback.immediate,
     this.arcadeEasyMode = false,
     this.arcadeAutoFire = false,
@@ -469,6 +537,9 @@ class Profile {
   /// Arcade history.
   final ArcadeProgress arcade;
 
+  /// Drawing history (`PLAN-phase-8.md` §4.5).
+  final DrawProgress draw;
+
   /// When a wrong Sudoku digit is flagged. Per profile — see [MistakeFeedback].
   final MistakeFeedback mistakeFeedback;
 
@@ -488,6 +559,7 @@ class Profile {
     AvatarId? avatar,
     SudokuProgress? sudoku,
     ArcadeProgress? arcade,
+    DrawProgress? draw,
     MistakeFeedback? mistakeFeedback,
     bool? arcadeEasyMode,
     bool? arcadeAutoFire,
@@ -499,6 +571,7 @@ class Profile {
     createdAt: createdAt,
     sudoku: sudoku ?? this.sudoku,
     arcade: arcade ?? this.arcade,
+    draw: draw ?? this.draw,
     mistakeFeedback: mistakeFeedback ?? this.mistakeFeedback,
     arcadeEasyMode: arcadeEasyMode ?? this.arcadeEasyMode,
     arcadeAutoFire: arcadeAutoFire ?? this.arcadeAutoFire,
@@ -514,6 +587,7 @@ class Profile {
       other.createdAt == createdAt &&
       other.sudoku == sudoku &&
       other.arcade == arcade &&
+      other.draw == draw &&
       other.mistakeFeedback == mistakeFeedback &&
       other.arcadeEasyMode == arcadeEasyMode &&
       other.arcadeAutoFire == arcadeAutoFire &&
@@ -527,6 +601,7 @@ class Profile {
     createdAt,
     sudoku,
     arcade,
+    draw,
     mistakeFeedback,
     arcadeEasyMode,
     arcadeAutoFire,

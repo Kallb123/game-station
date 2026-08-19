@@ -18,6 +18,7 @@
 
 import 'dart:io';
 
+import 'atomic_write.dart';
 import 'save_codec.dart';
 import 'save_data.dart';
 
@@ -158,18 +159,7 @@ class FileSaveStore implements SaveStore {
       await directory.create(recursive: true);
     }
 
-    final temp = _tempFile;
-    final handle = await temp.open(mode: FileMode.writeOnly);
-    try {
-      await handle.writeString(encodeSave(data));
-      // Flushed before the rename, not after: renaming a file whose contents
-      // are still in a buffer would publish an empty save if the power went at
-      // the wrong moment.
-      await handle.flush();
-    } finally {
-      await handle.close();
-    }
-    await temp.rename(_saveFile.path);
+    await writeFileAtomically(_saveFile, encodeSave(data));
   }
 
   SaveData _fresh() => SaveData.initial(createdAt: _now());

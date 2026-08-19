@@ -18,6 +18,7 @@ SaveData fullSave() => SaveData(
     showTimer: true,
     theme: ThemeChoice.night,
     reduceMotion: true,
+    allowPhotoImport: true,
   ),
   profiles: [
     Profile(
@@ -63,6 +64,11 @@ SaveData fullSave() => SaveData(
             totalKills: 3110,
           ),
         },
+      ),
+      draw: const DrawProgress(
+        drawingCount: 7,
+        lastDrawingId: 'd7',
+        bytesUsed: 4820112,
       ),
     ),
     Profile(
