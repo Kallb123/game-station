@@ -889,7 +889,7 @@ What differed from the plan, decided while building it:
   resolving after the stack had changed underneath it could turn into a blank screen. Both are
   behaviour a reader of this phase would otherwise have to re-derive from the diff.
 
-### Phase 5 — polish (6–8 days)
+### Phase 5 — polish (6–8 days) — done, except the hardware device pass
 
 Planned as eight pull requests in [`PLAN-phase-5.md`](PLAN-phase-5.md), which carries the design, the
 rejected alternatives and the verification checklist. The estimate assumes the same one developer
@@ -918,9 +918,15 @@ guards, and the eleven arcade motifs are a synthesiser session rather than a cod
   0.70 s to 0.09 s. The arcade original's four descending notes were drafted and cut: four pitched
   notes in rotation is music by another name (§3.4). `settings.music` therefore gets no control and
   stays at its `false` default (§5.2).
-- Haptics on mobile only, through `HapticFeedback`'s three permission-free calls. `vibrate()` and
-  `heavyImpact` need `android.permission.VIBRATE` and are banned by a scanner test, so the phase adds
-  no permission.
+- Haptics on mobile only, through `HapticFeedback`. **All six of its methods are permission-free**,
+  corrected from this entry's first belief that `vibrate()` and `heavyImpact` needed
+  `android.permission.VIBRATE` (`PLAN-phase-5.md` §3.5, §4.5): the engine routes every one of them
+  through `View.performHapticFeedback`, none through `Vibrator`. `SystemHaptics` climbs a four-rung
+  ladder — `selectionClick` → `lightImpact` → `mediumImpact` → `heavyImpact` — set by
+  `settings.hapticsLevel` (`off`/`low`/`medium`/`high`, §5.2) rather than the plain switch first
+  planned, because a device pass found one fixed intensity too faint to reliably feel. The phase still
+  adds no permission; what changed is which of the six calls answers a level, not whether one needs
+  asking for.
 - Accessibility: screen-reader labels on every control, a colourblind-safe palette that never uses
   colour as the only signal, text-scale support, and `reduceMotion` suppressing confetti — the last of
   which phase 1 already built and `Confetti` already honours. The three claims that can be mechanised
@@ -935,6 +941,57 @@ guards, and the eleven arcade motifs are a synthesiser session rather than a cod
   the tests read them, which is the list a future `.arb` would be seeded from.
 - **Done when:** an accessibility pass on TalkBack and VoiceOver passes, every screen survives
   rotation, and the sound the phase adds can be silenced by two switches with nothing left playing.
+
+**Met by the suite that runs on every commit; not met on hardware, which PR 8 states rather than
+assumes.** `tool/verify.sh` is green, including the Chrome-run `rng_test.dart`/`hash_test.dart` pair
+that `verify.sh` itself can only skip-and-report when no browser is on `PATH` — this session's
+container has none at the path the script looks for, so that pair was run by hand against the
+Playwright-bundled Chromium instead, and passed. `flutter test` is 811 tests; it measured at 62 s in
+this session, against §1's under-60-s budget — at the edge rather than cleanly inside it, the same
+place PR 7 already left it, and the brightness axis its own risk table names as the first thing to
+drop is already gone (see below). `python3 tool/audio/generate_motifs.py --check` reports all fifteen
+motifs matching the script, with `alien_move` at 0.07 s against PR 3's own 90 ms floor. CI on this
+phase's current head (`12081fb`, PR 7) is green on Analyze-and-test, Build Android — including the
+step that asserts the release APK requests no platform permission — Build iOS and macOS, and Build
+Windows; Build Linux had not finished when this pull request was opened and is not a
+permission-bearing leg.
+
+**No Android phone, tablet, desktop display or screen reader was available in this or any earlier
+session that built this phase**, so the hardware half of the done-criterion above — TalkBack and
+VoiceOver actually walked, rotation and 200% text scale felt on glass, and the sound and haptics
+confirmed with real ears and a real thumb — is carried into §9 unticked rather than assumed from the
+automated suite that stands in for it on every commit, the same gap phases 1, 3 and 4 each closed with
+stated rather than papered over. `PLAN-phase-5.md`'s own PR 8 also asked for the 144 Hz desktop pass
+phase 4 left open: what is checked on every commit is `invaders_sim_equivalence_test.dart`, proving
+the fixed-step accumulator reaches identical state after ten seconds of 60 Hz and 144 Hz frame
+sequences — evidence about the accumulator, the same distinction phase 4's own closing note drew, and
+not itself sufficient to close a clause that asks whether a run *plays* at the same speed on a real
+144 Hz panel. That clause, `PLAN-phase-4.md` §8's 144 Hz line and §9's question of whether 1/120 s is
+the right fixed step, and the three open questions in `PLAN-phase-5.md` §9 that named a device pass as
+what would resolve them (the enemy-move tick, the UFO warble's level, whether the bunkers need a hit
+sound) all stay open for the same reason.
+
+What differed from the plan, decided while building it:
+
+- **Haptics went from a plain on/off switch to a four-rung `HapticsLevel` ladder**, and the bullet
+  above and §5.2 now say so. A device pass in PR 5 found the first cut too faint to reliably feel,
+  which sent `PLAN-phase-5.md` §3.5's belief that two of `HapticFeedback`'s six methods,
+  `vibrate()` and `heavyImpact`, need `android.permission.VIBRATE` back for a check — they do not, so
+  the ladder was possible without touching the no-permission promise.
+- **`MinisoundAudio` needed three concurrency fixes PR 4 found under real use, not in the design**: a
+  UFO warble that outlived the run because the sim never emits `ufoLeft` for one already in flight
+  when the last life is lost; nine near-simultaneous first plays that could each call
+  `loadSoundAsset` before `Player.start` had resolved; and a sound whose decode was still pending when
+  `stopLoop`/`stopAll` ran, which then started playing anyway once it resolved. `AppAudio.preload()`
+  and a small, independently-tested `GenerationTracker` fix the three.
+- **`tester.binding.setSurfaceSize` does not change what `MediaQuery.sizeOf` reports**, only what gets
+  rendered and hit-tested — invisible until PR 7's sweep read it for the first time. Every "small
+  phone" test that relied on it moved to `tester.view.physicalSize`, which changes both.
+- **The layout sweep drops the brightness axis** `PLAN-phase-5.md` §4.8 named, as its own risk table
+  said to do first if `flutter test` ran long: day and night share every spacing and size token, and
+  `contrast_test.dart` already walks both palettes for the one thing that does not.
+- **The arcade explosions share one enveloped-noise helper** rather than one function each, added in
+  PR 3 alongside the nine motif functions.
 
 ### Phase 6 — release (3–5 days)
 
@@ -1056,9 +1113,10 @@ the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-
 - [ ] The storage suite runs on a Windows and a macOS runner, not only on Ubuntu. `File.rename` over
       an existing file is the one part of the save path that can behave differently per platform (§8),
       and the CI jobs for those two targets build without testing today.
-- [ ] The built Android APK requests no platform permission at all — in particular no `INTERNET` and
+- [x] The built Android APK requests no platform permission at all — in particular no `INTERNET` and
       no `RECORD_AUDIO`, which `minisound_ffi` declares and the app's manifest removes
-      (`tool/check_apk_permissions.sh` on the artifact, run by CI's `build-android` leg).
+      (`tool/check_apk_permissions.sh` on the artifact, run by CI's `build-android` leg). Green on
+      every push since phase 5's PR 1 introduced the dependency, most recently on `12081fb`.
 - [ ] The release APK is signed with the key from repository secrets, not the fallback debug key —
       the run summary names which, and a store upload can never change key afterwards.
 - [ ] The installed build's settings footer names a version and a build time rather than

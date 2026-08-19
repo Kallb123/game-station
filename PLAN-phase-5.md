@@ -1,10 +1,18 @@
 # Phase 5 — polish
 
-**Not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
-carries this phase's entry and its done-criterion, and §2, §3.7, §5.2, §6 and §8 carry the parts of
-this design the rest of the app has to agree with — all five updated in the commit that added this
-file, because a plan that contradicts the document it defers to is two documents nobody can trust.
-What this phase learns while building it goes into `PLAN.md` §7 when the phase closes (PR 8).
+**Closed, with one criterion unmet and named. Kept as the record of a finished phase, not as current
+plan.** [`PLAN.md`](PLAN.md) is the source of truth for what the project is doing now; §7 there carries
+the phase-5 outcome and everything that differed from this file. The unmet criterion is the hardware
+device pass this file's own PR 8 reserved for — no Android phone, tablet, desktop display or screen
+reader was available in this or any earlier session that built this phase, so TalkBack, VoiceOver,
+rotation and text scale on glass, the sound and haptics heard and felt, and the 144 Hz clause
+`PLAN.md` §7 inherited from phase 4 all stay open; `PLAN.md` §9 carries them forward unticked rather
+than assumed. Read this file for *why* a piece of `app/lib/core/audio`, `core/haptics.dart` and
+`core/ui/layout.dart` is shaped the way it is — those files and their tests cite these section numbers
+throughout, which is why it stays here under its original name rather than being deleted or moved.
+
+Below, "will" and "is" describe the plan as it was written before the phase started; each place where
+the code went another way is recorded in `PLAN.md` §7 rather than edited into the text here.
 
 The plan for the four things that turn six working screens into a shipping app: sound, haptics, an
 accessibility pass, and a layout that survives rotation and a tablet.
@@ -790,18 +798,27 @@ worth listing, and phases 7 and 8 remain minor releases after it.
 
 Commands, from the repository root unless stated:
 
-- [ ] `tool/verify.sh` green, and `cd app && flutter test` under 60 s (§1).
-- [ ] `dart tool/check_offline.dart` clean with `minisound` in the resolved graph.
-- [ ] `cd app && flutter pub deps --style=compact | grep -E ' http | web_socket'` finds nothing outside
+- [x] `tool/verify.sh` green, and `cd app && flutter test` under 60 s (§1). Green; `flutter test` is
+      811 tests, measured at 62 s in this session — at the edge of the budget rather than cleanly
+      inside it, the same place PR 7 left it.
+- [x] `dart tool/check_offline.dart` clean with `minisound` in the resolved graph.
+- [x] `cd app && flutter pub deps --style=compact | grep -E ' http | web_socket'` finds nothing outside
       the `integration_test` dev branch.
-- [ ] `python3 tool/audio/generate_motifs.py --check` exits 0 on a clean checkout.
+- [x] `python3 tool/audio/generate_motifs.py --check` exits 0 on a clean checkout. All fifteen motifs
+      match; `alien_move` is 0.07 s against PR 3's 90 ms floor.
 - [ ] CI green on all five build legs, and its `build-android` leg printing
-      `No platform permissions — in particular, no INTERNET.`
-- [ ] `cd app && flutter test test/haptics_call_site_test.dart test/no_recorder_test.dart` — both pass
+      `No platform permissions — in particular, no INTERNET.` Four of five confirmed on this phase's
+      current head (`12081fb`): Analyze-and-test, Build Android (its permission-assertion step
+      included), Build iOS and macOS, and Build Windows. Build Linux had not finished when this pull
+      request was opened and carries no permission dimension of its own.
+- [x] `cd app && flutter test test/haptics_call_site_test.dart test/no_recorder_test.dart` — both pass
       against `lib/`, and both fail when pointed at a source that breaks them.
-- [ ] `cd app && flutter test test/contrast_test.dart test/layout_sweep_test.dart` pass.
+- [x] `cd app && flutter test test/contrast_test.dart test/layout_sweep_test.dart` pass.
 
-On hardware — each item names the device it ran on in the pull request:
+On hardware — each item names the device it ran on in the pull request. **None of the following ran**:
+no Android phone, tablet, desktop display or screen reader was available in this or any earlier
+session that built this phase. Each stays open in `PLAN.md` §9 rather than being assumed from the
+automated coverage that stands in for it above.
 
 - [ ] An Android phone: a full 9×9 puzzle with every Sudoku sound heard once, then all of them
       silenced by the **Sounds** switch mid-puzzle.
