@@ -2,7 +2,24 @@
 // (`PLAN-phase-5.md` §4.5). Same shape as `core/audio/app_audio.dart`: an
 // interface, a real implementation, a silent fake for tests, and a provider.
 // One file rather than a directory, unlike `core/audio/` — there is one
-// enum's worth of call, not fifteen motifs to name.
+// ladder to climb, not fifteen motifs to name.
+//
+// PR 5 first shipped a plain on/off switch calling three of
+// `HapticFeedback`'s six methods, on the understanding that the other three
+// — `vibrate()` and `heavyImpact()` among them — reached Android's
+// `Vibrator` and so needed `android.permission.VIBRATE`. A device pass found
+// every one of those three calls too faint to reliably feel, which sent that
+// belief back for a check: the engine's own
+// `PlatformPlugin.vibrateHapticFeedback` (`shell/platform/android/io/flutter/
+// plugin/platform/PlatformPlugin.java`) routes all six through
+// `View.performHapticFeedback` with a different `HapticFeedbackConstants`
+// value apiece — `heavyImpact` gets `CONTEXT_CLICK`, the bare `vibrate()`
+// gets `LONG_PRESS` — and none of them touch `Vibrator`. The belief was
+// wrong; nothing here needs a permission, so [SystemHaptics] climbs a
+// four-rung ladder instead of stopping at three, and
+// `haptics_call_site_test.dart` is the guard that actually matters: every
+// call stays inside this one file, which is what keeps a mute or a platform
+// gate from being skippable by mistake, not which of the six names get used.
 
 import 'dart:async';
 
@@ -29,31 +46,27 @@ bool get deviceCanVibrate => switch (defaultTargetPlatform) {
   TargetPlatform.windows => false,
 };
 
-/// Buzzes the device, muted and gated exactly where `PLAN-phase-5.md` §4.5
-/// requires it: nothing fires with `settings.haptics` false, and nothing
-/// fires on a platform with no motor.
+/// Buzzes the device for one of three events, muted and gated exactly where
+/// `PLAN-phase-5.md` §4.5 requires it: nothing fires with
+/// `AppSettings.hapticsLevel` at [HapticsLevel.off], and nothing fires on a
+/// platform with no motor.
 ///
-/// Only three of `HapticFeedback`'s methods are named here —
-/// [selectionClick], [lightImpact] and [mediumImpact] — because those three
-/// route through `View.performHapticFeedback` on Android, which needs no
-/// permission. `HapticFeedback.vibrate()` and `.heavyImpact()` reach
-/// `Vibrator`, which needs `android.permission.VIBRATE`; adding a permission
-/// to this app costs the no-network, no-tracking promise `PLAN.md` §1 makes
-/// as a whole (`PLAN-phase-5.md` §3.5). `no_vibrate_test.dart` bans both
-/// names in `lib/` from the other side.
+/// Named for what happened, not for which `HapticFeedback` call answers it —
+/// [SystemHaptics] moves that mapping as [HapticsLevel] rises, so a fixed
+/// method name tied to one platform call would be a lie within a level or
+/// two.
 abstract interface class AppHaptics {
-  /// A digit or a note entered, or a pad button pressed. The lightest thing
-  /// available, fired hundreds of times a puzzle.
-  void selectionClick();
+  /// A digit or a note entered, or a pad button pressed. The lightest event,
+  /// fired hundreds of times a puzzle.
+  void tap();
 
-  /// A wrong digit on an `immediate` profile — *instead of* [selectionClick],
-  /// the one place a child should feel a difference and still not a
-  /// punishment.
-  void lightImpact();
+  /// A wrong digit on an `immediate` profile — *instead of* [tap], the one
+  /// place a child should feel a difference and still not a punishment.
+  void mistake();
 
   /// The ship destroyed, and game over: the two moments in an Invaders run
   /// worth feeling.
-  void mediumImpact();
+  void impact();
 
   /// The settings changed: a mute takes effect immediately, mid-puzzle.
   void applySettings(AppSettings settings);
@@ -66,23 +79,59 @@ abstract interface class AppHaptics {
 /// itself (`PLAN-phase-5.md` §4.2): a call site cannot forget a check it
 /// never has to make.
 class SystemHaptics implements AppHaptics {
-  bool _haptics = true;
+  HapticsLevel _level = HapticsLevel.low;
 
   @override
-  void applySettings(AppSettings settings) => _haptics = settings.haptics;
+  void applySettings(AppSettings settings) => _level = settings.hapticsLevel;
 
   @override
-  void selectionClick() => _fire(HapticFeedback.selectionClick);
+  void tap() => _fire(0);
 
   @override
-  void lightImpact() => _fire(HapticFeedback.lightImpact);
+  void mistake() => _fire(1);
 
   @override
-  void mediumImpact() => _fire(HapticFeedback.mediumImpact);
+  void impact() => _fire(2);
 
-  void _fire(Future<void> Function() call) {
-    if (!_haptics || !deviceCanVibrate) return;
-    unawaited(call());
+  /// Every rung [_fire] can reach, lightest first. All four route through
+  /// `View.performHapticFeedback` (this file's header), so the ladder is
+  /// free to use every one of them rather than stopping short.
+  static const List<Future<void> Function()> _ladder = [
+    HapticFeedback.selectionClick,
+    HapticFeedback.lightImpact,
+    HapticFeedback.mediumImpact,
+    HapticFeedback.heavyImpact,
+  ];
+
+  /// How far up [_ladder] each non-off level pushes a tier — [tap] starts at
+  /// rung 0, so [HapticsLevel.low]'s offset of 1 is the "turn it up one
+  /// notch" fix a device pass asked for, applied before the slider even
+  /// moves off its default. [HapticsLevel.off] never reaches [_fire].
+  static const Map<HapticsLevel, int> _offset = {
+    HapticsLevel.low: 1,
+    HapticsLevel.medium: 2,
+    HapticsLevel.high: 3,
+  };
+
+  /// The gap between repeated pulses, for a tier whose rung has already hit
+  /// the ladder's ceiling — [impact] starts at rung 2, so
+  /// [HapticsLevel.medium] already maxes it out at rung 4-clamped-to-3, and
+  /// a second pulse is the only way left for [HapticsLevel.high] to make it
+  /// feel any stronger.
+  static const Duration _pulseGap = Duration(milliseconds: 60);
+
+  void _fire(int tier) {
+    if (_level == HapticsLevel.off || !deviceCanVibrate) return;
+    final wanted = tier + _offset[_level]!;
+    final index = wanted.clamp(0, _ladder.length - 1);
+    unawaited(_pulse(index, 1 + (wanted - index)));
+  }
+
+  Future<void> _pulse(int index, int times) async {
+    for (var i = 0; i < times; i++) {
+      if (i > 0) await Future<void>.delayed(_pulseGap);
+      await _ladder[index]();
+    }
   }
 }
 
@@ -92,13 +141,13 @@ class SilentHaptics implements AppHaptics {
   const SilentHaptics();
 
   @override
-  void selectionClick() {}
+  void tap() {}
 
   @override
-  void lightImpact() {}
+  void mistake() {}
 
   @override
-  void mediumImpact() {}
+  void impact() {}
 
   @override
   void applySettings(AppSettings settings) {}
@@ -110,8 +159,8 @@ class SilentHaptics implements AppHaptics {
 /// [SilentHaptics] so a widget test needs no device.
 ///
 /// [AppHaptics.applySettings] is applied once from the current settings and
-/// again on every change, so turning **Buzzing** off takes effect immediately
-/// rather than waiting for the next buzz.
+/// again on every change, so moving the **Buzzing** slider takes effect
+/// immediately rather than waiting for the next buzz.
 final Provider<AppHaptics> appHapticsProvider = Provider<AppHaptics>((ref) {
   final haptics = SystemHaptics();
   haptics.applySettings(ref.read(settingsProvider));

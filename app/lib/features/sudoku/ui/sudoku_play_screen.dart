@@ -513,17 +513,17 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
     switch (event) {
       case SudokuEvent.placed:
         audio.play(Motif.sudokuPlace);
-        haptics.selectionClick();
+        haptics.tap();
       case SudokuEvent.placedCorrect:
         audio.play(Motif.sudokuCorrect);
-        haptics.selectionClick();
+        haptics.tap();
       case SudokuEvent.placedWrong:
         audio.play(Motif.sudokuWrong);
-        haptics.lightImpact();
+        haptics.mistake();
       case SudokuEvent.noted:
         // A pencil mark is a lighter version of the same act as a placement.
         audio.play(Motif.sudokuPlace, gain: 0.7);
-        haptics.selectionClick();
+        haptics.tap();
       case SudokuEvent.erased:
       case SudokuEvent.restored:
         audio.play(Motif.sudokuErase);

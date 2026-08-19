@@ -87,7 +87,9 @@ void main() {
       expect(store.writes, 1);
 
       repository.updateSettings(const AppSettings(music: true));
-      repository.updateSettings(const AppSettings(haptics: false));
+      repository.updateSettings(
+        const AppSettings(hapticsLevel: HapticsLevel.off),
+      );
       await pumpEventQueue();
       expect(store.writes, 1, reason: 'no write starts beside one in flight');
 
@@ -95,7 +97,7 @@ void main() {
       await repository.flush();
 
       expect(store.writes, 2);
-      expect(store.last?.settings.haptics, isFalse);
+      expect(store.last?.settings.hapticsLevel, HapticsLevel.off);
     });
 
     test('a failed write is recorded, not thrown', () async {

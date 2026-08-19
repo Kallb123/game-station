@@ -1,8 +1,10 @@
-// `SystemHaptics`'s own gates (`PLAN-phase-5.md` §4.5, PR 5's done
-// criterion): `settings.haptics` and the platform check both silence it, and
-// each is checked against the actual platform channel `HapticFeedback` calls
-// through — `RecordingHaptics` cannot answer this, because it fakes
-// `AppHaptics` rather than exercising the real implementation over it.
+// `SystemHaptics`'s own gates and its ladder (`PLAN-phase-5.md` §4.5, PR 5's
+// done criterion): `AppSettings.hapticsLevel` and the platform check both
+// silence it, and each level climbs the four-rung ladder — repeating a pulse
+// once an event's own rung hits the ceiling — checked against the actual
+// platform channel `HapticFeedback` calls through. `RecordingHaptics` cannot
+// answer any of this: it fakes `AppHaptics` rather than exercising the real
+// implementation over it.
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -47,39 +49,102 @@ void main() {
     }
   }
 
-  test('selectionClick reaches the platform channel on Android', () async {
-    await runningOn(TargetPlatform.android, () async {
-      SystemHaptics().selectionClick();
-      await Future<void>.delayed(Duration.zero);
+  /// The `HapticFeedbackType` each recorded call named, in order — every
+  /// `HapticFeedback` method invokes the same channel method with this as
+  /// its one argument (this file's header names the source).
+  List<String> typesFired() =>
+      calls.map((call) => call.arguments as String).toList();
 
-      expect(calls, hasLength(1));
-      expect(calls.single.method, 'HapticFeedback.vibrate');
-    });
-  });
-
-  test('haptics: false silences every one of the three calls', () async {
+  test('off fires nothing, for any of the three events', () async {
     await runningOn(TargetPlatform.android, () async {
       final haptics = SystemHaptics()
-        ..applySettings(const AppSettings(haptics: false));
+        ..applySettings(const AppSettings(hapticsLevel: HapticsLevel.off));
 
-      haptics.selectionClick();
-      haptics.lightImpact();
-      haptics.mediumImpact();
+      haptics.tap();
+      haptics.mistake();
+      haptics.impact();
       await Future<void>.delayed(Duration.zero);
 
       expect(calls, isEmpty);
     });
   });
 
-  test('nothing fires on macOS, regardless of the setting', () async {
+  test('nothing fires on macOS, regardless of the level', () async {
     await runningOn(TargetPlatform.macOS, () async {
       final haptics = SystemHaptics()
-        ..applySettings(const AppSettings(haptics: true));
+        ..applySettings(const AppSettings(hapticsLevel: HapticsLevel.high));
 
-      haptics.selectionClick();
+      haptics.impact();
       await Future<void>.delayed(Duration.zero);
 
       expect(calls, isEmpty);
+    });
+  });
+
+  test('low pushes every event up one rung from the ladder\'s floor', () async {
+    await runningOn(TargetPlatform.android, () async {
+      final haptics = SystemHaptics()
+        ..applySettings(const AppSettings(hapticsLevel: HapticsLevel.low));
+
+      haptics.tap();
+      await Future<void>.delayed(Duration.zero);
+      expect(typesFired(), ['HapticFeedbackType.lightImpact']);
+      calls.clear();
+
+      haptics.mistake();
+      await Future<void>.delayed(Duration.zero);
+      expect(typesFired(), ['HapticFeedbackType.mediumImpact']);
+      calls.clear();
+
+      haptics.impact();
+      await Future<void>.delayed(Duration.zero);
+      expect(typesFired(), ['HapticFeedbackType.heavyImpact']);
+    });
+  });
+
+  test('medium pushes tap and mistake up again, and repeats impact once at the '
+      'ceiling', () async {
+    await runningOn(TargetPlatform.android, () async {
+      final haptics = SystemHaptics()
+        ..applySettings(const AppSettings(hapticsLevel: HapticsLevel.medium));
+
+      haptics.tap();
+      await Future<void>.delayed(Duration.zero);
+      expect(typesFired(), ['HapticFeedbackType.mediumImpact']);
+      calls.clear();
+
+      haptics.mistake();
+      await Future<void>.delayed(Duration.zero);
+      expect(typesFired(), ['HapticFeedbackType.heavyImpact']);
+      calls.clear();
+
+      haptics.impact();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(typesFired(), [
+        'HapticFeedbackType.heavyImpact',
+        'HapticFeedbackType.heavyImpact',
+      ]);
+    });
+  });
+
+  test('high repeats mistake twice and impact three times', () async {
+    await runningOn(TargetPlatform.android, () async {
+      final haptics = SystemHaptics()
+        ..applySettings(const AppSettings(hapticsLevel: HapticsLevel.high));
+
+      haptics.tap();
+      await Future<void>.delayed(Duration.zero);
+      expect(typesFired(), ['HapticFeedbackType.heavyImpact']);
+      calls.clear();
+
+      haptics.mistake();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(typesFired(), List.filled(2, 'HapticFeedbackType.heavyImpact'));
+      calls.clear();
+
+      haptics.impact();
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(typesFired(), List.filled(3, 'HapticFeedbackType.heavyImpact'));
     });
   });
 
@@ -87,15 +152,15 @@ void main() {
     await runningOn(TargetPlatform.android, () async {
       final haptics = SystemHaptics();
 
-      haptics.selectionClick();
+      haptics.tap();
       await Future<void>.delayed(Duration.zero);
       expect(calls, hasLength(1));
 
-      haptics.applySettings(const AppSettings(haptics: false));
-      haptics.selectionClick();
+      haptics.applySettings(const AppSettings(hapticsLevel: HapticsLevel.off));
+      haptics.tap();
       await Future<void>.delayed(Duration.zero);
 
-      expect(calls, hasLength(1), reason: 'the second click should be muted');
+      expect(calls, hasLength(1), reason: 'the second tap should be muted');
     });
   });
 

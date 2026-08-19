@@ -139,7 +139,7 @@ class _PadButtonState extends State<_PadButton> {
   void _press(int pointer) {
     if (_pointer != null) return;
     _pointer = pointer;
-    widget.haptics.selectionClick();
+    widget.haptics.tap();
     widget.onHeldChanged(true);
   }
 

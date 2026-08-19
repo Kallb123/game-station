@@ -199,7 +199,7 @@ SaveData _readSave(Map<String, Object?> raw) {
 AppSettings _readSettings(Map<String, Object?> raw, String path) => AppSettings(
   sound: _optBool(raw, 'sound', path, true),
   music: _optBool(raw, 'music', path, false),
-  haptics: _optBool(raw, 'haptics', path, true),
+  hapticsLevel: _readHapticsLevel(raw, path),
   showTimer: _optBool(raw, 'showTimer', path, false),
   theme: raw['theme'] == null
       ? ThemeChoice.system
@@ -210,6 +210,32 @@ AppSettings _readSettings(Map<String, Object?> raw, String path) => AppSettings(
         ),
   reduceMotion: _optBool(raw, 'reduceMotion', path, false),
 );
+
+/// Reads the four-level `hapticsLevel` if present; otherwise falls back to
+/// the plain on/off `haptics` bool it replaced, so a save written by an
+/// earlier build of this still-unreleased phase decodes with the same feel
+/// it always had rather than refusing to load — `true` becomes
+/// [HapticsLevel.low], the new floor for "buzzing on" being a step stronger
+/// than the old bool ever was; `false` becomes [HapticsLevel.off]. Neither
+/// key present means a first launch, which gets [HapticsLevel.low] for the
+/// same reason `haptics` defaulted to `true` (`PLAN-phase-5.md` §4.5).
+HapticsLevel _readHapticsLevel(Map<String, Object?> raw, String path) {
+  final level = raw['hapticsLevel'];
+  if (level != null) {
+    return _enum(
+      HapticsLevel.values,
+      _string(level, _at(path, 'hapticsLevel')),
+      _at(path, 'hapticsLevel'),
+    );
+  }
+  final legacy = raw['haptics'];
+  if (legacy != null) {
+    return _bool(legacy, _at(path, 'haptics'))
+        ? HapticsLevel.low
+        : HapticsLevel.off;
+  }
+  return HapticsLevel.low;
+}
 
 Profile _readProfile(Map<String, Object?> raw, String path) => Profile(
   id: _string(_required(raw, 'id', path), _at(path, 'id')),
@@ -337,7 +363,7 @@ Map<String, Object?> _writeSave(SaveData data) => {
 Map<String, Object?> _writeSettings(AppSettings settings) => {
   'sound': settings.sound,
   'music': settings.music,
-  'haptics': settings.haptics,
+  'hapticsLevel': settings.hapticsLevel.name,
   'showTimer': settings.showTimer,
   'theme': settings.theme.name,
   'reduceMotion': settings.reduceMotion,

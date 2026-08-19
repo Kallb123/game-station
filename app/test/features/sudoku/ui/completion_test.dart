@@ -515,10 +515,10 @@ void main() {
       final wrong = _wrongDigitFor(cell);
 
       await tapIn(tester, cell, right);
-      expect(haptics.calls, ['selectionClick']);
+      expect(haptics.calls, ['tap']);
 
       await tapIn(tester, cell, wrong);
-      expect(haptics.calls, ['selectionClick', 'lightImpact']);
+      expect(haptics.calls, ['tap', 'mistake']);
 
       await tester.tap(find.byTooltip('Erase'));
       await tester.pump();
@@ -527,17 +527,17 @@ void main() {
       await tester.tap(find.byTooltip('Undo'));
       await tester.pump();
       expect(haptics.calls, [
-        'selectionClick',
-        'lightImpact',
+        'tap',
+        'mistake',
       ], reason: 'erase, hint and undo are not in the table');
     });
 
     testWidgets('buzzing off silences a wrong digit too', (tester) async {
       // The default save's profile is already `immediate`
-      // (`save_data.dart`), so a wrong digit reaches `lightImpact` if
-      // anything does.
+      // (`save_data.dart`), so a wrong digit reaches `mistake` if anything
+      // does.
       final haptics = RecordingHaptics()
-        ..applySettings(const AppSettings(haptics: false));
+        ..applySettings(const AppSettings(hapticsLevel: HapticsLevel.off));
       await openTheBoard(
         tester,
         overrides: [appHapticsProvider.overrideWithValue(haptics)],

@@ -262,7 +262,7 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
         // Also the run-ending blow: `InvadersSim` emits this same event
         // whether a life was lost or the last one was, so one call here
         // covers both moments §4.5's table lists.
-        haptics.mediumImpact();
+        haptics.impact();
       case InvadersEvent.alienShot:
         audio.play(Motif.arcadeAlienShoot);
       case InvadersEvent.alienKilled:

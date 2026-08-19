@@ -118,12 +118,12 @@ void main() {
 
     final gesture = await tester.startGesture(tester.getCenter(left));
     await tester.pump();
-    expect(haptics.calls, ['selectionClick']);
+    expect(haptics.calls, ['tap']);
 
     await gesture.up();
     await tester.pump();
     expect(haptics.calls, [
-      'selectionClick',
+      'tap',
     ], reason: 'a release must not double the press buzz');
     expect(input.value.left, isFalse);
   });

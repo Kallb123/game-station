@@ -124,6 +124,24 @@ void main() {
     return partway == tester.getTopLeft(find.text(invadersTitle));
   }
 
+  /// Drags the haptics slider to [level], approximating its stop's fraction
+  /// along the track — close enough that `Slider.divisions` snaps to the
+  /// nearest of the four stops even when the tap lands a few pixels off it.
+  Future<void> setHapticsLevel(WidgetTester tester, HapticsLevel level) async {
+    final slider = find.byType(Slider);
+    await tester.ensureVisible(slider);
+    await tester.pumpAndSettle();
+    final rect = tester.getRect(slider);
+    final fraction =
+        HapticsLevel.values.indexOf(level) / (HapticsLevel.values.length - 1);
+    final dx = (rect.left + rect.width * fraction).clamp(
+      rect.left + 8,
+      rect.right - 8,
+    );
+    await tester.tapAt(Offset(dx, rect.center.dy));
+    await tester.pumpAndSettle();
+  }
+
   /// The switch drawn for [label].
   SwitchListTile switchFor(WidgetTester tester, String label) =>
       tester.widget<SwitchListTile>(
@@ -262,7 +280,6 @@ void main() {
   testWidgets('every switch survives a relaunch', (tester) async {
     const flipped = AppSettings(
       sound: false,
-      haptics: false,
       showTimer: true,
       reduceMotion: true,
     );
@@ -274,7 +291,6 @@ void main() {
 
       for (final label in const [
         soundLabel,
-        hapticsLabel,
         showTimerLabel,
         reduceMotionLabel,
       ]) {
@@ -293,14 +309,32 @@ void main() {
       // consumes it.
       await openSettings(tester);
       expect(switchFor(tester, soundLabel).value, isFalse);
-      expect(switchFor(tester, hapticsLabel).value, isFalse);
       expect(switchFor(tester, showTimerLabel).value, isTrue);
       expect(switchFor(tester, reduceMotionLabel).value, isTrue);
     });
   });
 
+  testWidgets('the haptics level survives a relaunch', (tester) async {
+    await runningOn(TargetPlatform.android, () async {
+      final store = MemorySaveStore(initial: freshSave());
+      final container = await pumpApp(tester, store: store);
+      await openSettings(tester);
+
+      await setHapticsLevel(tester, HapticsLevel.high);
+
+      expect(container.read(settingsProvider).hapticsLevel, HapticsLevel.high);
+
+      await flush(container);
+      final relaunched = await pumpApp(tester, store: store);
+
+      expect(relaunched.read(settingsProvider).hapticsLevel, HapticsLevel.high);
+      await openSettings(tester);
+      expect(find.text(hapticsLevelLabels[HapticsLevel.high]!), findsOneWidget);
+    });
+  });
+
   for (final platform in const [TargetPlatform.android, TargetPlatform.iOS]) {
-    testWidgets('$platform can turn buzzing off', (tester) async {
+    testWidgets('$platform is offered a buzzing control', (tester) async {
       await runningOn(platform, () async {
         await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
         await openSettings(tester);
@@ -315,7 +349,7 @@ void main() {
     TargetPlatform.macOS,
     TargetPlatform.windows,
   ]) {
-    testWidgets('$platform is not offered a buzzing switch', (tester) async {
+    testWidgets('$platform is not offered a buzzing control', (tester) async {
       // A control that does nothing on the device in front of you is worse than
       // an absent one (PLAN-phase-1.md §4.5).
       await runningOn(platform, () async {
@@ -394,7 +428,6 @@ void main() {
 
       for (final label in const [
         soundLabel,
-        hapticsLabel,
         showTimerLabel,
         reduceMotionLabel,
       ]) {
@@ -411,6 +444,11 @@ void main() {
           reason: '$label is a row a child aims at',
         );
       }
+      expect(
+        tester.getSize(find.byType(Slider)).height,
+        greaterThanOrEqualTo(AppTapTargets.min),
+        reason: 'the haptics slider is a strip a child drags along',
+      );
       for (final choice in [
         ...themeChoices.values,
         ...mistakeFeedbackChoices.values,
