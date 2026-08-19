@@ -23,6 +23,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show KeyDownEvent, LogicalKeyboardKey;
 
+import '../../../core/haptics.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/save_data.dart' show HighScore, PadSide;
 import '../../../core/ui/big_button.dart';
@@ -60,6 +61,7 @@ class GameShell extends StatefulWidget {
     required this.gameId,
     required this.repository,
     required this.padSide,
+    required this.haptics,
     super.key,
   });
 
@@ -78,6 +80,10 @@ class GameShell extends StatefulWidget {
 
   /// Which side FIRE sits on, from the active profile.
   final PadSide padSide;
+
+  /// Buzzes a pad button press, handed to [OnScreenPad]
+  /// (`PLAN-phase-5.md` §4.5).
+  final AppHaptics haptics;
 
   @override
   State<GameShell> createState() => _GameShellState();
@@ -325,6 +331,7 @@ class _GameShellState extends State<GameShell> {
                       child: OnScreenPad(
                         input: widget.controller.input,
                         side: widget.padSide,
+                        haptics: widget.haptics,
                       ),
                     )
                   : const SizedBox.shrink(),

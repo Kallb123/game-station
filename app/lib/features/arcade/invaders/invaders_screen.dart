@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/audio/motif.dart';
 import '../../../core/audio/providers.dart';
 import '../../../core/clock.dart';
+import '../../../core/haptics.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/save_data.dart';
@@ -86,6 +87,8 @@ class _InvadersScreenState extends ConsumerState<InvadersScreen> {
       // (`core/audio/providers.dart`), so this screen never needs to
       // re-read it on a later build.
       audio: ref.read(appAudioProvider),
+      // Read once, for the same reason as `audio` above.
+      haptics: ref.read(appHapticsProvider),
     );
     // Kept live rather than only set at construction: under `ThemeMode.system`
     // the device can switch brightness while this screen stays open, and
@@ -106,6 +109,7 @@ class _InvadersScreenState extends ConsumerState<InvadersScreen> {
       gameId: invadersGameId,
       repository: _repository,
       padSide: padSide,
+      haptics: ref.read(appHapticsProvider),
     );
   }
 }

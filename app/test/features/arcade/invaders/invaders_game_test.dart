@@ -19,6 +19,7 @@ import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/audio/app_audio.dart';
 import 'package:zibo_games/core/audio/motif.dart';
+import 'package:zibo_games/core/haptics.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
 import 'package:zibo_games/features/arcade/invaders/model/invaders_rules.dart';
@@ -34,6 +35,7 @@ InvadersGame _newGame({AppAudio audio = const SilentAudio()}) => InvadersGame(
   input: ValueNotifier(PadInput.none),
   color: Colors.green,
   audio: audio,
+  haptics: const SilentHaptics(),
 );
 
 void main() {

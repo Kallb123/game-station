@@ -5,12 +5,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/haptics.dart';
 import 'package:zibo_games/core/storage/save_data.dart' show PadSide;
 import 'package:zibo_games/core/ui/theme.dart';
 import 'package:zibo_games/core/ui/tokens.dart';
 import 'package:zibo_games/features/arcade/shared/on_screen_pad.dart';
 import 'package:zibo_games/features/arcade/shared/pad_input.dart';
 
+import '../../../core/recording_haptics.dart';
 import '../../../core/ui/ui_harness.dart';
 
 void main() {
@@ -20,6 +22,7 @@ void main() {
     WidgetTester tester, {
     PadSide side = PadSide.right,
     EdgeInsets padding = EdgeInsets.zero,
+    AppHaptics haptics = const SilentHaptics(),
   }) async {
     final input = ValueNotifier(PadInput.none);
     addTearDown(input.dispose);
@@ -29,7 +32,7 @@ void main() {
         body: SafeArea(
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: OnScreenPad(input: input, side: side),
+            child: OnScreenPad(input: input, side: side, haptics: haptics),
           ),
         ),
       ),
@@ -105,6 +108,24 @@ void main() {
     expect(input.value.fire, isFalse);
 
     await leftFinger.up();
+  });
+
+  testWidgets('a press buzzes once; the release does not double it', (
+    tester,
+  ) async {
+    final haptics = RecordingHaptics();
+    final input = await pumpPad(tester, haptics: haptics);
+
+    final gesture = await tester.startGesture(tester.getCenter(left));
+    await tester.pump();
+    expect(haptics.calls, ['selectionClick']);
+
+    await gesture.up();
+    await tester.pump();
+    expect(haptics.calls, [
+      'selectionClick',
+    ], reason: 'a release must not double the press buzz');
+    expect(input.value.left, isFalse);
   });
 
   testWidgets('every button clears the 72 dp floor', (tester) async {

@@ -20,6 +20,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 
 import '../../../core/audio/motif.dart';
 import '../../../core/audio/providers.dart';
+import '../../../core/haptics.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/save_data.dart';
@@ -500,19 +501,29 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
   /// Turns [event] into the one sound it names — the one call site for seven
   /// of the fifteen motifs in the app, because the session is what knows what
   /// happened rather than the keypad or the grid's tap handlers
-  /// (`PLAN-phase-5.md` §3.3, §4.3).
+  /// (`PLAN-phase-5.md` §3.3, §4.3) — and, for a digit or a note, the one
+  /// buzz it names too (`PLAN-phase-5.md` §4.5): [SudokuEvent.placedWrong]
+  /// only ever reaches here on an `immediate` profile, because the session
+  /// itself maps a wrong digit to plain [SudokuEvent.placed] under
+  /// `atCompletion` (§4.3's table) — so no extra check is needed to keep a
+  /// buzz off a mode that withholds the sound for the same digit.
   void _play(SudokuEvent event) {
     final audio = ref.read(appAudioProvider);
+    final haptics = ref.read(appHapticsProvider);
     switch (event) {
       case SudokuEvent.placed:
         audio.play(Motif.sudokuPlace);
+        haptics.selectionClick();
       case SudokuEvent.placedCorrect:
         audio.play(Motif.sudokuCorrect);
+        haptics.selectionClick();
       case SudokuEvent.placedWrong:
         audio.play(Motif.sudokuWrong);
+        haptics.lightImpact();
       case SudokuEvent.noted:
         // A pencil mark is a lighter version of the same act as a placement.
         audio.play(Motif.sudokuPlace, gain: 0.7);
+        haptics.selectionClick();
       case SudokuEvent.erased:
       case SudokuEvent.restored:
         audio.play(Motif.sudokuErase);

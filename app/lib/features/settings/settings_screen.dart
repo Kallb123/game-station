@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/build_info.dart';
+import '../../core/haptics.dart' show deviceCanVibrate;
 import '../../core/storage/providers.dart';
 import '../../core/storage/save_data.dart';
 import '../../core/ui/big_button.dart';
@@ -98,7 +98,7 @@ class SettingsScreen extends ConsumerWidget {
           // Hidden rather than disabled where there is nothing to vibrate: a
           // control that does nothing on the device in front of you is worse
           // than an absent one (PLAN-phase-1.md §4.5).
-          if (_deviceCanVibrate)
+          if (deviceCanVibrate)
             _SettingSwitch(
               icon: Icons.vibration,
               label: hapticsLabel,
@@ -178,24 +178,6 @@ class _BuildFooter extends StatelessWidget {
     );
   }
 }
-
-/// Whether this device has anything to buzz with.
-///
-/// `defaultTargetPlatform` rather than `dart:io`'s `Platform`, so that a test can
-/// override it and so the answer is right on a web build, which `dart:io` cannot
-/// even be imported for.
-///
-/// Private on purpose: phase 5 is the one that has to know whether a *vibration*
-/// will actually happen, which is a question about the plugin and the device's
-/// hardware, not about the platform. This is only what the screen needs to decide
-/// whether to draw a row.
-bool get _deviceCanVibrate => switch (defaultTargetPlatform) {
-  TargetPlatform.android || TargetPlatform.iOS => true,
-  TargetPlatform.fuchsia ||
-  TargetPlatform.linux ||
-  TargetPlatform.macOS ||
-  TargetPlatform.windows => false,
-};
 
 /// One switch, sized for a child's aim.
 ///

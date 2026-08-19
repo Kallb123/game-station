@@ -92,7 +92,8 @@ class AppSettings {
   /// its default so that a field ever wanting one needs no migration.
   final bool music;
 
-  /// Vibration on mobile. Hidden on desktop, where it does nothing.
+  /// Vibration on mobile, consumed by `core/haptics.dart`
+  /// (`PLAN-phase-5.md` §4.5). Hidden on desktop, where it does nothing.
   final bool haptics;
 
   /// Whether the Sudoku timer is visible. Off by default: no time pressure.

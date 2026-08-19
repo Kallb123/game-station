@@ -15,6 +15,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../core/haptics.dart';
 import '../../../core/storage/save_data.dart' show PadSide;
 import '../../../core/ui/tokens.dart';
 import 'pad_input.dart';
@@ -28,6 +29,7 @@ import 'pad_input.dart';
 class OnScreenPad extends StatefulWidget {
   const OnScreenPad({
     required this.input,
+    required this.haptics,
     this.side = PadSide.right,
     super.key,
   });
@@ -39,6 +41,10 @@ class OnScreenPad extends StatefulWidget {
   /// Which side FIRE sits on — mirrors a profile's stored `padSide` for a
   /// left-handed player.
   final PadSide side;
+
+  /// Buzzes a press — not a release, which would double every tap
+  /// (`PLAN-phase-5.md` §4.5).
+  final AppHaptics haptics;
 
   /// Keys for finding each button in a test — by identity rather than by the
   /// icon it happens to draw today, which is otherwise the only handle a test
@@ -72,6 +78,7 @@ class _OnScreenPadState extends State<OnScreenPad> {
           key: OnScreenPad.leftKey,
           label: 'Left',
           icon: Icons.arrow_back,
+          haptics: widget.haptics,
           onHeldChanged: (held) => _update(left: held),
         ),
         const SizedBox(width: AppSpacing.lg),
@@ -79,6 +86,7 @@ class _OnScreenPadState extends State<OnScreenPad> {
           key: OnScreenPad.rightKey,
           label: 'Right',
           icon: Icons.arrow_forward,
+          haptics: widget.haptics,
           onHeldChanged: (held) => _update(right: held),
         ),
       ],
@@ -87,6 +95,7 @@ class _OnScreenPadState extends State<OnScreenPad> {
       key: OnScreenPad.fireKey,
       label: 'Fire',
       icon: Icons.circle,
+      haptics: widget.haptics,
       onHeldChanged: (held) => _update(fire: held),
     );
 
@@ -106,12 +115,14 @@ class _PadButton extends StatefulWidget {
   const _PadButton({
     required this.label,
     required this.icon,
+    required this.haptics,
     required this.onHeldChanged,
     super.key,
   });
 
   final String label;
   final IconData icon;
+  final AppHaptics haptics;
   final ValueChanged<bool> onHeldChanged;
 
   @override
@@ -128,6 +139,7 @@ class _PadButtonState extends State<_PadButton> {
   void _press(int pointer) {
     if (_pointer != null) return;
     _pointer = pointer;
+    widget.haptics.selectionClick();
     widget.onHeldChanged(true);
   }
 
