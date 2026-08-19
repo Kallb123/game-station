@@ -12,6 +12,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/audio/motif.dart';
+import '../../../core/audio/providers.dart';
 import '../../../core/clock.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
@@ -47,6 +49,13 @@ class _InvadersScreenState extends ConsumerState<InvadersScreen> {
     _repository = ref.read(progressRepositoryProvider);
     _now = ref.read(nowProvider);
     _profile = _repository.activeProfile;
+    // Loads the arcade set now rather than on each motif's first play
+    // mid-run: the nine sounds are all new to a session that opened
+    // straight into Invaders, and the asset-decode cost the first play of
+    // each would otherwise pay lands here, during the screen transition,
+    // instead of audibly late on the very shots and hits that introduce
+    // them.
+    ref.read(appAudioProvider).preload(Motif.arcadeSet);
   }
 
   @override
@@ -71,6 +80,12 @@ class _InvadersScreenState extends ConsumerState<InvadersScreen> {
       seed: _seed,
       input: ValueNotifier(PadInput.none),
       color: palette.arcade,
+      // Read once, at construction: `appAudioProvider` hands out the same
+      // instance for the app's whole life, and that instance already watches
+      // `settings.sound` and mutes itself in place
+      // (`core/audio/providers.dart`), so this screen never needs to
+      // re-read it on a later build.
+      audio: ref.read(appAudioProvider),
     );
     // Kept live rather than only set at construction: under `ThemeMode.system`
     // the device can switch brightness while this screen stays open, and

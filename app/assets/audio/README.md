@@ -73,8 +73,10 @@ the arcade original's four descending notes were drafted for `alien_move` and cu
 pitches on a fixed step is music by another name (`PLAN-phase-5.md` §3.4). `settings.music`
 stays in the schema, unread, by the owner's instruction (`PLAN-phase-5.md` §2).
 
-Wiring these nine into `InvadersSim` and `InvadersGame` is `PLAN-phase-5.md` §6, PR 4 — this pull
-request is the sounds themselves, with no Dart changed.
+Wired the same way the Sudoku set is: `InvadersSim` appends an `InvadersEvent` beside each mutation
+that already detects one of these nine, and `InvadersGame.update` drains them every frame and turns
+each into the motif above — `ufoAppeared` and `ufoLeft` start and stop the loop, the rest play once
+(`PLAN-phase-5.md` §4.4, PR 4).
 
 ## Not here yet
 

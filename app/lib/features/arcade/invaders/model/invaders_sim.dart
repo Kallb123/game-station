@@ -16,6 +16,13 @@
 // shots against the player, the block against the player's row. The order is
 // part of the behaviour (`PLAN.md` §4.1), so `_resolveCollisions` states it
 // rather than leaving it to whichever check was written first.
+//
+// Nine of the methods below also append an [InvadersEvent] beside the
+// mutation they already make, for `invaders_game.dart` (PR 4) to turn into a
+// sound after draining them with [InvadersSim.drainEvents]
+// (`PLAN-phase-5.md` §3.3, §4.4). Nothing here reads its own events back, so
+// the sim stays exactly as testable — and as clock-free, RNG-free and
+// Flutter-free — as it was before this phase.
 
 import 'package:flutter/foundation.dart';
 
@@ -77,6 +84,49 @@ const int _bonusLifeThreshold = 10000;
 /// a cooldown like 0.35 s do not necessarily land on exactly zero, so every
 /// timer expiry in this file compares against this instead of a bare zero.
 const double _timerEpsilon = 1e-9;
+
+/// Everything that happened during a [InvadersSim.step] call that the layer
+/// above turns into a sound (`PLAN-phase-5.md` §4.4). Named after what the
+/// simulation itself calls things — `AlienBlock`, `Ufo` — not after the play
+/// field, so an event name greps to the method that emits it rather than to
+/// nothing.
+enum InvadersEvent {
+  /// The player fired.
+  playerShot,
+
+  /// The player was hit — the last life or not.
+  playerKilled,
+
+  /// An alien fired.
+  alienShot,
+
+  /// An alien was destroyed.
+  alienKilled,
+
+  /// The alien block stepped sideways or down.
+  alienStep,
+
+  /// The UFO appeared.
+  ufoAppeared,
+
+  /// The UFO crossed the field without being hit.
+  ufoLeft,
+
+  /// The UFO was destroyed.
+  ufoKilled,
+
+  /// The last alien of a wave died and the next wave began.
+  waveCleared,
+
+  /// The 10,000-point bonus life was awarded.
+  extraLife,
+}
+
+/// The most [InvadersEvent]s [InvadersSim.drainEvents] holds before the
+/// oldest are dropped — a sim stepped by a test that never drains, or a frame
+/// that drops a backlog of steps at once (`maxStepsPerFrame` in
+/// `invaders_game.dart`), must not grow this without bound.
+const int maxBufferedEvents = 64;
 
 /// The player: position, whether it is currently on screen, and the two
 /// timers that gate firing again and reappearing after a hit.
@@ -271,6 +321,9 @@ class InvadersSim {
   late double _alienFireTimer;
   late double _ufoTimer;
 
+  /// Oldest first; drained by [drainEvents]. See [maxBufferedEvents].
+  final List<InvadersEvent> _events = [];
+
   int get score => _score;
   int get lives => _lives;
   int get wave => _wave;
@@ -295,6 +348,20 @@ class InvadersSim {
     _advanceShots();
     _resolveCollisions();
     _checkWaveClear();
+  }
+
+  /// Everything that happened since the last drain, oldest first. Capped at
+  /// [maxBufferedEvents] with the oldest dropped, so a sim stepped without
+  /// ever being drained cannot grow this without bound.
+  List<InvadersEvent> drainEvents() {
+    final events = List<InvadersEvent>.unmodifiable(_events);
+    _events.clear();
+    return events;
+  }
+
+  void _emit(InvadersEvent event) {
+    _events.add(event);
+    if (_events.length > maxBufferedEvents) _events.removeAt(0);
   }
 
   // --- Player -----------------------------------------------------------
@@ -342,6 +409,7 @@ class InvadersSim {
         ),
       ];
       nextCooldown = _playerFireCooldown;
+      _emit(InvadersEvent.playerShot);
     }
 
     _player = Player(
@@ -384,6 +452,7 @@ class InvadersSim {
             stepTimer: interval,
           )
         : _aliens.copyWith(originX: nextOriginX, stepTimer: interval);
+    _emit(InvadersEvent.alienStep);
   }
 
   double _currentStepInterval() {
@@ -415,6 +484,7 @@ class InvadersSim {
     _wave += 1;
     _aliens = _newWave(_wave);
     _alienFireTimer = rules.fireIntervalForWave(_wave);
+    _emit(InvadersEvent.waveCleared);
   }
 
   // --- Alien fire ---------------------------------------------------------
@@ -445,6 +515,7 @@ class InvadersSim {
         shotWidth / 2;
     final y = _aliens.originY + row * alienRowPitch + alienHeight;
     _shots = [..._shots, Shot(x: x, y: y, fromPlayer: false)];
+    _emit(InvadersEvent.alienShot);
   }
 
   int? _lowestAliveRow(int col) {
@@ -462,6 +533,7 @@ class InvadersSim {
       _ufoTimer -= fixedStep;
       if (_ufoTimer <= _timerEpsilon) {
         _ufo = Ufo(x: fieldWidth, direction: -1, score: _rng.pick(_ufoScores));
+        _emit(InvadersEvent.ufoAppeared);
       }
       return;
     }
@@ -470,6 +542,7 @@ class InvadersSim {
     if (x + ufoWidth < 0 || x > fieldWidth) {
       _ufo = null;
       _ufoTimer = _scheduleUfo();
+      _emit(InvadersEvent.ufoLeft);
     } else {
       _ufo = Ufo(x: x, direction: ufo.direction, score: ufo.score);
     }
@@ -519,6 +592,7 @@ class InvadersSim {
         _kills += 1;
         _maybeAwardBonusLife();
         ufo = null;
+        _emit(InvadersEvent.ufoKilled);
         continue;
       }
 
@@ -532,6 +606,7 @@ class InvadersSim {
       _score += _pointsForRow(hit.row);
       _kills += 1;
       _maybeAwardBonusLife();
+      _emit(InvadersEvent.alienKilled);
     }
 
     _shots = remaining;
@@ -665,17 +740,22 @@ class InvadersSim {
             fireCooldown: 0,
           );
     if (_lives <= 0) _isOver = true;
+    _emit(InvadersEvent.playerKilled);
   }
 
   void _resolveBlockVsPlayerRow() {
     if (_isOver || _aliens.isEmpty) return;
-    if (_aliens.originY + _aliens.height >= playerY) _isOver = true;
+    if (_aliens.originY + _aliens.height >= playerY) {
+      _isOver = true;
+      _emit(InvadersEvent.playerKilled);
+    }
   }
 
   void _maybeAwardBonusLife() {
     while (_score >= _nextBonusLifeScore) {
       _lives += 1;
       _nextBonusLifeScore += _bonusLifeThreshold;
+      _emit(InvadersEvent.extraLife);
     }
   }
 
@@ -713,6 +793,38 @@ class InvadersSim {
   @visibleForTesting
   void debugSetAlienTimer(double seconds) {
     _aliens = _aliens.copyWith(stepTimer: seconds);
+  }
+
+  /// Sets the alien fire timer directly, so a test can force the next [step]
+  /// to fire an alien shot instead of waiting out the interval.
+  @visibleForTesting
+  void debugSetAlienFireTimer(double seconds) {
+    _alienFireTimer = seconds;
+  }
+
+  /// Sets the UFO's arrival timer directly, so a test can force the next
+  /// [step] to spawn it instead of waiting out `_ufoInterval`.
+  @visibleForTesting
+  void debugSetUfoTimer(double seconds) {
+    _ufoTimer = seconds;
+  }
+
+  /// Replaces the UFO directly, present or absent, so a test can place it
+  /// exactly where a shot will be rather than waiting out its transit or
+  /// chasing it into alignment.
+  @visibleForTesting
+  void debugSetUfo(Ufo? ufo) {
+    _ufo = ufo;
+  }
+
+  /// Ends the run immediately, as if the last life had just been lost,
+  /// without a real collision. For a test that only needs [isOver] to become
+  /// true and does not care how — `invaders_game_test.dart`'s check that
+  /// [InvadersGame] silences a loop still playing when the run ends, which a
+  /// real collision would answer just as well but far less directly.
+  @visibleForTesting
+  void debugEndGame() {
+    _isOver = true;
   }
 
   /// Adds [points] to the score and grants any bonus life it crosses, the

@@ -87,9 +87,9 @@ class AppSettings {
   /// (`PLAN-phase-5.md` §1).
   final bool sound;
 
-  /// Background music. No control is drawn for it until phase 5
-  /// (PLAN-phase-1.md §2); the field exists so that adding one needs no
-  /// migration.
+  /// Background music. No control is drawn for it and nothing reads it: the
+  /// app has no music at all (`PLAN-phase-5.md` §3.4, §4.6). Kept, unread, at
+  /// its default so that a field ever wanting one needs no migration.
   final bool music;
 
   /// Vibration on mobile. Hidden on desktop, where it does nothing.
