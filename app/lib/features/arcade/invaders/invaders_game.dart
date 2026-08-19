@@ -217,6 +217,21 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
         _play(event);
       }
       hud.value = _hudOf(_sim);
+      // `InvadersSim.step` is a no-op once `isOver`, so a UFO already in
+      // flight when the run ends would never reach the `ufoLeft` event that
+      // stops its loop — nothing left to drain it. Checked against the
+      // notifier rather than a bare `if (_sim.isOver)` so this fires once, on
+      // the frame the run actually ends, not on every frame after.
+      //
+      // `stopLoop`, not `stopAll`: the death that just ended the run played
+      // its own one-shot motif from the same drained batch, above, and
+      // `audio.play`'s deferred callback has not run yet at this point in
+      // the same synchronous frame — `stopAll` would cancel it before it
+      // ever sounded, silencing the very hit that is supposed to be the
+      // ending (`PLAN-phase-5.md` §4.1: "the last player_hit plus the
+      // game-over card is the ending"). The UFO loop is the one thing here
+      // with no natural end of its own, so it is the one thing this stops.
+      if (_sim.isOver && !isOver.value) audio.stopLoop(Motif.arcadeUfoLoop);
       if (_sim.isOver) isOver.value = true;
     }
   }
@@ -224,6 +239,13 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
   /// Turns one [InvadersEvent] into the one [Motif] it names
   /// (`PLAN-phase-5.md` §4.4). The UFO's arrival and departure are the two
   /// that drive the loop rather than a one-shot; the rest play once.
+  ///
+  /// `ufoKilled` stops the loop too, not only `ufoLeft`: `InvadersSim`
+  /// reschedules the UFO's timer only when it exits normally, so a kill is
+  /// followed by a fresh spawn on the very next fixed step rather than a
+  /// gap — leaving the loop playing on would happen to sound continuous
+  /// either way, but stopping it explicitly here means that stays true by
+  /// construction rather than by an incidental timer value elsewhere.
   void _play(InvadersEvent event) {
     switch (event) {
       case InvadersEvent.playerShot:
@@ -241,6 +263,7 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
       case InvadersEvent.ufoLeft:
         audio.stopLoop(Motif.arcadeUfoLoop);
       case InvadersEvent.ufoKilled:
+        audio.stopLoop(Motif.arcadeUfoLoop);
         audio.play(Motif.arcadeUfoHit);
       case InvadersEvent.waveCleared:
         audio.play(Motif.arcadeWaveClear);

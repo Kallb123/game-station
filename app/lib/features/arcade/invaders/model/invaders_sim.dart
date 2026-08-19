@@ -809,6 +809,24 @@ class InvadersSim {
     _ufoTimer = seconds;
   }
 
+  /// Replaces the UFO directly, present or absent, so a test can place it
+  /// exactly where a shot will be rather than waiting out its transit or
+  /// chasing it into alignment.
+  @visibleForTesting
+  void debugSetUfo(Ufo? ufo) {
+    _ufo = ufo;
+  }
+
+  /// Ends the run immediately, as if the last life had just been lost,
+  /// without a real collision. For a test that only needs [isOver] to become
+  /// true and does not care how — `invaders_game_test.dart`'s check that
+  /// [InvadersGame] silences a loop still playing when the run ends, which a
+  /// real collision would answer just as well but far less directly.
+  @visibleForTesting
+  void debugEndGame() {
+    _isOver = true;
+  }
+
   /// Adds [points] to the score and grants any bonus life it crosses, the
   /// same way a kill does.
   ///

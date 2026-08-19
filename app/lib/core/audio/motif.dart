@@ -27,4 +27,21 @@ enum Motif {
 
   /// The file under `assets/audio/`.
   final String asset;
+
+  /// The nine arcade motifs, in the same order as `PLAN-phase-5.md` §4.1's
+  /// table. What `InvadersScreen` hands `AppAudio.preload` on entry, so a
+  /// run pays no first-play decode cost for its own sounds mid-game — and
+  /// not [values] entire, which would spend that same budget decoding six
+  /// Sudoku motifs an arcade run can never play.
+  static const List<Motif> arcadeSet = [
+    arcadePlayerShoot,
+    arcadePlayerHit,
+    arcadeAlienShoot,
+    arcadeAlienHit,
+    arcadeAlienMove,
+    arcadeUfoLoop,
+    arcadeUfoHit,
+    arcadeWaveClear,
+    arcadeExtraLife,
+  ];
 }

@@ -10,6 +10,8 @@
 import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/audio/motif.dart';
+import 'package:zibo_games/core/audio/providers.dart';
 import 'package:zibo_games/core/clock.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
 import 'package:zibo_games/features/arcade/arcade_menu_screen.dart';
@@ -17,6 +19,7 @@ import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
 import 'package:zibo_games/features/arcade/shared/on_screen_pad.dart';
 
 import '../../../app_harness.dart';
+import '../../../core/audio/recording_audio.dart';
 
 /// Pumps [count] frames at roughly 60 Hz — never `pumpAndSettle`, which
 /// would wait forever on `InvadersGame`'s live Flame ticker.
@@ -60,6 +63,35 @@ void main() {
     // Leaves the screen instead of letting the test end mid-run, so the
     // game's ticker is disposed along with the route rather than outliving
     // the test.
+    await _quit(tester);
+  });
+
+  testWidgets('opening Invaders preloads the arcade motifs, and only those', (
+    tester,
+  ) async {
+    final audio = RecordingAudio();
+    await pumpApp(
+      tester,
+      store: MemorySaveStore(initial: freshSave()),
+      overrides: [
+        nowProvider.overrideWithValue(testClock),
+        appAudioProvider.overrideWithValue(audio),
+      ],
+    );
+
+    await tester.tap(find.text('Arcade'));
+    await tester.pumpAndSettle();
+    expect(
+      audio.preloaded,
+      isEmpty,
+      reason: 'the arcade menu is not a game screen',
+    );
+
+    await tester.tap(find.text(playInvadersLabel));
+    await _pumpFrames(tester, 5);
+
+    expect(audio.preloaded, Motif.arcadeSet.toSet());
+
     await _quit(tester);
   });
 

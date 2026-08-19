@@ -212,6 +212,36 @@ void main() {
       expect(audio.looping, isEmpty);
     });
 
+    test('destroying the UFO stops its loop, not just its motif', () {
+      final audio = RecordingAudio();
+      final game = _newGame(audio: audio);
+
+      game.sim.debugSetUfoTimer(0);
+      game.update(InvadersSim.fixedStep);
+      expect(audio.looping, {Motif.arcadeUfoLoop});
+
+      // Column 5 cleared so the next shot reaches the UFO instead of an
+      // alien on the way, the UFO moved into that column and held
+      // stationary — the same setup `invaders_sim_test.dart`'s identical
+      // test takes, and for the same reasons.
+      game.sim.debugSetAliveRows(
+        List<int>.filled(
+          InvadersRules.normal.alienRows,
+          ((1 << alienColumns) - 1) & ~(1 << 5),
+        ),
+      );
+      game.sim.debugSetUfo(const Ufo(x: 104, direction: 0, score: 100));
+      game.input.value = const PadInput(fire: true);
+      game.update(InvadersSim.fixedStep);
+      game.input.value = PadInput.none;
+
+      for (var i = 0; i < 200 && audio.looping.isNotEmpty; i++) {
+        game.update(InvadersSim.fixedStep);
+      }
+
+      expect(audio.looping, isEmpty, reason: 'the UFO loop outlived the UFO');
+    });
+
     test('pause silences everything, including a loop still playing', () {
       final audio = RecordingAudio();
       final game = _newGame(audio: audio);
@@ -224,6 +254,27 @@ void main() {
 
       expect(audio.looping, isEmpty);
     });
+
+    test(
+      'the run ending stops a loop still playing, with no ufoLeft event',
+      () {
+        // `InvadersSim.step` is a no-op once the run is over, so a UFO
+        // still mid-flight when the last life is lost never reaches the
+        // `ufoLeft` event that would otherwise stop its loop.
+        final audio = RecordingAudio();
+        final game = _newGame(audio: audio);
+
+        game.sim.debugSetUfoTimer(0);
+        game.update(InvadersSim.fixedStep);
+        expect(audio.looping, isNotEmpty, reason: 'the UFO never appeared');
+
+        game.sim.debugEndGame();
+        game.update(InvadersSim.fixedStep);
+
+        expect(game.isOver.value, isTrue);
+        expect(audio.looping, isEmpty);
+      },
+    );
 
     test('sound off silences every motif', () {
       final audio = RecordingAudio()

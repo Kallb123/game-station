@@ -273,6 +273,31 @@ void main() {
       expect(left, isTrue, reason: 'the UFO never left the field');
     });
 
+    test('destroying the UFO produces a ufoKilled event', () {
+      const rules = InvadersRules.normal;
+      final sim = InvadersSim(rules: rules, seed: 1);
+      // Column 5 is the one the player's fixed starting column fires up —
+      // cleared, not the whole block, so the shot reaches the UFO instead of
+      // an alien on the way, while the block stays non-empty and clearing no
+      // wave.
+      sim.debugSetAliveRows(_aliveRowsMissingColumn(rules.alienRows, 5));
+      // Held stationary, directly under that column, rather than left to
+      // drift as a real spawn would: the shot's flight time up the field is
+      // what this test needs to wait out, not a chase into horizontal
+      // alignment with a moving target.
+      sim.debugSetUfo(const Ufo(x: 104, direction: 0, score: 100));
+
+      sim.step(const PadInput(fire: true));
+      expect(sim.drainEvents(), [InvadersEvent.playerShot]);
+
+      var killed = false;
+      for (var i = 0; i < 500 && !killed; i++) {
+        sim.step(PadInput.none);
+        if (sim.drainEvents().contains(InvadersEvent.ufoKilled)) killed = true;
+      }
+      expect(killed, isTrue, reason: 'the UFO was never hit');
+    });
+
     test('clearing a wave produces a waveCleared event', () {
       const rules = InvadersRules.normal;
       final sim = InvadersSim(rules: rules, seed: 1);

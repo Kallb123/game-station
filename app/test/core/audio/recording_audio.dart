@@ -14,6 +14,7 @@ import 'package:zibo_games/core/storage/save_data.dart';
 class RecordingAudio implements AppAudio {
   final List<Motif> played = [];
   final Set<Motif> looping = {};
+  final Set<Motif> preloaded = {};
   bool _sound = true;
 
   @override
@@ -33,6 +34,9 @@ class RecordingAudio implements AppAudio {
 
   @override
   void stopAll() => looping.clear();
+
+  @override
+  void preload(Iterable<Motif> motifs) => preloaded.addAll(motifs);
 
   @override
   void applySettings(AppSettings settings) => _sound = settings.sound;
