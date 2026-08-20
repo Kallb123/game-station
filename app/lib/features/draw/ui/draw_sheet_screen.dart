@@ -26,7 +26,9 @@ import '../../../core/ui/layout.dart';
 import '../../../core/ui/screen_scaffold.dart';
 import '../../../core/ui/tokens.dart';
 import '../data/drawing_repository.dart';
+import '../data/gallery_export.dart';
 import '../data/photo_import.dart';
+import '../data/png_export.dart';
 import '../data/providers.dart';
 import '../model/drawing_controller.dart';
 import '../model/palette.dart';
@@ -52,6 +54,7 @@ class DrawSheetScreen extends StatefulWidget {
     this.onControllerChanged,
     this.padSide = PadSide.right,
     this.onImportPhoto,
+    this.onExportPhoto,
     super.key,
   });
 
@@ -91,6 +94,12 @@ class DrawSheetScreen extends StatefulWidget {
   /// false, or this sheet already has a backdrop and there is nothing left
   /// to import over it. [DrawSheetRoute] is what tells them apart.
   final VoidCallback? onImportPhoto;
+
+  /// Saves the current picture as a PNG when called, or hides that header
+  /// action entirely when null — null until [DrawSheetRoute]'s own
+  /// availability check has answered, the same reasoning [onImportPhoto]
+  /// gives for its own null case.
+  final VoidCallback? onExportPhoto;
 
   @override
   State<DrawSheetScreen> createState() => _DrawSheetScreenState();
@@ -210,10 +219,21 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   Widget build(BuildContext context) {
     final landscape = isLandscapeWindow(context);
     final onImportPhoto = widget.onImportPhoto;
+    final onExportPhoto = widget.onExportPhoto;
 
     return ScreenScaffold(
       title: 'Draw',
       actions: [
+        // Export first, import second: "save what I made" reads before
+        // "bring in a photo" — export has no gate to explain, unlike import's
+        // three (below), so it is unconditional on the platform answering
+        // `GalleryExport.available` at all.
+        if (onExportPhoto != null)
+          IconButton(
+            onPressed: onExportPhoto,
+            icon: const Icon(Icons.download_outlined),
+            tooltip: 'Save picture',
+          ),
         // Hidden once a backdrop has landed, not merely disabled: nothing
         // left to import over one, and `setBackdrop` would silently no-op
         // rather than replace it (`DrawingController.setBackdrop`).
@@ -509,12 +529,21 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
   late final DateTime Function() _now;
   late final AppLifecycleListener _lifecycle;
   late final PhotoImport _photoImport;
+  late final GalleryExport _galleryExport;
 
   /// Whether [_photoImport] has answered its `available` check. Starts
   /// false — the same "nothing to show yet" answer as "the picker says no"
   /// (`DrawSheetScreen.onImportPhoto`'s own doc comment) — until [initState]'s
   /// check resolves.
   bool _photoImportAvailable = false;
+
+  /// The same shape as [_photoImportAvailable], for [_galleryExport]. On
+  /// Android this settles to `true` almost immediately —
+  /// `GalGalleryExport.available` asks nothing, it only answers
+  /// (`gallery_export.dart`) — but it still starts false so the header does
+  /// not flash a button in for one frame ahead of every other platform's
+  /// answer.
+  bool _galleryExportAvailable = false;
 
   /// Null until [_load] resolves — a JSON file, not a generated puzzle, so
   /// there is nothing here worth a spinner for (`sudoku_play_screen.dart`'s
@@ -560,15 +589,23 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
     _progress = ref.read(progressRepositoryProvider);
     _now = ref.read(nowProvider);
     _photoImport = ref.read(photoImportProvider);
+    _galleryExport = ref.read(galleryExportProvider);
     _lifecycle = AppLifecycleListener(onPause: _flushNow, onDetach: _flushNow);
     unawaited(_load());
     unawaited(_checkPhotoImportAvailable());
+    unawaited(_checkGalleryExportAvailable());
   }
 
   Future<void> _checkPhotoImportAvailable() async {
     final available = await _photoImport.available;
     if (!mounted) return;
     setState(() => _photoImportAvailable = available);
+  }
+
+  Future<void> _checkGalleryExportAvailable() async {
+    final available = await _galleryExport.available;
+    if (!mounted) return;
+    setState(() => _galleryExportAvailable = available);
   }
 
   /// Prompts the picker and, if a child chose something, locks it in as the
@@ -578,6 +615,45 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
     final bytes = await _photoImport.pick();
     if (bytes == null) return;
     _controller?.setBackdrop(bytes);
+  }
+
+  /// Rasterises the picture currently on screen and hands it to
+  /// [_galleryExport] — the photo library on Android and iOS, a Downloads
+  /// folder on desktop (`gallery_export.dart`).
+  ///
+  /// A throwaway [Drawing] built from [_controller] rather than whatever is
+  /// last on disk: exporting has to show exactly what a child is looking at,
+  /// including a stroke still inside the autosave debounce window that
+  /// [_writeOnce] has not reached yet. `id` and `createdAt` are unused by
+  /// [exportDrawingToPng] — it only reads strokes and the backdrop — so a
+  /// placeholder id stands in for a sheet that has not been saved yet
+  /// (`_drawingId` still null).
+  ///
+  /// Never throws past this point: a save failure is rare and nothing a
+  /// child caused, so it gets the same plain, blame-free wording
+  /// `AGENTS.md` asks every failure in this app to use.
+  Future<void> _exportPhoto() async {
+    final controller = _controller;
+    if (controller == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final paperColor = Theme.of(context).colorScheme.surface;
+    final drawing = Drawing(
+      id: _drawingId ?? 'export',
+      createdAt: _createdAt ?? _now().toUtc(),
+      strokes: controller.strokes,
+      backdrop: controller.backdrop,
+    );
+    try {
+      final bytes = await exportDrawingToPng(drawing, paperColor: paperColor);
+      await _galleryExport.savePng(bytes, 'zibo-drawing-${drawing.id}');
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('Saved!')));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't save that — try again.")),
+      );
+    }
   }
 
   @override
@@ -740,6 +816,7 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
         onControllerChanged: _onControllerSwapped,
         padSide: _progress.activeProfile.padSide,
         onImportPhoto: showImport ? _importPhoto : null,
+        onExportPhoto: _galleryExportAvailable ? _exportPhoto : null,
       ),
     );
   }

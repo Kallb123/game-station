@@ -365,6 +365,17 @@ Three, all `ScreenScaffold`:
 The tool row: four pencil dots at their actual widths, twelve colour swatches in two rows, an eraser,
 undo, redo, and a **New sheet** button. No labels; `Semantics` on every one of them.
 
+**The sheet's header also carries a Save-picture action and, once §1's `allowPhotoImport` says yes,
+an Add-a-photo one** — added at PR 6 rather than named here originally. Neither PR 5 nor this section
+put a control on the export pipeline PR 5 built: §6's own done-criteria for PR 5 tests
+`exportDrawingToPng` and `GalleryExport` directly and never asks for a button, which meant the whole
+export feature had no way for a child to reach it until a device pass on PR 6 surfaced the gap.
+`DrawSheetRoute` checks `GalleryExport.available` the same way it checks `PhotoImport.available` for
+import, and shows the header action once it answers — on Android that answer is unconditional, so the
+action appears as soon as the route mounts. Export carries no gate of its own beyond that: unlike
+import, nothing here is a parental control, so there is nothing to check besides whether the platform
+has somewhere to save to at all (`§4.6`).
+
 ---
 
 ## 5. Repository layout

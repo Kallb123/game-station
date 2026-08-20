@@ -298,4 +298,51 @@ void main() {
       expect(find.byTooltip('Add a photo'), findsNothing);
     });
   });
+
+  group('the export photo action', () {
+    testWidgets('is absent when onExportPhoto is null', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: DrawSheetScreen(controller: DrawingController())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Save picture'), findsNothing);
+    });
+
+    testWidgets('calls onExportPhoto when tapped', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DrawSheetScreen(
+            controller: DrawingController(),
+            onExportPhoto: () => calls++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Save picture'));
+      await tester.pump();
+
+      expect(calls, 1);
+    });
+
+    testWidgets('stays offered even once the drawing has a backdrop', (
+      tester,
+    ) async {
+      // Unlike import, export has nothing to gate on the picture already
+      // drawn — saving what is on screen is always a valid thing to ask for
+      // (`PLAN-phase-8.md` §4.6: "export stays available either way").
+      final backdrop = await tester.runAsync(_tinyPng);
+      final controller = DrawingController(backdrop: backdrop);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DrawSheetScreen(controller: controller, onExportPhoto: () {}),
+        ),
+      );
+      await _settleRealAsync(tester);
+
+      expect(find.byTooltip('Save picture'), findsOneWidget);
+    });
+  });
 }
