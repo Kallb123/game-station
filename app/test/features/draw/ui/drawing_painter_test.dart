@@ -46,10 +46,12 @@ Stroke _drag(double x) => Stroke(
 
 DrawingPainter _painter({
   ui.Image? baked,
+  ui.Image? backdrop,
   List<Stroke> liveStrokes = const [],
   Stroke? current,
 }) => DrawingPainter(
   baked: baked,
+  backdrop: backdrop,
   liveStrokes: liveStrokes,
   current: current,
   paperColor: _paperColor,
@@ -156,6 +158,41 @@ void main() {
   test('shouldRepaint is true when the live stroke count changes', () {
     final before = _painter(liveStrokes: [_drag(0)]);
     final after = _painter(liveStrokes: [_drag(0), _drag(1)]);
+
+    expect(after.shouldRepaint(before), isTrue);
+  });
+
+  test('a backdrop is drawn before the baked image, once', () async {
+    final backdrop = await _tinyImage();
+    final baked = await _tinyImage();
+    final canvas = TestRecordingCanvas();
+
+    _painter(
+      backdrop: backdrop,
+      baked: baked,
+    ).paint(canvas, const Size(1600, 1200));
+
+    final imageIndices = canvas.invocations
+        .asMap()
+        .entries
+        .where((entry) => entry.value.invocation.memberName == #drawImageRect)
+        .map((entry) => entry.key)
+        .toList();
+    expect(imageIndices, hasLength(2), reason: 'the backdrop, then the bake');
+    expect(imageIndices[0], lessThan(imageIndices[1]));
+  });
+
+  test('no backdrop draws no extra image', () {
+    final canvas = TestRecordingCanvas();
+
+    _painter().paint(canvas, const Size(1600, 1200));
+
+    expect(_calls(canvas, #drawImageRect), isEmpty);
+  });
+
+  test('shouldRepaint is true when the backdrop changes', () async {
+    final before = _painter(backdrop: await _tinyImage());
+    final after = _painter(backdrop: await _tinyImage());
 
     expect(after.shouldRepaint(before), isTrue);
   });

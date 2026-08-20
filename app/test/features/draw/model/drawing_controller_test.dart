@@ -4,6 +4,8 @@
 // new stroke after an undo empties the redo stack, and the 51st stroke bakes
 // exactly once.
 
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/features/draw/model/drawing_controller.dart';
 import 'package:zibo_games/features/draw/model/stroke.dart';
@@ -216,5 +218,53 @@ void main() {
         expect(controller.takeBaked(), isNull);
       },
     );
+  });
+
+  group('the backdrop', () {
+    test('starts null', () {
+      final controller = DrawingController();
+
+      expect(controller.backdrop, isNull);
+      expect(controller.takeNewBackdrop(), isNull);
+    });
+
+    test('setBackdrop sets it, reports it as new once, and notifies', () {
+      final controller = DrawingController();
+      var notified = 0;
+      controller.addListener(() => notified++);
+      final bytes = Uint8List.fromList([1, 2, 3]);
+
+      controller.setBackdrop(bytes);
+
+      expect(controller.backdrop, bytes);
+      expect(notified, 1);
+      expect(controller.takeNewBackdrop(), bytes);
+      // Cleared by the read — the same outbox shape as takeBaked.
+      expect(controller.takeNewBackdrop(), isNull);
+    });
+
+    test('a second setBackdrop does not replace an existing one', () {
+      final controller = DrawingController();
+      final first = Uint8List.fromList([1]);
+      final second = Uint8List.fromList([2]);
+      controller.setBackdrop(first);
+      controller.takeNewBackdrop();
+
+      controller.setBackdrop(second);
+
+      expect(controller.backdrop, first);
+      expect(controller.takeNewBackdrop(), isNull);
+    });
+
+    test('a resumed drawing starts with its backdrop already set, not new', () {
+      final bytes = Uint8List.fromList([9, 9]);
+
+      final controller = DrawingController(backdrop: bytes);
+
+      expect(controller.backdrop, bytes);
+      // Set through the constructor, not setBackdrop, so there is nothing
+      // for the sheet screen's outbox-read to find.
+      expect(controller.takeNewBackdrop(), isNull);
+    });
   });
 }

@@ -15,6 +15,7 @@
 // paper-under-strokes ordering the eraser risk depends on
 // (`PLAN-phase-8.md` §4.3, §7).
 
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -37,7 +38,15 @@ class DrawingPainter extends CustomPainter {
     required this.paperColor,
     required this.colorOf,
     required this.widthOf,
+    this.backdrop,
   });
+
+  /// An imported photo, downscaled to fit the sheet (`photo_import.dart`),
+  /// or null when this drawing has none. Drawn beneath [baked] and never
+  /// folded into it — a later "remove the photo" stays a field change
+  /// rather than a re-render of pixels already mixed together
+  /// (`PLAN-phase-8.md` §4.3, §4.6).
+  final ui.Image? backdrop;
 
   /// Every stroke below the undo horizon, folded into one image by the
   /// screen's bake — or null before the first bake.
@@ -71,6 +80,7 @@ class DrawingPainter extends CustomPainter {
     canvas.save();
     canvas.scale(size.width / sheetWidth, size.height / sheetHeight);
 
+    if (backdrop case final image?) drawBackdropImage(canvas, image);
     if (baked case final image?) drawBakedImage(canvas, image);
     for (final stroke in liveStrokes) {
       paintStroke(canvas, stroke, colorOf: colorOf, widthOf: widthOf);
@@ -83,11 +93,12 @@ class DrawingPainter extends CustomPainter {
   }
 
   /// Compares the live stroke's point count, the stroke-list length and the
-  /// baked image's identity — not the strokes' contents — so a rebuild that
-  /// changed neither does not repaint (`PLAN-phase-8.md` §4.3).
+  /// baked and backdrop images' identity — not the strokes' contents — so a
+  /// rebuild that changed neither does not repaint (`PLAN-phase-8.md` §4.3).
   @override
   bool shouldRepaint(covariant DrawingPainter oldDelegate) =>
       !identical(oldDelegate.baked, baked) ||
+      !identical(oldDelegate.backdrop, backdrop) ||
       oldDelegate.liveStrokes.length != liveStrokes.length ||
       (oldDelegate.current?.points.length ?? 0) !=
           (current?.points.length ?? 0);
@@ -105,6 +116,33 @@ void drawBakedImage(Canvas canvas, ui.Image image) {
     const Rect.fromLTWH(0, 0, sheetWidth, sheetHeight),
     Paint(),
   );
+}
+
+/// Draws [image] centered in the sheet at its own size, never stretched.
+///
+/// `downscaleToSheet` (`photo_import.dart`) guarantees [image] already fits
+/// within [sheetWidth] x [sheetHeight] without upscaling, so centering it is
+/// the only placement decision left — stretching it to fill the sheet would
+/// distort whatever aspect ratio the photo actually had.
+void drawBackdropImage(Canvas canvas, ui.Image image) {
+  final size = Size(image.width.toDouble(), image.height.toDouble());
+  final offset = Offset(
+    (sheetWidth - size.width) / 2,
+    (sheetHeight - size.height) / 2,
+  );
+  canvas.drawImageRect(image, Offset.zero & size, offset & size, Paint());
+}
+
+/// Decodes [bytes] into a [ui.Image].
+///
+/// Shared by `draw_sheet_screen.dart`, which decodes a resumed or freshly
+/// imported backdrop once, and `png_export.dart`, which decodes one to draw
+/// into the export — so a backdrop is never decoded by two different code
+/// paths that could disagree.
+Future<ui.Image> decodeSheetImage(Uint8List bytes) async {
+  final codec = await ui.instantiateImageCodec(bytes);
+  final frame = await codec.getNextFrame();
+  return frame.image;
 }
 
 /// Draws one [stroke] into [canvas], in sheet coordinates.

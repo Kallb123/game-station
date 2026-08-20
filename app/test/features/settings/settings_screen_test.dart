@@ -282,6 +282,7 @@ void main() {
       sound: false,
       showTimer: true,
       reduceMotion: true,
+      allowPhotoImport: true,
     );
 
     await runningOn(TargetPlatform.android, () async {
@@ -293,7 +294,9 @@ void main() {
         soundLabel,
         showTimerLabel,
         reduceMotionLabel,
+        allowPhotoImportLabel,
       ]) {
+        await scrollTo(tester, label);
         await tester.tap(find.text(label));
         await tester.pumpAndSettle();
       }
@@ -311,6 +314,8 @@ void main() {
       expect(switchFor(tester, soundLabel).value, isFalse);
       expect(switchFor(tester, showTimerLabel).value, isTrue);
       expect(switchFor(tester, reduceMotionLabel).value, isTrue);
+      await scrollTo(tester, allowPhotoImportLabel);
+      expect(switchFor(tester, allowPhotoImportLabel).value, isTrue);
     });
   });
 
@@ -449,6 +454,23 @@ void main() {
         greaterThanOrEqualTo(AppTapTargets.min),
         reason: 'the haptics slider is a strip a child drags along',
       );
+      // Below the haptics slider in list order, so this one is checked after
+      // it rather than in the same pass: scrolling this far pushes the
+      // slider out of the `ListView`'s lazily-built range, and a size check
+      // against a widget no longer built finds nothing.
+      await scrollTo(tester, allowPhotoImportLabel);
+      expect(
+        tester
+            .getSize(
+              find.ancestor(
+                of: find.text(allowPhotoImportLabel),
+                matching: find.byType(SwitchListTile),
+              ),
+            )
+            .height,
+        greaterThanOrEqualTo(AppTapTargets.primary),
+        reason: '$allowPhotoImportLabel is a row a child aims at',
+      );
       for (final choice in [
         ...themeChoices.values,
         ...mistakeFeedbackChoices.values,
@@ -516,6 +538,7 @@ void main() {
         hapticsLabel,
         showTimerLabel,
         reduceMotionLabel,
+        allowPhotoImportLabel,
         themeSectionLabel,
         for (final choice in themeChoices.values) choice.label,
       ]) {

@@ -1,6 +1,6 @@
 # Phase 8 — the drawing board
 
-**PR 5 of 7 landed; the rest is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
+**PR 6 of 7 landed for Android; PR 7 is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
 carries this phase's entry and its done-criterion, and §2, §5.2, §5.3, §6 and §8 carry the parts of
 this design that the rest of the app has to agree with. Written ahead of its turn for the reason
 `PLAN.md` §10 gives: the choice of photo-library dependency is settled by resolving a graph, and the
@@ -365,6 +365,17 @@ Three, all `ScreenScaffold`:
 The tool row: four pencil dots at their actual widths, twelve colour swatches in two rows, an eraser,
 undo, redo, and a **New sheet** button. No labels; `Semantics` on every one of them.
 
+**The sheet's header also carries a Save-picture action and, once §1's `allowPhotoImport` says yes,
+an Add-a-photo one** — added at PR 6 rather than named here originally. Neither PR 5 nor this section
+put a control on the export pipeline PR 5 built: §6's own done-criteria for PR 5 tests
+`exportDrawingToPng` and `GalleryExport` directly and never asks for a button, which meant the whole
+export feature had no way for a child to reach it until a device pass on PR 6 surfaced the gap.
+`DrawSheetRoute` checks `GalleryExport.available` the same way it checks `PhotoImport.available` for
+import, and shows the header action once it answers — on Android that answer is unconditional, so the
+action appears as soon as the route mounts. Export carries no gate of its own beyond that: unlike
+import, nothing here is a parental control, so there is nothing to check besides whether the platform
+has somewhere to save to at all (`§4.6`).
+
 ---
 
 ## 5. Repository layout
@@ -464,6 +475,23 @@ prompts for no permission; the stored backdrop is at most 1600 x 1200; the impor
 when `allowPhotoImport` is false and when the channel reports unavailable, asserted with a fake
 channel; and a desktop build lists the export folder instead. This PR is droppable: if the device pass
 fails, the phase closes without it and `PLAN.md` §7 records that, rather than the phase slipping.
+
+**Built for Android only, taken the other way from "both platforms in one pull request."** The Kotlin
+side (`PhotoPickerPlugin.kt`) is built and wired into `MainActivity.kt`, which changes from
+`FlutterActivity` to `FlutterFragmentActivity` so `registerForActivityResult` — an
+`androidx.activity.ComponentActivity` API — is available to call `PickVisualMedia` from
+(`androidx.activity:activity-ktx` pinned in `app/android/app/build.gradle.kts` for the same reason).
+The Swift side is not built. This is the droppability the paragraph above already names, applied per
+platform rather than to the whole pull request: [ChannelPhotoImport.available] reads
+`MissingPluginException` — what every call on the channel gets back on a platform with no native
+handler registered — the same way it would read a handler that answered `false` on purpose, so an
+unbuilt platform's import control simply does not appear rather than crashing. The desktop
+export-folder fallback for import (§4.6's "the gallery is the export folder") is left for the same
+reason: `available` reporting `false` there is honest, not a placeholder, until a later pull request
+gives it something more specific to say. The backdrop field, the downscale, `allowPhotoImport` in
+settings, and the round trip through the sheet's canvas, the export and the autosave are all built and
+covered by `app/test/features/draw/` — only the two native pickers are split across pull requests
+instead of shipping together.
 
 ### PR 7 — device pass and phase close (0.5 day)
 

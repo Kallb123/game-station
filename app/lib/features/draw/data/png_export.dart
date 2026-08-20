@@ -7,6 +7,12 @@
 // No `package:image`: `dart:ui` already encodes PNG, and a second decoder for
 // the same format is a dependency this phase does not need.
 //
+// The backdrop, when there is one, is drawn beneath the strokes and outside
+// the `saveLayer` below — `drawBackdropImage` and `decodeSheetImage`
+// (`drawing_painter.dart`) are the same functions the sheet screen draws a
+// resumed or freshly imported backdrop with, so the export cannot show a
+// photo scaled or placed differently from how the sheet already showed it.
+//
 // Strokes are painted inside a `saveLayer`, not directly onto the paper rect.
 // `drawing_painter.dart`'s own canvas gets away with a flat, unlayered paint
 // order — an eraser's `BlendMode.clear` clears straight to transparent, and
@@ -42,6 +48,14 @@ Future<Uint8List> exportDrawingToPng(
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   canvas.drawRect(sheetRect, Paint()..color = paperColor);
+  if (drawing.backdrop case final bytes?) {
+    final backdropImage = await decodeSheetImage(bytes);
+    try {
+      drawBackdropImage(canvas, backdropImage);
+    } finally {
+      backdropImage.dispose();
+    }
+  }
   canvas.saveLayer(sheetRect, Paint());
   for (final stroke in drawing.strokes) {
     paintStroke(

@@ -35,7 +35,7 @@ class DrawingController extends ChangeNotifier {
   /// recomputed from [strokes]'s length alone, the same answer every time a
   /// drawing is reopened rather than one that depends on when a previous
   /// session happened to bake.
-  DrawingController({List<Stroke> strokes = const []})
+  DrawingController({List<Stroke> strokes = const [], this._backdrop})
     : _all = [...strokes],
       _bakedCount = _initialBakedCount(strokes.length);
 
@@ -62,6 +62,16 @@ class DrawingController extends ChangeNotifier {
   /// the same outbox shape as `SudokuSession.takeEvent`.
   Stroke? _justBaked;
 
+  /// An imported photo, downscaled to fit the sheet and locked beneath every
+  /// stroke, or null when this drawing has none (`PLAN-phase-8.md` §4.6).
+  Uint8List? _backdrop;
+
+  /// [_backdrop] since the last [takeNewBackdrop], or null when nothing new
+  /// has been set. The same outbox shape as [_justBaked]: the sheet screen
+  /// has to decode fresh bytes into a `ui.Image` exactly once, not on every
+  /// rebuild [setBackdrop] triggers.
+  Uint8List? _newBackdrop;
+
   /// Every stroke of the picture, oldest first. Never a defensive copy at
   /// every call: callers must not mutate the result.
   List<Stroke> get strokes => List.unmodifiable(_all);
@@ -85,12 +95,35 @@ class DrawingController extends ChangeNotifier {
   bool get canUndo => _all.length > _bakedCount;
   bool get canRedo => _redo.isNotEmpty;
 
+  /// The locked backdrop this drawing has, or null.
+  Uint8List? get backdrop => _backdrop;
+
   /// The stroke [endStroke] most recently baked, or null. Cleared by the
   /// read: a bake is reported exactly once (`PLAN-phase-8.md` §6, PR 1).
   Stroke? takeBaked() {
     final baked = _justBaked;
     _justBaked = null;
     return baked;
+  }
+
+  /// [backdrop] if [setBackdrop] has set it since the last call here, or
+  /// null. Cleared by the read: a new backdrop is reported exactly once, the
+  /// same shape as [takeBaked].
+  Uint8List? takeNewBackdrop() {
+    final value = _newBackdrop;
+    _newBackdrop = null;
+    return value;
+  }
+
+  /// Sets [backdrop] to [bytes]. Does nothing if a backdrop is already set —
+  /// the sheet only offers import while there is none to replace
+  /// (`draw_sheet_screen.dart`), so a second call here would only ever be a
+  /// bug reaching past that gate rather than a child asking to swap photos.
+  void setBackdrop(Uint8List bytes) {
+    if (_backdrop != null) return;
+    _backdrop = bytes;
+    _newBackdrop = bytes;
+    notifyListeners();
   }
 
   /// Starts a stroke at [point], in sheet coordinates. `colorIndex` is
