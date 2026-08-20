@@ -365,6 +365,19 @@ Three, all `ScreenScaffold`:
 The tool row: four pencil dots at their actual widths, twelve colour swatches in two rows, an eraser,
 undo, redo, and a **New sheet** button. No labels; `Semantics` on every one of them.
 
+**Landscape lays that out as a panel rather than a column** — a change made after PR 3, because the
+column it first shipped as put all twenty controls in single file, which is taller than any landscape
+window: everything below the pencil dots had to be scrolled to. The panel keeps the same three
+groups and the same order of them, each on its own line or lines: the four sizes, then undo, redo,
+the eraser and **New sheet**, then the twelve colours in equal rows of six. The eraser moves up to
+the action line there because that line has the room, and because twelve colours divide evenly into
+rows where thirteen controls do not. The panel is as wide as six swatches where the window can spare
+that much and as wide as the action line where it cannot — never more than half of what it and the
+sheet share, so the sheet always keeps its own half — and every group folds onto more lines when it is given less, so a
+window narrower than either still lays out rather than overflowing. Two rows of six is what makes the
+whole panel fit a 400 dp-tall phone without scrolling; three rows of four does not
+(`tool_row.dart`, `draw_sheet_screen.dart`).
+
 **The sheet's header also carries a Save-picture action and, once §1's `allowPhotoImport` says yes,
 an Add-a-photo one** — added at PR 6 rather than named here originally. Neither PR 5 nor this section
 put a control on the export pipeline PR 5 built: §6's own done-criteria for PR 5 tests
