@@ -60,9 +60,10 @@ class DrawingPainter extends CustomPainter {
   /// drawn.
   final Stroke? current;
 
-  /// The sheet's background, painted first so an eraser's `BlendMode.clear`
-  /// punches through to paper rather than to whatever sits behind this widget
-  /// (`PLAN-phase-8.md` §4.2, §7).
+  /// The sheet's background, painted first and outside the `saveLayer` below
+  /// so an eraser's `BlendMode.clear` reveals paper rather than punching
+  /// through to whatever sits behind this widget (`PLAN-phase-8.md` §4.2,
+  /// §7).
   final Color paperColor;
 
   /// Resolves a [Stroke.colorIndex] to a paint colour. A placeholder
@@ -80,6 +81,17 @@ class DrawingPainter extends CustomPainter {
     canvas.save();
     canvas.scale(size.width / sheetWidth, size.height / sheetHeight);
 
+    // Isolated in its own layer so an eraser's `BlendMode.clear` only ever
+    // clears pixels painted inside this layer — the backdrop, the bake and
+    // the live strokes — rather than reaching through to whatever this
+    // canvas sits on top of. Without this, clearing punches straight past
+    // the paper rect painted above (it is on the canvas *outside* this
+    // layer) to whatever is behind the widget, which is how an eraser ends
+    // up looking like it draws in black instead of revealing paper.
+    canvas.saveLayer(
+      const Rect.fromLTWH(0, 0, sheetWidth, sheetHeight),
+      Paint(),
+    );
     if (backdrop case final image?) drawBackdropImage(canvas, image);
     if (baked case final image?) drawBakedImage(canvas, image);
     for (final stroke in liveStrokes) {
@@ -88,6 +100,7 @@ class DrawingPainter extends CustomPainter {
     if (current case final stroke?) {
       paintStroke(canvas, stroke, colorOf: colorOf, widthOf: widthOf);
     }
+    canvas.restore();
 
     canvas.restore();
   }
