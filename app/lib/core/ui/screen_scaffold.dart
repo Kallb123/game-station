@@ -16,6 +16,7 @@ class ScreenScaffold extends StatelessWidget {
     required this.child,
     this.actions = const <Widget>[],
     this.onBack,
+    this.hideBack = false,
     super.key,
   });
 
@@ -34,10 +35,24 @@ class ScreenScaffold extends StatelessWidget {
   /// that does nothing is worse than no arrow.
   final VoidCallback? onBack;
 
+  /// Forces the back control off for a screen that never has anything to go
+  /// back to, such as the home screen.
+  ///
+  /// [Navigator.canPop] is read fresh each time this widget rebuilds, but it
+  /// does not rebuild every time it becomes visible again — a screen kept
+  /// mounted underneath another route can be rebuilt for an unrelated reason
+  /// (a watched provider changing) while `canPop` is answering for whatever
+  /// route is on top at that moment, and nothing rebuilds it a second time
+  /// once that route is popped and the true answer changes back. The home
+  /// screen has no route beneath it ever, so it sets this instead of relying
+  /// on a check that can go stale.
+  final bool hideBack;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final showBack = onBack != null || Navigator.of(context).canPop();
+    final showBack =
+        !hideBack && (onBack != null || Navigator.of(context).canPop());
 
     return Scaffold(
       body: SafeArea(
