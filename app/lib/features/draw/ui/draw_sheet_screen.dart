@@ -12,6 +12,7 @@
 // to and samples a pointer stream into.
 
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -25,6 +26,7 @@ import '../../../core/ui/layout.dart';
 import '../../../core/ui/screen_scaffold.dart';
 import '../../../core/ui/tokens.dart';
 import '../data/drawing_repository.dart';
+import '../data/photo_import.dart';
 import '../data/providers.dart';
 import '../model/drawing_controller.dart';
 import '../model/palette.dart';
@@ -49,6 +51,7 @@ class DrawSheetScreen extends StatefulWidget {
     this.controller,
     this.onControllerChanged,
     this.padSide = PadSide.right,
+    this.onImportPhoto,
     super.key,
   });
 
@@ -79,6 +82,16 @@ class DrawSheetScreen extends StatefulWidget {
   /// always the band below the sheet.
   final PadSide padSide;
 
+  /// Shows a header action that imports a photo backdrop when called, or
+  /// hides that action entirely when null.
+  ///
+  /// Null covers three cases this screen does not distinguish, because a
+  /// child sees the same thing either way: `settings.allowPhotoImport` is
+  /// off, the platform's picker has not answered available or has answered
+  /// false, or this sheet already has a backdrop and there is nothing left
+  /// to import over it. [DrawSheetRoute] is what tells them apart.
+  final VoidCallback? onImportPhoto;
+
   @override
   State<DrawSheetScreen> createState() => _DrawSheetScreenState();
 }
@@ -92,6 +105,12 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   bool _isEraser = false;
 
   ui.Image? _baked;
+
+  /// The decoded form of [DrawingController.backdrop], or null before it has
+  /// been decoded or when this drawing has none. Also what gates the header
+  /// import action: showing it again once a backdrop has already landed
+  /// would invite a tap [DrawingController.setBackdrop] silently no-ops on.
+  ui.Image? _backdropImage;
 
   /// Strokes the controller has reported baked but that [_baked] does not
   /// contain yet — composited in, one at a time, by [_bakeChain]. Painted
@@ -151,6 +170,13 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
         }),
       );
     }
+    // A resumed drawing's backdrop, if it has one, comes back from disk as
+    // bytes on the controller directly rather than through `setBackdrop`
+    // (`DrawingController`'s own constructor), so nothing is waiting in
+    // `takeNewBackdrop` for `_onControllerChanged` to find — this is decoded
+    // here for the same reason `alreadyBaked` is, above.
+    final resumedBackdrop = _controller.backdrop;
+    if (resumedBackdrop != null) _decodeBackdrop(resumedBackdrop);
   }
 
   @override
@@ -158,15 +184,46 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
     _controller.removeListener(_onControllerChanged);
     if (_ownsController) _controller.dispose();
     _baked?.dispose();
+    _backdropImage?.dispose();
     super.dispose();
+  }
+
+  /// Decodes [bytes] into [_backdropImage], guarding against a sheet the
+  /// child has since left the same way [_applyBake] does — see
+  /// [_sheetGeneration]'s own doc comment.
+  void _decodeBackdrop(Uint8List bytes) {
+    final generation = _sheetGeneration;
+    unawaited(
+      decodeSheetImage(bytes).then((image) {
+        if (!mounted || generation != _sheetGeneration) {
+          image.dispose();
+          return;
+        }
+        final old = _backdropImage;
+        setState(() => _backdropImage = image);
+        old?.dispose();
+      }),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final landscape = isLandscapeWindow(context);
+    final onImportPhoto = widget.onImportPhoto;
 
     return ScreenScaffold(
       title: 'Draw',
+      actions: [
+        // Hidden once a backdrop has landed, not merely disabled: nothing
+        // left to import over one, and `setBackdrop` would silently no-op
+        // rather than replace it (`DrawingController.setBackdrop`).
+        if (onImportPhoto != null && _backdropImage == null)
+          IconButton(
+            onPressed: onImportPhoto,
+            icon: const Icon(Icons.add_photo_alternate_outlined),
+            tooltip: 'Add a photo',
+          ),
+      ],
       child: landscape ? _landscapeLayout(context) : _portraitLayout(context),
     );
   }
@@ -223,6 +280,7 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
                   builder: (context, _) => CustomPaint(
                     size: size,
                     painter: DrawingPainter(
+                      backdrop: _backdropImage,
                       baked: _baked,
                       liveStrokes: [
                         ..._pendingBakes,
@@ -323,13 +381,17 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
 
   void _onControllerChanged() {
     final justBaked = _controller.takeBaked();
-    if (justBaked == null) return;
-    _pendingBakes.add(justBaked);
-    final generation = _sheetGeneration;
-    // Chained rather than started directly: `_baked` a moment from now is
-    // whatever the last-scheduled bake leaves it as, not whatever it is the
-    // instant this stroke was reported (`_bakeChain`'s own doc comment).
-    _bakeChain = _bakeChain.then((_) => _applyBake(justBaked, generation));
+    if (justBaked != null) {
+      _pendingBakes.add(justBaked);
+      final generation = _sheetGeneration;
+      // Chained rather than started directly: `_baked` a moment from now is
+      // whatever the last-scheduled bake leaves it as, not whatever it is
+      // the instant this stroke was reported (`_bakeChain`'s own comment).
+      _bakeChain = _bakeChain.then((_) => _applyBake(justBaked, generation));
+    }
+
+    final newBackdrop = _controller.takeNewBackdrop();
+    if (newBackdrop != null) _decodeBackdrop(newBackdrop);
   }
 
   /// Composites [stroke] onto the current [_baked] and replaces it with the
@@ -391,6 +453,8 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
       _bakeChain = Future<void>.value();
       _baked?.dispose();
       _baked = null;
+      _backdropImage?.dispose();
+      _backdropImage = null;
       _controller = DrawingController();
       _ownsController = true;
     });
@@ -444,6 +508,13 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
   late final ProgressRepository _progress;
   late final DateTime Function() _now;
   late final AppLifecycleListener _lifecycle;
+  late final PhotoImport _photoImport;
+
+  /// Whether [_photoImport] has answered its `available` check. Starts
+  /// false — the same "nothing to show yet" answer as "the picker says no"
+  /// (`DrawSheetScreen.onImportPhoto`'s own doc comment) — until [initState]'s
+  /// check resolves.
+  bool _photoImportAvailable = false;
 
   /// Null until [_load] resolves — a JSON file, not a generated puzzle, so
   /// there is nothing here worth a spinner for (`sudoku_play_screen.dart`'s
@@ -454,6 +525,11 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
   /// its first stroke has been written — see [ProgressRepository.nextDrawingId].
   String? _drawingId;
   DateTime? _createdAt;
+
+  /// [DrawingController.backdrop] as of the last write this screen started —
+  /// [_onChanged]'s own [_savedStrokeCount], for the one field a stroke
+  /// count cannot report a change in.
+  Uint8List? _savedBackdrop;
 
   /// [DrawingController.strokes]'s length as of the last write this screen
   /// started. What [_onChanged] compares against to tell a committed stroke —
@@ -483,8 +559,25 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
     _repository = ref.read(drawingRepositoryProvider);
     _progress = ref.read(progressRepositoryProvider);
     _now = ref.read(nowProvider);
+    _photoImport = ref.read(photoImportProvider);
     _lifecycle = AppLifecycleListener(onPause: _flushNow, onDetach: _flushNow);
     unawaited(_load());
+    unawaited(_checkPhotoImportAvailable());
+  }
+
+  Future<void> _checkPhotoImportAvailable() async {
+    final available = await _photoImport.available;
+    if (!mounted) return;
+    setState(() => _photoImportAvailable = available);
+  }
+
+  /// Prompts the picker and, if a child chose something, locks it in as the
+  /// current sheet's backdrop (`DrawingController.setBackdrop`) — the write
+  /// that follows is [_onChanged]'s, the same autosave path a stroke takes.
+  Future<void> _importPhoto() async {
+    final bytes = await _photoImport.pick();
+    if (bytes == null) return;
+    _controller?.setBackdrop(bytes);
   }
 
   @override
@@ -506,7 +599,10 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
         : await _repository.load(_progress.activeProfile.id, id);
     if (!mounted) return;
 
-    final controller = DrawingController(strokes: loaded?.strokes ?? const []);
+    final controller = DrawingController(
+      strokes: loaded?.strokes ?? const [],
+      backdrop: loaded?.backdrop,
+    );
     setState(
       () => _bind(
         controller,
@@ -536,6 +632,7 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
     _drawingId = drawingId;
     _createdAt = createdAt;
     _savedStrokeCount = controller.strokes.length;
+    _savedBackdrop = controller.backdrop;
     _dirty = false;
     _generation++;
   }
@@ -543,7 +640,9 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
   void _onChanged() {
     final controller = _controller;
     if (controller == null) return;
-    if (controller.strokes.length == _savedStrokeCount) return;
+    final strokesChanged = controller.strokes.length != _savedStrokeCount;
+    final backdropChanged = !identical(controller.backdrop, _savedBackdrop);
+    if (!strokesChanged && !backdropChanged) return;
     _dirty = true;
     _saveTimer?.cancel();
     _saveTimer = Timer(drawAutosaveDebounce, _flushNow);
@@ -573,13 +672,15 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
   }
 
   /// Writes the picture currently bound, if it is dirty and holds at least
-  /// one stroke — a sheet opened and left untouched should not burn an id or
-  /// leave an empty file behind.
+  /// one stroke or a backdrop — a sheet opened and left untouched should not
+  /// burn an id or leave an empty file behind, but an imported photo with no
+  /// stroke over it yet is still a picture worth keeping.
   Future<void> _writeOnce() async {
     final controller = _controller;
     if (controller == null || !_dirty) return;
     final strokes = controller.strokes;
-    if (strokes.isEmpty) {
+    final backdrop = controller.backdrop;
+    if (strokes.isEmpty && backdrop == null) {
       _dirty = false;
       return;
     }
@@ -592,7 +693,12 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
 
     await _repository.save(
       profileId,
-      Drawing(id: id, createdAt: createdAt, strokes: strokes),
+      Drawing(
+        id: id,
+        createdAt: createdAt,
+        strokes: strokes,
+        backdrop: backdrop,
+      ),
     );
     final totalBytes = _repository.profileBytes(profileId);
     _progress.recordDrawingSaved(
@@ -608,6 +714,7 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
     _drawingId = id;
     _createdAt = createdAt;
     _savedStrokeCount = strokes.length;
+    _savedBackdrop = backdrop;
     _dirty = false;
   }
 
@@ -620,12 +727,19 @@ class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
     final controller = _controller;
     if (controller == null) return const SizedBox.expand();
 
+    final settings = ref.watch(settingsProvider);
+    final showImport =
+        settings.allowPhotoImport &&
+        _photoImportAvailable &&
+        controller.backdrop == null;
+
     return PopScope(
       onPopInvokedWithResult: _onPopped,
       child: DrawSheetScreen(
         controller: controller,
         onControllerChanged: _onControllerSwapped,
         padSide: _progress.activeProfile.padSide,
+        onImportPhoto: showImport ? _importPhoto : null,
       ),
     );
   }

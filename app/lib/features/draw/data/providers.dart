@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'drawing_repository.dart';
 import 'gallery_export.dart';
+import 'photo_import.dart';
 
 /// Where every screen reads and writes drawings.
 final Provider<DrawingRepository> drawingRepositoryProvider =
@@ -40,4 +41,16 @@ final Provider<GalleryExport> galleryExportProvider = Provider<GalleryExport>(
     TargetPlatform.macOS ||
     TargetPlatform.windows => const FolderGalleryExport(),
   },
+);
+
+/// Where a backdrop photo is picked from: the system picker, over
+/// `photo_import.dart`'s channel.
+///
+/// One implementation for every platform, unlike [galleryExportProvider] —
+/// [ChannelPhotoImport.available] already answers `false` wherever no native
+/// side has registered a handler (`photo_import.dart`'s own header), so a
+/// platform switch here would only restate what that channel already
+/// reports for itself.
+final Provider<PhotoImport> photoImportProvider = Provider<PhotoImport>(
+  (ref) => const ChannelPhotoImport(),
 );

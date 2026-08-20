@@ -11,7 +11,7 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart' show Color, Offset;
+import 'package:flutter/material.dart' show Canvas, Color, Offset, Paint, Rect;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/features/draw/data/png_export.dart';
 import 'package:zibo_games/features/draw/model/stroke.dart';
@@ -94,6 +94,83 @@ void main() {
 
     expect(_pixelAt(pixels, 1600, x: 400, y: 600), _paper);
   });
+
+  test('a backdrop is drawn beneath the paper — under the strokes', () async {
+    const backdropColor = Color(0xFF00FF00);
+    final backdropPng = await _solidPng(1600, 1200, backdropColor);
+    final drawing = Drawing(
+      id: 'd1',
+      createdAt: DateTime.utc(2026, 8, 20),
+      backdrop: backdropPng,
+      strokes: const [
+        Stroke(
+          colorIndex: 10, // Black
+          sizeIndex: 3,
+          points: [Offset(200, 600), Offset(600, 600)],
+        ),
+      ],
+    );
+
+    final bytes = await exportDrawingToPng(drawing, paperColor: _paper);
+    final pixels = await _rawRgba(bytes);
+
+    // On the stroke, the stroke's own colour wins.
+    expect(_pixelAt(pixels, 1600, x: 400, y: 600), _black);
+    // Off the stroke, the backdrop shows instead of bare paper.
+    expect(_pixelAt(pixels, 1600, x: 10, y: 10), backdropColor);
+  });
+
+  test(
+    'an erased stroke over a backdrop reveals the backdrop, not paper',
+    () async {
+      const backdropColor = Color(0xFF00FF00);
+      final backdropPng = await _solidPng(1600, 1200, backdropColor);
+      final drawing = Drawing(
+        id: 'd1',
+        createdAt: DateTime.utc(2026, 8, 20),
+        backdrop: backdropPng,
+        strokes: const [
+          Stroke(
+            colorIndex: 10,
+            sizeIndex: 3,
+            points: [Offset(200, 600), Offset(600, 600)],
+          ),
+          Stroke(
+            colorIndex: Stroke.eraserColorIndex,
+            sizeIndex: 3,
+            points: [Offset(200, 600), Offset(600, 600)],
+          ),
+        ],
+      );
+
+      final bytes = await exportDrawingToPng(drawing, paperColor: _paper);
+      final pixels = await _rawRgba(bytes);
+
+      // The backdrop is locked — nothing here erases it (`PLAN-phase-8.md`
+      // §4.6) — so an eraser pass over it reveals the photo, the same as it
+      // would reveal bare paper where there is none.
+      expect(_pixelAt(pixels, 1600, x: 400, y: 600), backdropColor);
+    },
+  );
+}
+
+/// A real, decodable PNG of [width] x [height], filled with [color].
+Future<Uint8List> _solidPng(int width, int height, Color color) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(
+    Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+    Paint()..color = color,
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(width, height);
+  picture.dispose();
+  try {
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    return data!.buffer.asUint8List();
+  } finally {
+    image.dispose();
+  }
 }
 
 Future<ui.Image> _decode(Uint8List png) async {

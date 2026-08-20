@@ -1,6 +1,6 @@
 # Phase 8 — the drawing board
 
-**PR 5 of 7 landed; the rest is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
+**PR 6 of 7 landed for Android; PR 7 is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
 carries this phase's entry and its done-criterion, and §2, §5.2, §5.3, §6 and §8 carry the parts of
 this design that the rest of the app has to agree with. Written ahead of its turn for the reason
 `PLAN.md` §10 gives: the choice of photo-library dependency is settled by resolving a graph, and the
@@ -464,6 +464,23 @@ prompts for no permission; the stored backdrop is at most 1600 x 1200; the impor
 when `allowPhotoImport` is false and when the channel reports unavailable, asserted with a fake
 channel; and a desktop build lists the export folder instead. This PR is droppable: if the device pass
 fails, the phase closes without it and `PLAN.md` §7 records that, rather than the phase slipping.
+
+**Built for Android only, taken the other way from "both platforms in one pull request."** The Kotlin
+side (`PhotoPickerPlugin.kt`) is built and wired into `MainActivity.kt`, which changes from
+`FlutterActivity` to `FlutterFragmentActivity` so `registerForActivityResult` — an
+`androidx.activity.ComponentActivity` API — is available to call `PickVisualMedia` from
+(`androidx.activity:activity-ktx` pinned in `app/android/app/build.gradle.kts` for the same reason).
+The Swift side is not built. This is the droppability the paragraph above already names, applied per
+platform rather than to the whole pull request: [ChannelPhotoImport.available] reads
+`MissingPluginException` — what every call on the channel gets back on a platform with no native
+handler registered — the same way it would read a handler that answered `false` on purpose, so an
+unbuilt platform's import control simply does not appear rather than crashing. The desktop
+export-folder fallback for import (§4.6's "the gallery is the export folder") is left for the same
+reason: `available` reporting `false` there is honest, not a placeholder, until a later pull request
+gives it something more specific to say. The backdrop field, the downscale, `allowPhotoImport` in
+settings, and the round trip through the sheet's canvas, the export and the autosave are all built and
+covered by `app/test/features/draw/` — only the two native pickers are split across pull requests
+instead of shipping together.
 
 ### PR 7 — device pass and phase close (0.5 day)
 

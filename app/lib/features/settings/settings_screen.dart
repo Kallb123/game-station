@@ -61,6 +61,7 @@ const String soundLabel = 'Sounds';
 const String hapticsLabel = 'Buzzing';
 const String showTimerLabel = 'Show the timer';
 const String reduceMotionLabel = 'Less moving about';
+const String allowPhotoImportLabel = 'Add a photo to draw on';
 
 /// How each [HapticsLevel] reads on the slider and in its own live label.
 ///
@@ -74,18 +75,23 @@ const Map<HapticsLevel, String> hapticsLevelLabels = {
 
 /// What the grown-up changes, and the child changes back.
 ///
-/// Six controls, and deliberately not seven: `music` is in schema v1 but gets
-/// no control at all, because there is no music anywhere in the app to switch
-/// off (`PLAN-phase-5.md` §3.4, §4.6, the owner's instruction) and a switch
-/// that does nothing is worse than an absent one.
+/// Seven controls, and deliberately not eight: `music` is in schema v1 but
+/// gets no control at all, because there is no music anywhere in the app to
+/// switch off (`PLAN-phase-5.md` §3.4, §4.6, the owner's instruction) and a
+/// switch that does nothing is worse than an absent one.
 ///
-/// Three of the four rows are a switch with a glyph and a label; **Buzzing**
+/// Four of the five rows are a switch with a glyph and a label; **Buzzing**
 /// is a slider, because a device pass found a plain on/off too coarse to
 /// answer "how hard" (`PLAN-phase-5.md` §4.5) — `core/haptics.dart` has the
-/// four levels it moves between. No section headers over the four rows: four
+/// four levels it moves between. No section headers over the five rows: five
 /// rows do not need to be grouped, and a heading is one more thing to read.
 /// The two choice sections below them do have headings, because a set of
 /// buttons with no name is a question with no question.
+///
+/// **Add a photo to draw on** is the one row that gates a child rather than
+/// describing a preference of theirs (`PLAN-phase-8.md` §1, §3): off by
+/// default, so importing a photo stays invisible until a grown-up finds this
+/// switch and turns it on.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -131,6 +137,13 @@ class SettingsScreen extends ConsumerWidget {
               value: settings.reduceMotion,
               onChanged: (value) =>
                   update(settings.copyWith(reduceMotion: value)),
+            ),
+            _SettingSwitch(
+              icon: Icons.add_photo_alternate_outlined,
+              label: allowPhotoImportLabel,
+              value: settings.allowPhotoImport,
+              onChanged: (value) =>
+                  update(settings.copyWith(allowPhotoImport: value)),
             ),
             const SizedBox(height: AppSpacing.xl),
             _ChoiceSection<ThemeChoice>(

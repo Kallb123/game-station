@@ -282,6 +282,7 @@ void main() {
       sound: false,
       showTimer: true,
       reduceMotion: true,
+      allowPhotoImport: true,
     );
 
     await runningOn(TargetPlatform.android, () async {
@@ -293,7 +294,9 @@ void main() {
         soundLabel,
         showTimerLabel,
         reduceMotionLabel,
+        allowPhotoImportLabel,
       ]) {
+        await scrollTo(tester, label);
         await tester.tap(find.text(label));
         await tester.pumpAndSettle();
       }
@@ -311,6 +314,8 @@ void main() {
       expect(switchFor(tester, soundLabel).value, isFalse);
       expect(switchFor(tester, showTimerLabel).value, isTrue);
       expect(switchFor(tester, reduceMotionLabel).value, isTrue);
+      await scrollTo(tester, allowPhotoImportLabel);
+      expect(switchFor(tester, allowPhotoImportLabel).value, isTrue);
     });
   });
 
@@ -430,7 +435,9 @@ void main() {
         soundLabel,
         showTimerLabel,
         reduceMotionLabel,
+        allowPhotoImportLabel,
       ]) {
+        await scrollTo(tester, label);
         expect(
           tester
               .getSize(
@@ -516,6 +523,7 @@ void main() {
         hapticsLabel,
         showTimerLabel,
         reduceMotionLabel,
+        allowPhotoImportLabel,
         themeSectionLabel,
         for (final choice in themeChoices.values) choice.label,
       ]) {

@@ -5,12 +5,35 @@
 // New sheet swaps in a blank picture without touching a caller-supplied
 // controller's own strokes.
 
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/features/draw/model/drawing_controller.dart';
 import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
 import 'package:zibo_games/features/draw/ui/drawing_painter.dart';
 import 'package:zibo_games/features/draw/ui/tool_row.dart';
+
+/// A tiny, real, decodable PNG — enough for `DrawingController(backdrop:)`
+/// to have something `decodeSheetImage` can actually decode.
+Future<Uint8List> _tinyPng() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(
+    const Rect.fromLTWH(0, 0, 10, 10),
+    Paint()..color = const Color(0xFF336699),
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(10, 10);
+  picture.dispose();
+  try {
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    return data!.buffer.asUint8List();
+  } finally {
+    image.dispose();
+  }
+}
 
 /// The sheet's own [CustomPaint], not the ones `Scaffold`'s `Material`
 /// paints its shape with.
@@ -209,5 +232,51 @@ void main() {
     // ...and the controller the caller handed in still has exactly the one
     // stroke it had before New sheet was tapped.
     expect(controller.strokes, hasLength(1));
+  });
+
+  group('the import photo action', () {
+    testWidgets('is absent when onImportPhoto is null', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(home: DrawSheetScreen(controller: DrawingController())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Add a photo'), findsNothing);
+    });
+
+    testWidgets('calls onImportPhoto when tapped', (tester) async {
+      var calls = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DrawSheetScreen(
+            controller: DrawingController(),
+            onImportPhoto: () => calls++,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Add a photo'));
+      await tester.pump();
+
+      expect(calls, 1);
+    });
+
+    testWidgets('disappears once the drawing already has a backdrop', (
+      tester,
+    ) async {
+      final controller = DrawingController(backdrop: await _tinyPng());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DrawSheetScreen(controller: controller, onImportPhoto: () {}),
+        ),
+      );
+      // The backdrop is decoded asynchronously in initState
+      // (`draw_sheet_screen.dart`'s own `_decodeBackdrop`), so this needs
+      // to settle rather than a bare pump.
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Add a photo'), findsNothing);
+    });
   });
 }

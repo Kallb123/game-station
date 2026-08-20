@@ -102,3 +102,12 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // `PhotoPickerPlugin.kt`'s `PickVisualMedia` contract needs
+    // `androidx.activity` 1.6.0+ for `registerForActivityResult`
+    // (`PLAN-phase-8.md` §3.3) — pinned explicitly rather than relying on
+    // whatever version the Flutter engine's own transitive dependency
+    // happens to resolve to.
+    implementation("androidx.activity:activity-ktx:1.9.3")
+}
