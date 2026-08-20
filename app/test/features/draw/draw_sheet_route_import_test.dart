@@ -62,6 +62,22 @@ Future<Uint8List> _tinyPng() async {
   }
 }
 
+/// Gives real async work — the picked photo's own decode, in particular — a
+/// real slice of wall-clock time, without `settleDrawIO`'s leading
+/// `pumpAndSettle()` first: that call can never return while a real image
+/// codec's isolate round trip (triggered moments earlier by the tap this
+/// follows) is still outstanding, because it waits on the fake clock alone.
+/// Once this has drained the decode, a later `settleDrawIO` for the autosave
+/// is safe — nothing real is still pending by then.
+Future<void> _pumpRealAsync(WidgetTester tester) async {
+  for (var i = 0; i < 20; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 25)),
+    );
+    await tester.pump();
+  }
+}
+
 Future<void> _openNewSheet(WidgetTester tester) async {
   await tester.tap(find.text('Draw'));
   await settleDrawIO(tester);
@@ -157,7 +173,7 @@ void main() {
       expect(find.byTooltip('Add a photo'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Add a photo'));
-      await settleDrawIO(tester);
+      await _pumpRealAsync(tester);
 
       expect(fake.pickCalls, 1);
       expect(
