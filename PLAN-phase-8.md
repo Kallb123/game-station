@@ -1,6 +1,6 @@
 # Phase 8 — the drawing board
 
-**PR 2 of 7 landed; the rest is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
+**PR 3 of 7 landed; the rest is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
 carries this phase's entry and its done-criterion, and §2, §5.2, §5.3, §6 and §8 carry the parts of
 this design that the rest of the app has to agree with. Written ahead of its turn for the reason
 `PLAN.md` §10 gives: the choice of photo-library dependency is settled by resolving a graph, and the
