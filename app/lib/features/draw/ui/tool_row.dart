@@ -2,12 +2,17 @@
 // and New sheet — every control a child chooses a pencil, a colour or an
 // action from (`PLAN-phase-8.md` §4.7, §6 PR 3).
 //
-// A `Wrap`, not a fixed `Row`: the same controls sit in a horizontal band
-// below the sheet in portrait and could sit in a narrower column beside it in
-// landscape (`axis`, the same split `OnScreenPad.axis` makes in
-// `features/arcade/shared/on_screen_pad.dart`), and `Wrap` folds onto another
-// line by itself if a narrow phone cannot fit them on one — so nothing here
-// can overflow, at any text scale, because nothing here draws scaling text.
+// Three groups — sizes, then colours plus the eraser, then undo/redo/New
+// sheet — each its own `Wrap`, not a fixed `Row`: the same controls sit in a
+// horizontal band below the sheet in portrait and could sit in a narrower
+// column beside it in landscape (`axis`, the same split `OnScreenPad.axis`
+// makes in `features/arcade/shared/on_screen_pad.dart`), and each group's
+// `Wrap` folds onto another line by itself if a narrow phone cannot fit it
+// on one — so nothing here can overflow, at any text scale, because nothing
+// here draws scaling text. The groups themselves never share a line: brush
+// thickness reads apart from colour, and undo/redo — built as a single
+// `Flex` so a `Wrap` has no seam to split them at — never separate across
+// lines.
 //
 // Selection is never colour alone (`PLAN.md` §7's accessibility rule,
 // `PLAN-phase-8.md` §1): every selectable control here gains a 3 dp
@@ -94,53 +99,88 @@ class ToolRow extends StatelessWidget {
   static Key sizeKey(int index) => ValueKey('ToolRow.size.$index');
   static Key colorKey(int index) => ValueKey('ToolRow.color.$index');
 
-  @override
-  Widget build(BuildContext context) => Wrap(
+  /// A group's own [Wrap] — sizes, colours and actions each get one, laid
+  /// out along [axis] exactly as the single row used to be, so a group too
+  /// wide for a narrow phone still folds onto another line by itself
+  /// (`ToolRow`'s own doc comment) without folding into a neighbouring
+  /// group's line.
+  Widget _group(List<Widget> children) => Wrap(
     direction: axis,
     alignment: WrapAlignment.center,
     crossAxisAlignment: WrapCrossAlignment.center,
     spacing: AppSpacing.sm,
     runSpacing: AppSpacing.sm,
+    children: children,
+  );
+
+  @override
+  Widget build(BuildContext context) => Flex(
+    // Perpendicular to [axis]: a horizontal band (portrait) stacks its
+    // groups in a column, one below the next; a vertical rail (landscape)
+    // stacks them in a row, one beside the next.
+    direction: axis == Axis.horizontal ? Axis.vertical : Axis.horizontal,
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.center,
+    spacing: AppSpacing.md,
     children: [
-      for (var i = 0; i < DrawPencils.widths.length; i++)
-        _SizeDot(
-          key: sizeKey(i),
-          index: i,
-          selected: !isEraser && sizeIndex == i,
-          onTap: () => onSizeSelected(i),
+      // Brush thickness, on its own — never sharing a line with colour
+      // selection.
+      _group([
+        for (var i = 0; i < DrawPencils.widths.length; i++)
+          _SizeDot(
+            key: sizeKey(i),
+            index: i,
+            selected: !isEraser && sizeIndex == i,
+            onTap: () => onSizeSelected(i),
+          ),
+      ]),
+      _group([
+        for (var i = 0; i < DrawPalette.colors.length; i++)
+          _ColorSwatch(
+            key: colorKey(i),
+            index: i,
+            selected: !isEraser && colorIndex == i,
+            onTap: () => onColorSelected(i),
+          ),
+        _EraserButton(
+          key: eraserKey,
+          selected: isEraser,
+          onTap: onEraserSelected,
         ),
-      for (var i = 0; i < DrawPalette.colors.length; i++)
-        _ColorSwatch(
-          key: colorKey(i),
-          index: i,
-          selected: !isEraser && colorIndex == i,
-          onTap: () => onColorSelected(i),
+      ]),
+      _group([
+        // Undo and redo as a single [Flex], not two separate children of
+        // the group's `Wrap` — a `Wrap` only ever breaks *between*
+        // children, so this is what keeps the pair from landing on two
+        // different lines.
+        Flex(
+          direction: axis,
+          mainAxisSize: MainAxisSize.min,
+          spacing: AppSpacing.sm,
+          children: [
+            _ActionButton(
+              toolKey: undoKey,
+              icon: Icons.undo,
+              label: 'Undo',
+              onPressed: canUndo ? onUndo : null,
+              primary: true,
+            ),
+            _ActionButton(
+              toolKey: redoKey,
+              icon: Icons.redo,
+              label: 'Redo',
+              onPressed: canRedo ? onRedo : null,
+              primary: true,
+            ),
+          ],
         ),
-      _EraserButton(
-        key: eraserKey,
-        selected: isEraser,
-        onTap: onEraserSelected,
-      ),
-      _ActionButton(
-        toolKey: undoKey,
-        icon: Icons.undo,
-        label: 'Undo',
-        onPressed: canUndo ? onUndo : null,
-        primary: true,
-      ),
-      _ActionButton(
-        toolKey: redoKey,
-        icon: Icons.redo,
-        label: 'Redo',
-        onPressed: canRedo ? onRedo : null,
-        primary: true,
-      ),
-      _ActionButton(
-        toolKey: newSheetKey,
-        icon: Icons.note_add_outlined,
-        label: 'New sheet',
-        onPressed: onNewSheet,
-      ),
+        _ActionButton(
+          toolKey: newSheetKey,
+          icon: Icons.note_add_outlined,
+          label: 'New sheet',
+          onPressed: onNewSheet,
+        ),
+      ]),
     ],
   );
 }
