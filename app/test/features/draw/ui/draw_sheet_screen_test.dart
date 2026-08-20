@@ -252,6 +252,29 @@ void main() {
     expect(controller.strokes, hasLength(1));
   });
 
+  testWidgets('the sheet is framed by a border the size of the canvas itself', (
+    tester,
+  ) async {
+    final controller = DrawingController();
+    final canvas = await _pumpAndFindCanvas(tester, controller);
+
+    final borderBox = find.ancestor(
+      of: _canvasFinder,
+      matching: find.byType(DecoratedBox),
+    );
+    expect(borderBox, findsOneWidget);
+    final decoration =
+        tester.widget<DecoratedBox>(borderBox).decoration as BoxDecoration;
+    expect(decoration.border, isNotNull);
+
+    // The border frames the exact sheet the child draws on, not some
+    // larger chrome around it.
+    final borderTopLeft = tester.getTopLeft(borderBox);
+    final borderSize = tester.getSize(borderBox);
+    expect(borderTopLeft, canvas.topLeft);
+    expect(borderSize, canvas.size);
+  });
+
   group('the import photo action', () {
     testWidgets('is absent when onImportPhoto is null', (tester) async {
       await tester.pumpWidget(

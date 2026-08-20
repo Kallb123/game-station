@@ -24,6 +24,7 @@ import '../../../core/storage/providers.dart';
 import '../../../core/storage/save_data.dart' show PadSide;
 import '../../../core/ui/layout.dart';
 import '../../../core/ui/screen_scaffold.dart';
+import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';
 import '../data/drawing_repository.dart';
 import '../data/gallery_export.dart';
@@ -279,7 +280,15 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   }
 
   Widget _canvas(BuildContext context) {
-    final paperColor = Theme.of(context).colorScheme.surface;
+    final theme = Theme.of(context);
+    final paperColor = theme.colorScheme.surface;
+    // The draw role's own outline, not the app's — a border in the sheet's
+    // own colour reads as this canvas's edge rather than as chrome
+    // (`sudoku_grid_view.dart` draws its board border the same way).
+    final borderColor = AppTheme.roleScheme(
+      AppPalette.of(theme.brightness).draw,
+      theme.brightness,
+    ).outline;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -289,27 +298,37 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
           child: SizedBox(
             width: size.width,
             height: size.height,
-            child: Listener(
-              onPointerDown: (event) => _onPointerDown(event, size),
-              onPointerMove: (event) => _onPointerMove(event, size),
-              onPointerUp: (event) => _endStroke(event.pointer),
-              onPointerCancel: (event) => _endStroke(event.pointer),
-              child: RepaintBoundary(
-                child: AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, _) => CustomPaint(
-                    size: size,
-                    painter: DrawingPainter(
-                      backdrop: _backdropImage,
-                      baked: _baked,
-                      liveStrokes: [
-                        ..._pendingBakes,
-                        ..._controller.liveStrokes,
-                      ],
-                      current: _controller.current,
-                      paperColor: paperColor,
-                      colorOf: _colorOf,
-                      widthOf: _widthOf,
+            child: DecoratedBox(
+              // Frames the sheet's extent — a blank paper-coloured canvas has
+              // no other visible edge to show a child where it ends.
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: borderColor,
+                  width: AppBorders.gridBox,
+                ),
+              ),
+              child: Listener(
+                onPointerDown: (event) => _onPointerDown(event, size),
+                onPointerMove: (event) => _onPointerMove(event, size),
+                onPointerUp: (event) => _endStroke(event.pointer),
+                onPointerCancel: (event) => _endStroke(event.pointer),
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, _) => CustomPaint(
+                      size: size,
+                      painter: DrawingPainter(
+                        backdrop: _backdropImage,
+                        baked: _baked,
+                        liveStrokes: [
+                          ..._pendingBakes,
+                          ..._controller.liveStrokes,
+                        ],
+                        current: _controller.current,
+                        paperColor: paperColor,
+                        colorOf: _colorOf,
+                        widthOf: _widthOf,
+                      ),
                     ),
                   ),
                 ),
