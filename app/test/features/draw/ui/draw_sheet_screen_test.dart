@@ -15,8 +15,26 @@ import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
 import 'package:zibo_games/features/draw/ui/drawing_painter.dart';
 import 'package:zibo_games/features/draw/ui/tool_row.dart';
 
+/// Pumps and settles, then gives real async work — a real image codec's
+/// isolate round trip, in particular — a real slice of wall-clock time to
+/// finish and drains it back in, the same reasoning `app_harness.dart`'s
+/// `settleDrawIO` gives for real disk I/O: a widget test's fake clock
+/// advances `Timer`s synchronously without letting the real event loop run,
+/// so a decode started under `pumpAndSettle` alone never reports back.
+Future<void> _settleRealAsync(WidgetTester tester) async {
+  await tester.pumpAndSettle();
+  for (var i = 0; i < 20; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 25)),
+    );
+    await tester.pump();
+  }
+}
+
 /// A tiny, real, decodable PNG — enough for `DrawingController(backdrop:)`
-/// to have something `decodeSheetImage` can actually decode.
+/// to have something `decodeSheetImage` can actually decode. Encoding to PNG
+/// is itself real async work, so every call site awaits it through
+/// `tester.runAsync` rather than directly.
 Future<Uint8List> _tinyPng() async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -265,7 +283,8 @@ void main() {
     testWidgets('disappears once the drawing already has a backdrop', (
       tester,
     ) async {
-      final controller = DrawingController(backdrop: await _tinyPng());
+      final backdrop = await tester.runAsync(_tinyPng);
+      final controller = DrawingController(backdrop: backdrop);
       await tester.pumpWidget(
         MaterialApp(
           home: DrawSheetScreen(controller: controller, onImportPhoto: () {}),
@@ -273,8 +292,8 @@ void main() {
       );
       // The backdrop is decoded asynchronously in initState
       // (`draw_sheet_screen.dart`'s own `_decodeBackdrop`), so this needs
-      // to settle rather than a bare pump.
-      await tester.pumpAndSettle();
+      // real settling, not just a settled fake clock.
+      await _settleRealAsync(tester);
 
       expect(find.byTooltip('Add a photo'), findsNothing);
     });

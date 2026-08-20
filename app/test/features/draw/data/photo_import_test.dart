@@ -64,15 +64,16 @@ void main() {
     );
 
     test('aspect ratio survives the downscale', () async {
-      // 4000 x 2000 is wider than the sheet's own 4:3, so height is the
-      // bound that binds first.
+      // 4000 x 2000 is 2:1 — wider than the sheet's own 4:3 (1600 x 1200,
+      // 1.33:1) — so width is the bound that binds first, the same way a
+      // panorama would.
       final original = await _pngOf(4000, 2000);
 
       final downscaled = await downscaleToSheet(original);
       final image = await _decode(downscaled);
 
-      expect(image.height, sheetHeight.round());
-      expect(image.width, lessThan(sheetWidth.round()));
+      expect(image.width, sheetWidth.round());
+      expect(image.height, lessThan(sheetHeight.round()));
       expect((image.width / image.height - 4000 / 2000).abs(), lessThan(0.01));
     });
 

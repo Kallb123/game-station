@@ -131,7 +131,11 @@ void main() {
     'shown when both say yes, and a pick lands on disk as the backdrop',
     (tester) async {
       await setViewport(tester);
-      final photoBytes = await _tinyPng();
+      // Encoding a PNG is real async work — an isolate round trip a bare
+      // `await` never reports back from inside a widget test's fake clock
+      // (`draw_sheet_screen_test.dart`'s own `_settleRealAsync` gives the
+      // full reasoning).
+      final photoBytes = await tester.runAsync(_tinyPng);
       final fake = _FakePhotoImport(
         availableAnswer: true,
         pickAnswer: photoBytes,

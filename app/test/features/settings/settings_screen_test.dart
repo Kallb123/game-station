@@ -435,9 +435,7 @@ void main() {
         soundLabel,
         showTimerLabel,
         reduceMotionLabel,
-        allowPhotoImportLabel,
       ]) {
-        await scrollTo(tester, label);
         expect(
           tester
               .getSize(
@@ -455,6 +453,23 @@ void main() {
         tester.getSize(find.byType(Slider)).height,
         greaterThanOrEqualTo(AppTapTargets.min),
         reason: 'the haptics slider is a strip a child drags along',
+      );
+      // Below the haptics slider in list order, so this one is checked after
+      // it rather than in the same pass: scrolling this far pushes the
+      // slider out of the `ListView`'s lazily-built range, and a size check
+      // against a widget no longer built finds nothing.
+      await scrollTo(tester, allowPhotoImportLabel);
+      expect(
+        tester
+            .getSize(
+              find.ancestor(
+                of: find.text(allowPhotoImportLabel),
+                matching: find.byType(SwitchListTile),
+              ),
+            )
+            .height,
+        greaterThanOrEqualTo(AppTapTargets.primary),
+        reason: '$allowPhotoImportLabel is a row a child aims at',
       );
       for (final choice in [
         ...themeChoices.values,
