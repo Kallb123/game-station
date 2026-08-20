@@ -11,6 +11,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/storage/save_data.dart' show PadSide;
 import 'package:zibo_games/core/ui/theme.dart';
 import 'package:zibo_games/core/ui/tokens.dart';
 import 'package:zibo_games/features/draw/model/drawing_controller.dart';
@@ -468,6 +469,54 @@ void main() {
       await _settleRealAsync(tester);
 
       expect(find.byTooltip('Save picture'), findsOneWidget);
+    });
+  });
+
+  group('in landscape', () {
+    /// Pumps the sheet in a landscape window with its rail on [side].
+    Future<void> pumpLandscape(WidgetTester tester, PadSide side) async {
+      tester.view.physicalSize = const Size(800, 400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DrawSheetScreen(controller: DrawingController(), padSide: side),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the rail sits on the side the profile names, beside the '
+        'sheet rather than over it', (tester) async {
+      await pumpLandscape(tester, PadSide.left);
+      expect(
+        tester.getTopRight(find.byType(ToolRow)).dx,
+        lessThanOrEqualTo(tester.getTopLeft(_canvasFinder).dx),
+      );
+
+      await pumpLandscape(tester, PadSide.right);
+      expect(
+        tester.getTopLeft(find.byType(ToolRow)).dx,
+        greaterThanOrEqualTo(tester.getTopRight(_canvasFinder).dx),
+      );
+    });
+
+    testWidgets('a phone-sized window still fits every control without '
+        'scrolling', (tester) async {
+      await pumpLandscape(tester, PadSide.right);
+
+      // Two rows of six colours are what keeps the rail inside a 400 dp-tall
+      // window; three rows of four would leave the last row to be scrolled
+      // to (`ToolRow.railWidth`).
+      final rail = tester.state<ScrollableState>(find.byType(Scrollable));
+      expect(rail.position.maxScrollExtent, 0);
+      expect(
+        tester.getBottomLeft(find.byKey(ToolRow.colorKey(11))).dy,
+        lessThanOrEqualTo(400),
+      );
+      expect(tester.takeException(), isNull);
     });
   });
 }

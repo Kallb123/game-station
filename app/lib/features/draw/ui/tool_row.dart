@@ -2,23 +2,33 @@
 // and New sheet — every control a child chooses a pencil, a colour or an
 // action from (`PLAN-phase-8.md` §4.7, §6 PR 3).
 //
-// Three groups — sizes, then colours plus the eraser, then undo/redo/New
-// sheet — each its own `Wrap`, not a fixed `Row`: the same controls sit in a
-// horizontal band below the sheet in portrait and could sit in a narrower
-// column beside it in landscape (`axis`, the same split `OnScreenPad.axis`
-// makes in `features/arcade/shared/on_screen_pad.dart`), and each group's
-// `Wrap` folds onto another line by itself if a narrow phone cannot fit it
-// on one — so nothing here can overflow, at any text scale, because nothing
+// Three groups — sizes, colours and actions — each its own `Wrap` rather than
+// a fixed `Row`, and every `Wrap` horizontal whichever [ToolRowLayout] is in
+// force: a group too wide for the space it is given folds onto another line
+// by itself, so nothing here can overflow, at any text scale, because nothing
 // here draws scaling text. The groups themselves never share a line: brush
-// thickness reads apart from colour, and undo/redo — built as a single
-// `Flex` so a `Wrap` has no seam to split them at — never separate across
+// thickness reads apart from colour, and undo and redo — built as a single
+// `Row` so a `Wrap` has no seam to split them at — never separate across
 // lines.
+//
+// What [ToolRowLayout] changes is the width the groups get and which group
+// the eraser belongs to. As a band below the sheet (portrait) it is the
+// window's width, and the eraser sits with the colours: one line of thirteen
+// swatch-sized controls that folds as the window demands. As a rail beside
+// the sheet (landscape) it is [ToolRow.railWidthFor] the window — so the four
+// sizes take one line, undo, redo, the eraser and New sheet the next, and the
+// twelve colours fold into equal rows beneath them, filling the rail rather
+// than running down it one control at a time. The eraser moves up to the
+// action line there because that line has the room, and because twelve
+// colours divide into equal rows where thirteen controls do not.
 //
 // Selection is never colour alone (`PLAN.md` §7's accessibility rule,
 // `PLAN-phase-8.md` §1): every selectable control here gains a 3 dp
 // `AppBorders.selected` ring and grows, and every control — selectable or
 // not — carries a `Semantics` label of its own, because the row draws no
 // text.
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -35,6 +45,20 @@ const double _selectionGrowth = 8;
 /// holds either.
 const double _swatchDiameter = 34;
 
+/// Where a [ToolRow] is drawn, which is what decides the shape of its groups.
+///
+/// The two cases the sheet has (`draw_sheet_screen.dart`), named for what
+/// they are rather than for an axis: both lay every group out horizontally,
+/// so [Axis] would say the opposite of what happens.
+enum ToolRowLayout {
+  /// The band below the sheet, as wide as the screen: portrait.
+  band,
+
+  /// The rail beside the sheet, [ToolRow.railWidthFor] the window wide:
+  /// landscape, on the side the profile's `padSide` already names.
+  rail,
+}
+
 /// The four pencil sizes, the twelve colours, the eraser, undo, redo and New
 /// sheet, laid out for [DrawSheetScreen] (`draw_sheet_screen.dart`).
 class ToolRow extends StatelessWidget {
@@ -50,7 +74,7 @@ class ToolRow extends StatelessWidget {
     required this.onUndo,
     required this.onRedo,
     required this.onNewSheet,
-    this.axis = Axis.horizontal,
+    this.layout = ToolRowLayout.band,
     super.key,
   });
 
@@ -86,10 +110,39 @@ class ToolRow extends StatelessWidget {
   /// valid thing to ask for.
   final VoidCallback onNewSheet;
 
-  /// [Axis.horizontal] (the default) is a band below the sheet;
-  /// [Axis.vertical] is a rail beside it, for a landscape layout that wants
-  /// one — the same choice `OnScreenPad.axis` offers the arcade's pad.
-  final Axis axis;
+  /// [ToolRowLayout.band] (the default) is the band below the sheet;
+  /// [ToolRowLayout.rail] is the panel beside it, for a landscape layout
+  /// that wants one.
+  final ToolRowLayout layout;
+
+  /// The width a [ToolRowLayout.rail] draws at when the window can spare it:
+  /// six colour swatches and the five gaps between them.
+  ///
+  /// Six, because the whole point of the rail is to use the width a landscape
+  /// window has and the height it does not: two rows of six are short enough
+  /// to leave a short landscape phone's rail unscrolled, where three rows of
+  /// four are not.
+  static const double railWidth = AppTapTargets.min * 6 + AppSpacing.sm * 5;
+
+  /// The width a rail falls back to when [railWidth] would take more than
+  /// half the window: undo and redo at their primary floor, the eraser and
+  /// New sheet at the ordinary one, and the three gaps between the four —
+  /// the narrowest the action line fits on, and four colours to a row.
+  static const double narrowRailWidth =
+      AppTapTargets.primary * 2 + AppTapTargets.min * 2 + AppSpacing.sm * 3;
+
+  /// How wide to draw the rail where the sheet and it have [available]
+  /// logical pixels to share (`draw_sheet_screen.dart`'s `_landscapeLayout`).
+  ///
+  /// Never more than half of it — the rail's groups fold onto more lines when
+  /// they are given less, and the sheet has nothing to fold — and one of the
+  /// two widths above wherever that leaves a choice, so the twelve colours
+  /// land in equal rows of six or of four rather than in a ragged grid of
+  /// whatever number happens to fit.
+  static double railWidthFor(double available) {
+    final half = available / 2;
+    return half >= railWidth ? railWidth : math.min(narrowRailWidth, half);
+  }
 
   static const Key eraserKey = ValueKey('ToolRow.eraser');
   static const Key undoKey = ValueKey('ToolRow.undo');
@@ -99,13 +152,11 @@ class ToolRow extends StatelessWidget {
   static Key sizeKey(int index) => ValueKey('ToolRow.size.$index');
   static Key colorKey(int index) => ValueKey('ToolRow.color.$index');
 
-  /// A group's own [Wrap] — sizes, colours and actions each get one, laid
-  /// out along [axis] exactly as the single row used to be, so a group too
-  /// wide for a narrow phone still folds onto another line by itself
+  /// A group's own [Wrap] — sizes, colours and actions each get one — so a
+  /// group too wide for the space still folds onto another line by itself
   /// (`ToolRow`'s own doc comment) without folding into a neighbouring
   /// group's line.
   Widget _group(List<Widget> children) => Wrap(
-    direction: axis,
     alignment: WrapAlignment.center,
     crossAxisAlignment: WrapCrossAlignment.center,
     spacing: AppSpacing.sm,
@@ -114,79 +165,95 @@ class ToolRow extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) => Flex(
-    // Always a column, whatever [axis] is: a horizontal band (portrait)
-    // stacks its groups one below the next the same way a single group's
-    // own lines stack; a vertical rail (landscape) is width-constrained
-    // (`_landscapeLayout`'s `IntrinsicWidth`), so stacking the groups
-    // side by side there would widen the rail to three columns instead of
-    // one — this keeps it the single, scrollable column it always was,
-    // just with a gap between groups.
-    direction: Axis.vertical,
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.center,
-    spacing: AppSpacing.md,
-    children: [
-      // Brush thickness, on its own — never sharing a line with colour
-      // selection.
-      _group([
-        for (var i = 0; i < DrawPencils.widths.length; i++)
-          _SizeDot(
-            key: sizeKey(i),
-            index: i,
-            selected: !isEraser && sizeIndex == i,
-            onTap: () => onSizeSelected(i),
-          ),
-      ]),
-      _group([
-        for (var i = 0; i < DrawPalette.colors.length; i++)
-          _ColorSwatch(
-            key: colorKey(i),
-            index: i,
-            selected: !isEraser && colorIndex == i,
-            onTap: () => onColorSelected(i),
-          ),
-        _EraserButton(
-          key: eraserKey,
-          selected: isEraser,
-          onTap: onEraserSelected,
+  Widget build(BuildContext context) {
+    final sizes = _group([
+      for (var i = 0; i < DrawPencils.widths.length; i++)
+        _SizeDot(
+          key: sizeKey(i),
+          index: i,
+          selected: !isEraser && sizeIndex == i,
+          onTap: () => onSizeSelected(i),
         ),
-      ]),
-      _group([
-        // Undo and redo as a single [Flex], not two separate children of
-        // the group's `Wrap` — a `Wrap` only ever breaks *between*
-        // children, so this is what keeps the pair from landing on two
-        // different lines.
-        Flex(
-          direction: axis,
-          mainAxisSize: MainAxisSize.min,
-          spacing: AppSpacing.sm,
-          children: [
-            _ActionButton(
-              toolKey: undoKey,
-              icon: Icons.undo,
-              label: 'Undo',
-              onPressed: canUndo ? onUndo : null,
-              primary: true,
-            ),
-            _ActionButton(
-              toolKey: redoKey,
-              icon: Icons.redo,
-              label: 'Redo',
-              onPressed: canRedo ? onRedo : null,
-              primary: true,
-            ),
-          ],
+    ]);
+    final colors = [
+      for (var i = 0; i < DrawPalette.colors.length; i++)
+        _ColorSwatch(
+          key: colorKey(i),
+          index: i,
+          selected: !isEraser && colorIndex == i,
+          onTap: () => onColorSelected(i),
+        ),
+    ];
+    final eraser = _EraserButton(
+      key: eraserKey,
+      selected: isEraser,
+      onTap: onEraserSelected,
+    );
+    // Undo and redo as a single [Row], not two separate children of the
+    // group's `Wrap` — a `Wrap` only ever breaks *between* children, so this
+    // is what keeps the pair from landing on two different lines.
+    final undoRedo = Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: AppSpacing.sm,
+      children: [
+        _ActionButton(
+          toolKey: undoKey,
+          icon: Icons.undo,
+          label: 'Undo',
+          onPressed: canUndo ? onUndo : null,
+          primary: true,
         ),
         _ActionButton(
-          toolKey: newSheetKey,
-          icon: Icons.note_add_outlined,
-          label: 'New sheet',
-          onPressed: onNewSheet,
+          toolKey: redoKey,
+          icon: Icons.redo,
+          label: 'Redo',
+          onPressed: canRedo ? onRedo : null,
+          primary: true,
         ),
-      ]),
-    ],
-  );
+      ],
+    );
+    final newSheet = _ActionButton(
+      toolKey: newSheetKey,
+      icon: Icons.note_add_outlined,
+      label: 'New sheet',
+      onPressed: onNewSheet,
+    );
+
+    final column = Column(
+      // The groups stack whichever layout is in force: a band stacks them
+      // the same way one group's own lines stack, and a rail is too narrow
+      // to hold two of them side by side.
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      spacing: AppSpacing.md,
+      children: switch (layout) {
+        // Brush thickness first and on its own, never sharing a line with
+        // colour selection.
+        ToolRowLayout.band => [
+          sizes,
+          _group([...colors, eraser]),
+          _group([undoRedo, newSheet]),
+        ],
+        ToolRowLayout.rail => [
+          sizes,
+          _group([undoRedo, eraser, newSheet]),
+          _group(colors),
+        ],
+      },
+    );
+
+    return switch (layout) {
+      ToolRowLayout.band => column,
+      // Bounded, not sized: `BoxConstraints.enforce` keeps whichever of this
+      // and the parent's own limit is smaller, so the rail takes its natural
+      // width beside a sheet that has width to spare and folds instead of
+      // overflowing beside one that does not.
+      ToolRowLayout.rail => ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: railWidth),
+        child: column,
+      ),
+    };
+  }
 }
 
 /// One pencil size, drawn as a filled dot at [DrawPencils.previewDiameters]

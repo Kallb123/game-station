@@ -256,28 +256,44 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
     children: [
       Expanded(child: _canvas(context)),
       const SizedBox(height: AppSpacing.lg),
-      _toolRow(Axis.horizontal),
+      _toolRow(ToolRowLayout.band),
     ],
   );
 
   /// A rail beside the sheet, on [DrawSheetScreen.padSide] — the same split
   /// `sudoku_play_screen.dart`'s `_boardAndKeypad` draws for its own keypad,
-  /// and for the same reason: a control column with a floor on every button
+  /// and for the same reason: a control panel with a floor on every button
   /// scrolls instead of being squeezed into a flex fraction that does not fit
   /// it (`PLAN-phase-8.md` §4.7).
-  Widget _landscapeLayout(BuildContext context) {
-    final rail = IntrinsicWidth(
-      child: SingleChildScrollView(child: _toolRow(Axis.vertical)),
-    );
-    final canvas = Expanded(child: _canvas(context));
+  Widget _landscapeLayout(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      // Sized rather than left to shrink-wrap: what the rail is given is
+      // what decides how many colours share a row, and [ToolRow] is where
+      // that arithmetic lives.
+      final rail = SizedBox(
+        width: ToolRow.railWidthFor(constraints.maxWidth),
+        child: SingleChildScrollView(
+          // Centred down the rail, against a sheet that centres itself in
+          // what is left (`_canvas`), and still scrolling when the controls
+          // are taller than the window: a minimum height of the viewport's
+          // gives `Center` room to centre in and leaves nothing to scroll
+          // until the controls need more than that.
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(child: _toolRow(ToolRowLayout.rail)),
+          ),
+        ),
+      );
+      final canvas = Expanded(child: _canvas(context));
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: widget.padSide == PadSide.left
-          ? [rail, const SizedBox(width: AppSpacing.lg), canvas]
-          : [canvas, const SizedBox(width: AppSpacing.lg), rail],
-    );
-  }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: widget.padSide == PadSide.left
+            ? [rail, const SizedBox(width: AppSpacing.lg), canvas]
+            : [canvas, const SizedBox(width: AppSpacing.lg), rail],
+      );
+    },
+  );
 
   Widget _canvas(BuildContext context) {
     final theme = Theme.of(context);
@@ -347,10 +363,10 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
     );
   }
 
-  Widget _toolRow(Axis axis) => ListenableBuilder(
+  Widget _toolRow(ToolRowLayout layout) => ListenableBuilder(
     listenable: _controller,
     builder: (context, _) => ToolRow(
-      axis: axis,
+      layout: layout,
       sizeIndex: _sizeIndex,
       colorIndex: _colorIndex,
       isEraser: _isEraser,

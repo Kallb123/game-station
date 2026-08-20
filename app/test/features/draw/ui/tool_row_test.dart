@@ -27,25 +27,29 @@ void main() {
     ValueChanged<int>? onSizeSelected,
     ValueChanged<int>? onColorSelected,
     VoidCallback? onEraserSelected,
-    Axis axis = Axis.horizontal,
+    ToolRowLayout layout = ToolRowLayout.band,
+    double? width,
     double textScale = 1,
   }) => pumpApp(
     tester,
     Scaffold(
       body: Center(
-        child: ToolRow(
-          sizeIndex: sizeIndex,
-          colorIndex: colorIndex,
-          isEraser: isEraser,
-          onSizeSelected: onSizeSelected ?? (_) {},
-          onColorSelected: onColorSelected ?? (_) {},
-          onEraserSelected: onEraserSelected ?? () {},
-          canUndo: canUndo,
-          canRedo: canRedo,
-          onUndo: onUndo ?? () {},
-          onRedo: onRedo ?? () {},
-          onNewSheet: onNewSheet ?? () {},
-          axis: axis,
+        child: SizedBox(
+          width: width,
+          child: ToolRow(
+            sizeIndex: sizeIndex,
+            colorIndex: colorIndex,
+            isEraser: isEraser,
+            onSizeSelected: onSizeSelected ?? (_) {},
+            onColorSelected: onColorSelected ?? (_) {},
+            onEraserSelected: onEraserSelected ?? () {},
+            canUndo: canUndo,
+            canRedo: canRedo,
+            onUndo: onUndo ?? () {},
+            onRedo: onRedo ?? () {},
+            onNewSheet: onNewSheet ?? () {},
+            layout: layout,
+          ),
         ),
       ),
     ),
@@ -259,22 +263,129 @@ void main() {
   );
 
   for (final orientation in {
-    'portrait': const Size(360, 640),
-    'landscape': const Size(640, 360),
+    'portrait': (size: const Size(360, 640), layout: ToolRowLayout.band),
+    'landscape': (size: const Size(640, 360), layout: ToolRowLayout.rail),
   }.entries) {
     testWidgets(
       'lays out without overflow at 200% text scale, ${orientation.key}',
       (tester) async {
-        tester.view.physicalSize = orientation.value;
+        tester.view.physicalSize = orientation.value.size;
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
 
-        await pumpRow(tester, textScale: 2);
+        await pumpRow(tester, textScale: 2, layout: orientation.value.layout);
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
       },
     );
   }
+
+  /// The vertical centres of [keys], rounded to whole pixels and in the order
+  /// they appear — two controls sharing a line share a centre, which is what
+  /// [Wrap]'s [WrapCrossAlignment.center] gives a 56 dp control beside a
+  /// 72 dp one.
+  List<double> lineCentres(WidgetTester tester, List<Key> keys) => [
+    for (final key in keys)
+      tester.getCenter(find.byKey(key)).dy.roundToDouble(),
+  ];
+
+  /// Which line each of [keys] landed on, as its count per shared centre, in
+  /// the order the lines run down the widget.
+  Map<double, int> rowsOf(WidgetTester tester, List<Key> keys) {
+    final rows = <double, int>{};
+    for (final centre in lineCentres(tester, keys)) {
+      rows[centre] = (rows[centre] ?? 0) + 1;
+    }
+    return rows;
+  }
+
+  final colorKeys = [
+    for (var i = 0; i < DrawPalette.colors.length; i++) ToolRow.colorKey(i),
+  ];
+
+  group('the rail', () {
+    testWidgets('puts the four sizes on one line and the four actions on the '
+        'next', (tester) async {
+      await pumpRow(tester, layout: ToolRowLayout.rail, canUndo: true);
+
+      final sizes = lineCentres(tester, [
+        for (var i = 0; i < DrawPencils.widths.length; i++) ToolRow.sizeKey(i),
+      ]);
+      expect(sizes.toSet(), hasLength(1), reason: 'sizes: $sizes');
+
+      // The eraser belongs to the action line here, not to the colours.
+      final actions = lineCentres(tester, [
+        ToolRow.undoKey,
+        ToolRow.redoKey,
+        ToolRow.eraserKey,
+        ToolRow.newSheetKey,
+      ]);
+      expect(actions.toSet(), hasLength(1), reason: 'actions: $actions');
+      expect(actions.first, greaterThan(sizes.first));
+    });
+
+    testWidgets('folds the twelve colours into two rows of six below the '
+        'actions', (tester) async {
+      await pumpRow(tester, layout: ToolRowLayout.rail);
+
+      expect(tester.getSize(find.byType(ToolRow)).width, ToolRow.railWidth);
+
+      final rows = rowsOf(tester, colorKeys);
+      expect(rows, hasLength(2), reason: 'rows: $rows');
+      expect(rows.values, everyElement(6));
+      expect(
+        rows.keys.first,
+        greaterThan(tester.getCenter(find.byKey(ToolRow.undoKey)).dy),
+      );
+    });
+
+    testWidgets('at its narrow width, four to a row with the actions still on '
+        'one line', (tester) async {
+      await pumpRow(
+        tester,
+        layout: ToolRowLayout.rail,
+        width: ToolRow.narrowRailWidth,
+        canUndo: true,
+      );
+
+      final rows = rowsOf(tester, colorKeys);
+      expect(rows, hasLength(3), reason: 'rows: $rows');
+      expect(rows.values, everyElement(4));
+
+      final actions = lineCentres(tester, [
+        ToolRow.undoKey,
+        ToolRow.redoKey,
+        ToolRow.eraserKey,
+        ToolRow.newSheetKey,
+      ]);
+      expect(actions.toSet(), hasLength(1), reason: 'actions: $actions');
+    });
+
+    test('takes half the window at most, and one of its two widths', () {
+      expect(ToolRow.railWidthFor(1280), ToolRow.railWidth);
+      // Half of this is between the two widths: the wide rail would eat into
+      // the sheet's half, so the narrow one is what fits.
+      expect(ToolRow.railWidthFor(700), ToolRow.narrowRailWidth);
+      // Narrower than either, and half is all it gets.
+      expect(ToolRow.railWidthFor(400), 200);
+    });
+  });
+
+  testWidgets('the band keeps the eraser on the colours line, above the '
+      'actions', (tester) async {
+    // Wide enough for all thirteen swatch-sized controls on one line:
+    // twelve colours, the eraser and the twelve gaps between them.
+    tester.view.physicalSize = const Size(13 * 56 + 12 * 8, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpRow(tester);
+
+    final eraser = tester.getCenter(find.byKey(ToolRow.eraserKey)).dy;
+    expect(eraser, tester.getCenter(find.byKey(ToolRow.colorKey(11))).dy);
+    expect(eraser, lessThan(tester.getCenter(find.byKey(ToolRow.undoKey)).dy));
+  });
 }
