@@ -1,12 +1,16 @@
 // [DrawSheetScreen]'s pointer handling: the §4.2 sampling rule that turns a
 // dense pointer stream into a bounded stroke, and the tap-to-dot case
-// (`PLAN-phase-8.md` §6, PR 2's done criteria).
+// (`PLAN-phase-8.md` §6, PR 2's done criteria) — plus PR 3's tool row wired
+// to it: picking a size or a colour is what the next stroke draws with, and
+// New sheet swaps in a blank picture without touching a caller-supplied
+// controller's own strokes.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/features/draw/model/drawing_controller.dart';
 import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
 import 'package:zibo_games/features/draw/ui/drawing_painter.dart';
+import 'package:zibo_games/features/draw/ui/tool_row.dart';
 
 /// The sheet's own [CustomPaint], not the ones `Scaffold`'s `Material`
 /// paints its shape with.
@@ -127,6 +131,83 @@ void main() {
 
     // Only the first pointer's stroke exists: the second's down was ignored,
     // so it never opened one for the up event to close.
+    expect(controller.strokes, hasLength(1));
+  });
+
+  testWidgets('picking a size and a colour from the tool row is what the '
+      'next stroke draws with', (tester) async {
+    final controller = DrawingController();
+    final canvas = await _pumpAndFindCanvas(tester, controller);
+
+    await tester.tap(find.byKey(ToolRow.sizeKey(2)));
+    await tester.tap(find.byKey(ToolRow.colorKey(5)));
+    await tester.pump();
+    await tester.tapAt(canvas.center);
+    await tester.pump();
+
+    expect(controller.strokes.single.sizeIndex, 2);
+    expect(controller.strokes.single.colorIndex, 5);
+  });
+
+  testWidgets('picking the eraser draws an erasing stroke, and picking a '
+      'colour again leaves it', (tester) async {
+    final controller = DrawingController();
+    final canvas = await _pumpAndFindCanvas(tester, controller);
+
+    await tester.tap(find.byKey(ToolRow.eraserKey));
+    await tester.pump();
+    await tester.tapAt(canvas.center);
+    await tester.pump();
+    expect(controller.strokes.single.isEraser, isTrue);
+
+    await tester.tap(find.byKey(ToolRow.colorKey(0)));
+    await tester.pump();
+    await tester.tapAt(canvas.center);
+    await tester.pump();
+    expect(controller.strokes.last.isEraser, isFalse);
+  });
+
+  testWidgets('undo and redo on the tool row act on the drawing', (
+    tester,
+  ) async {
+    final controller = DrawingController();
+    final canvas = await _pumpAndFindCanvas(tester, controller);
+
+    await tester.tapAt(canvas.center);
+    await tester.pump();
+    expect(controller.strokes, hasLength(1));
+
+    await tester.tap(find.byKey(ToolRow.undoKey));
+    await tester.pump();
+    expect(controller.strokes, isEmpty);
+
+    await tester.tap(find.byKey(ToolRow.redoKey));
+    await tester.pump();
+    expect(controller.strokes, hasLength(1));
+  });
+
+  testWidgets('New sheet starts blank without touching the given '
+      'controller\'s own strokes', (tester) async {
+    final controller = DrawingController();
+    final canvas = await _pumpAndFindCanvas(tester, controller);
+
+    await tester.tapAt(canvas.center);
+    await tester.pump();
+    expect(controller.strokes, hasLength(1));
+
+    await tester.tap(find.byKey(ToolRow.newSheetKey));
+    await tester.pumpAndSettle();
+
+    // The screen now shows an empty sheet...
+    await tester.tapAt(canvas.center);
+    await tester.pump();
+    final onScreenNow =
+        tester.widgetList<CustomPaint>(_canvasFinder).single.painter!
+            as DrawingPainter;
+    expect(onScreenNow.liveStrokes, hasLength(1));
+
+    // ...and the controller the caller handed in still has exactly the one
+    // stroke it had before New sheet was tapped.
     expect(controller.strokes, hasLength(1));
   });
 }
