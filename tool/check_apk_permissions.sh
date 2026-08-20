@@ -10,13 +10,21 @@
 # build time, and no source file in this repository mentions it — so the promise
 # is checked on both sides of the build.
 #
-# One permission is expected and allowed:
-# <applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION, which AndroidX Core
-# declares so the app's own broadcast receivers are not exported. It is
-# signature-level and scoped to this app, grants access to nothing outside it,
-# and does not appear on a Play listing. Anything else — including any
-# `android.permission.*` — fails, so a permission arriving with a future
-# dependency has to be looked at rather than absorbed.
+# Two permissions are expected and allowed:
+#
+# - <applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION, which AndroidX
+#   Core declares so the app's own broadcast receivers are not exported. It is
+#   signature-level and scoped to this app, grants access to nothing outside
+#   it, and does not appear on a Play listing.
+# - android.permission.WRITE_EXTERNAL_STORAGE, capped at maxSdkVersion 28 in
+#   the manifest for the MediaStore write PLAN-phase-8.md §3.2 needs on API
+#   26-28. `aapt dump permissions` reports what the manifest declares, not
+#   what a device would actually be asked for, so the cap does not hide it
+#   here — this is where that reasoning is checked against the built package.
+#
+# Anything else — including any other `android.permission.*` — fails, so a
+# permission arriving with a future dependency has to be looked at rather
+# than absorbed.
 set -euo pipefail
 
 apk=${1:-}
@@ -43,11 +51,12 @@ fi
 
 unexpected=$(printf '%s\n' "$permissions" |
   grep -v '^$' |
-  grep -v '\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION$' || true)
+  grep -v '\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION$' |
+  grep -v '^android\.permission\.WRITE_EXTERNAL_STORAGE$' || true)
 if [ -n "$unexpected" ]; then
   echo 'Unexpected permissions in the APK:' >&2
   printf '  %s\n' $unexpected >&2
   exit 1
 fi
 
-echo 'No platform permissions — in particular, no INTERNET.'
+echo 'No platform permissions beyond the two expected — in particular, no INTERNET.'

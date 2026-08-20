@@ -1,6 +1,6 @@
 # Phase 8 — the drawing board
 
-**PR 4 of 7 landed; the rest is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
+**PR 5 of 7 landed; the rest is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
 carries this phase's entry and its done-criterion, and §2, §5.2, §5.3, §6 and §8 carry the parts of
 this design that the rest of the app has to agree with. Written ahead of its turn for the reason
 `PLAN.md` §10 gives: the choice of photo-library dependency is settled by resolving a graph, and the
@@ -308,10 +308,18 @@ looked.
 
 ```dart
 abstract interface class GalleryExport {
-  bool get available;
+  Future<bool> get available;
   Future<void> savePng(Uint8List bytes, String name);
 }
 ```
+
+**`available` returns a `Future<bool>`, not the plain `bool` this section first sketched.**
+`FolderGalleryExport` can only answer by asking `path_provider` for a downloads directory, which is
+itself async, so both implementations answer the same way. `GalGalleryExport.available` is
+unconditionally `true` — every Android and iOS device has a photo library, so there is nothing to
+check — rather than probing `Gal.hasAccess()`: export stays available either way (§1), and asking for
+permission from an availability check would show a dialog before a child has tapped anything.
+`Gal.putImageBytes` is what actually asks, at the point of the write.
 
 `GalGalleryExport` is the only file in `app/lib` that imports `package:gal`, and a scanner test
 asserts it — the same shape of guard as `no_random_test.dart`, with its own self-tests, because a
@@ -319,6 +327,14 @@ plugin call that leaks into a widget is a call `flutter test` cannot run. On Win
 `FolderGalleryExport` writes to `<getDownloadsDirectory()>/Zibo Games/`. Downloads and not Pictures
 because `path_provider` offers `getDownloadsDirectory()` and offers nothing for Pictures, and
 hard-coding three platform conventions is the thing `PLAN.md` §2 took `path_provider` to avoid.
+
+**`ios/Runner/Info.plist` needs two keys this section did not name.** `gal`'s own setup docs call
+`NSPhotoLibraryAddUsageDescription` required unconditionally for a write, and
+`NSPhotoLibraryUsageDescription` required below iOS 14 — `PLAN.md` §1's floor is 13, so both are set,
+to the same add-only sentence. §3.3's "no permission" claim is about the *read* channel only; a write
+through `gal` still shows an add-only prompt the first time, which is what these two strings are for.
+macOS never reaches `Gal` (`FolderGalleryExport` handles it instead, §3.2's table), so
+`macos/Runner/Info.plist` needs neither key.
 
 **Import.** `photo_import.dart` over the §3.3 channel. The returned bytes are decoded with
 `instantiateImageCodec`, downscaled to fit 1600 x 1200 with the aspect ratio kept, re-encoded to PNG
