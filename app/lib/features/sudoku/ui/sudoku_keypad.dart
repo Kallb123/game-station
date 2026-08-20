@@ -123,6 +123,19 @@ class _DigitButton extends StatelessWidget {
       padding: EdgeInsets.zero,
       minimumSize: const Size(AppTapTargets.min, AppTapTargets.min),
     ),
-    child: Text('$digit', style: Theme.of(context).textTheme.headlineSmall),
+    // `headlineSmall` carries its own `onSurface` colour (Material's default
+    // typography merged with the theme, `theme.dart`), so it always wins over
+    // the ambient colour `FilledButton` sets for its disabled state — a
+    // `ButtonStyle.disabledForegroundColor` here would be dead code. The digit
+    // has to fade its own colour explicitly, or a completed one keeps reading
+    // as solid ink no matter how grey the tonal fill behind it gets.
+    child: Text(
+      '$digit',
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+        color: onPressed == null
+            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.26)
+            : null,
+      ),
+    ),
   );
 }
