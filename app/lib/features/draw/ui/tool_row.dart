@@ -115,10 +115,14 @@ class ToolRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Flex(
-    // Perpendicular to [axis]: a horizontal band (portrait) stacks its
-    // groups in a column, one below the next; a vertical rail (landscape)
-    // stacks them in a row, one beside the next.
-    direction: axis == Axis.horizontal ? Axis.vertical : Axis.horizontal,
+    // Always a column, whatever [axis] is: a horizontal band (portrait)
+    // stacks its groups one below the next the same way a single group's
+    // own lines stack; a vertical rail (landscape) is width-constrained
+    // (`_landscapeLayout`'s `IntrinsicWidth`), so stacking the groups
+    // side by side there would widen the rail to three columns instead of
+    // one — this keeps it the single, scrollable column it always was,
+    // just with a gap between groups.
+    direction: Axis.vertical,
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.center,
     spacing: AppSpacing.md,
