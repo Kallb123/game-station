@@ -15,6 +15,7 @@
 // for the one thing that does.
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,9 @@ import 'package:zibo_games/core/ui/layout.dart';
 import 'package:zibo_games/features/arcade/arcade_menu_screen.dart'
     show playInvadersLabel;
 import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
+import 'package:zibo_games/features/draw/data/drawing_repository.dart';
+import 'package:zibo_games/features/draw/data/providers.dart';
+import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
 import 'package:zibo_games/features/sudoku/data/providers.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_grid_view.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_play_screen.dart';
@@ -55,6 +59,8 @@ Map<String, Object?> _sweepRoutes(PuzzleId puzzleId) => {
   AppRoutes.sudokuPlay: SudokuPlayArgs(puzzleId),
   AppRoutes.arcade: null,
   AppRoutes.arcadeInvaders: null,
+  AppRoutes.draw: null,
+  AppRoutes.drawSheet: const DrawSheetArgs(),
 };
 
 /// Leaves the game the way a child would, so the repository's debounced
@@ -83,11 +89,21 @@ void main() {
           tester.platformDispatcher.textScaleFactorTestValue = textScale;
           addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
+          final drawingDir = Directory.systemTemp.createTempSync(
+            'zibo_games_layout_sweep',
+          );
+          addTearDown(() {
+            if (drawingDir.existsSync()) drawingDir.deleteSync(recursive: true);
+          });
+
           final container = await pumpApp(
             tester,
             store: MemorySaveStore(initial: freshSave()),
             overrides: [
               puzzleSourceProvider.overrideWithValue(FakePuzzleSource()),
+              drawingRepositoryProvider.overrideWithValue(
+                DrawingRepository(drawingDir),
+              ),
             ],
           );
 

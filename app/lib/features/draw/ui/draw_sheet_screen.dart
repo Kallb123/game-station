@@ -15,9 +15,17 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/clock.dart';
+import '../../../core/storage/progress_repository.dart';
+import '../../../core/storage/providers.dart';
+import '../../../core/storage/save_data.dart' show PadSide;
+import '../../../core/ui/layout.dart';
 import '../../../core/ui/screen_scaffold.dart';
 import '../../../core/ui/tokens.dart';
+import '../data/drawing_repository.dart';
+import '../data/providers.dart';
 import '../model/drawing_controller.dart';
 import '../model/palette.dart';
 import '../model/stroke.dart';
@@ -36,9 +44,13 @@ double _widthOf(int sizeIndex) => DrawPencils.widthAt(sizeIndex);
 /// One sheet, drawn on with a finger, with the tool row below it.
 class DrawSheetScreen extends StatefulWidget {
   /// Draws on [controller], or a fresh one when none is given — a test's own
-  /// controller today, or a drawing resumed from disk once PR 4 wires that
-  /// up.
-  const DrawSheetScreen({this.controller, super.key});
+  /// controller, or a drawing resumed from disk (`DrawSheetRoute`, below).
+  const DrawSheetScreen({
+    this.controller,
+    this.onControllerChanged,
+    this.padSide = PadSide.right,
+    super.key,
+  });
 
   /// The drawing this screen starts on. Owned by the caller when given: only
   /// a screen that created its own disposes it. Tapping **New sheet**
@@ -48,6 +60,24 @@ class DrawSheetScreen extends StatefulWidget {
   /// controller's own strokes are left exactly as they were, just no longer
   /// on screen.
   final DrawingController? controller;
+
+  /// Told which controller is active right now: once, synchronously, for
+  /// whichever one this screen starts on, and again every time **New sheet**
+  /// swaps in a fresh internal one.
+  ///
+  /// Optional, and unused by anything that only wants to draw — it exists so
+  /// that [DrawSheetRoute] can keep autosaving the picture actually on
+  /// screen without this screen having to know anything about a repository.
+  /// A screen that reads it twice in a row without an intervening New sheet
+  /// never happens: this screen only ever calls it once for a given
+  /// controller instance.
+  final ValueChanged<DrawingController>? onControllerChanged;
+
+  /// Which side the tool row sits on in landscape — the same profile setting
+  /// the arcade's on-screen pad reads, so a child does not set handedness
+  /// twice (`PLAN-phase-8.md` §4.7). Unused in portrait, where the row is
+  /// always the band below the sheet.
+  final PadSide padSide;
 
   @override
   State<DrawSheetScreen> createState() => _DrawSheetScreenState();
@@ -100,6 +130,7 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
     _controller = widget.controller ?? DrawingController();
     _ownsController = widget.controller == null;
     _controller.addListener(_onControllerChanged);
+    widget.onControllerChanged?.call(_controller);
     // A controller resumed with more than the undo horizon's worth of
     // strokes already has some baked (`DrawingController._initialBakedCount`)
     // — folded into the picture, but into no image yet, since nothing has
@@ -132,79 +163,109 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final paperColor = Theme.of(context).colorScheme.surface;
+    final landscape = isLandscapeWindow(context);
 
     return ScreenScaffold(
       title: 'Draw',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final size = _fitToSheet(constraints.biggest);
-
-                return Center(
-                  child: SizedBox(
-                    width: size.width,
-                    height: size.height,
-                    child: Listener(
-                      onPointerDown: (event) => _onPointerDown(event, size),
-                      onPointerMove: (event) => _onPointerMove(event, size),
-                      onPointerUp: (event) => _endStroke(event.pointer),
-                      onPointerCancel: (event) => _endStroke(event.pointer),
-                      child: RepaintBoundary(
-                        child: AnimatedBuilder(
-                          animation: _controller,
-                          builder: (context, _) => CustomPaint(
-                            size: size,
-                            painter: DrawingPainter(
-                              baked: _baked,
-                              liveStrokes: [
-                                ..._pendingBakes,
-                                ..._controller.liveStrokes,
-                              ],
-                              current: _controller.current,
-                              paperColor: paperColor,
-                              colorOf: _colorOf,
-                              widthOf: _widthOf,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ListenableBuilder(
-            listenable: _controller,
-            builder: (context, _) => ToolRow(
-              sizeIndex: _sizeIndex,
-              colorIndex: _colorIndex,
-              isEraser: _isEraser,
-              onSizeSelected: (index) => setState(() {
-                _sizeIndex = index;
-                _isEraser = false;
-              }),
-              onColorSelected: (index) => setState(() {
-                _colorIndex = index;
-                _isEraser = false;
-              }),
-              onEraserSelected: () => setState(() => _isEraser = true),
-              canUndo: _controller.canUndo,
-              canRedo: _controller.canRedo,
-              onUndo: _controller.undo,
-              onRedo: _controller.redo,
-              onNewSheet: _startNewSheet,
-            ),
-          ),
-        ],
-      ),
+      child: landscape ? _landscapeLayout(context) : _portraitLayout(context),
     );
   }
+
+  /// The band below the sheet, unchanged from before this screen knew about
+  /// orientation.
+  Widget _portraitLayout(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Expanded(child: _canvas(context)),
+      const SizedBox(height: AppSpacing.lg),
+      _toolRow(Axis.horizontal),
+    ],
+  );
+
+  /// A rail beside the sheet, on [DrawSheetScreen.padSide] — the same split
+  /// `sudoku_play_screen.dart`'s `_boardAndKeypad` draws for its own keypad,
+  /// and for the same reason: a control column with a floor on every button
+  /// scrolls instead of being squeezed into a flex fraction that does not fit
+  /// it (`PLAN-phase-8.md` §4.7).
+  Widget _landscapeLayout(BuildContext context) {
+    final rail = IntrinsicWidth(
+      child: SingleChildScrollView(child: _toolRow(Axis.vertical)),
+    );
+    final canvas = Expanded(child: _canvas(context));
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: widget.padSide == PadSide.left
+          ? [rail, const SizedBox(width: AppSpacing.lg), canvas]
+          : [canvas, const SizedBox(width: AppSpacing.lg), rail],
+    );
+  }
+
+  Widget _canvas(BuildContext context) {
+    final paperColor = Theme.of(context).colorScheme.surface;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = _fitToSheet(constraints.biggest);
+
+        return Center(
+          child: SizedBox(
+            width: size.width,
+            height: size.height,
+            child: Listener(
+              onPointerDown: (event) => _onPointerDown(event, size),
+              onPointerMove: (event) => _onPointerMove(event, size),
+              onPointerUp: (event) => _endStroke(event.pointer),
+              onPointerCancel: (event) => _endStroke(event.pointer),
+              child: RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) => CustomPaint(
+                    size: size,
+                    painter: DrawingPainter(
+                      baked: _baked,
+                      liveStrokes: [
+                        ..._pendingBakes,
+                        ..._controller.liveStrokes,
+                      ],
+                      current: _controller.current,
+                      paperColor: paperColor,
+                      colorOf: _colorOf,
+                      widthOf: _widthOf,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _toolRow(Axis axis) => ListenableBuilder(
+    listenable: _controller,
+    builder: (context, _) => ToolRow(
+      axis: axis,
+      sizeIndex: _sizeIndex,
+      colorIndex: _colorIndex,
+      isEraser: _isEraser,
+      onSizeSelected: (index) => setState(() {
+        _sizeIndex = index;
+        _isEraser = false;
+      }),
+      onColorSelected: (index) => setState(() {
+        _colorIndex = index;
+        _isEraser = false;
+      }),
+      onEraserSelected: () => setState(() => _isEraser = true),
+      canUndo: _controller.canUndo,
+      canRedo: _controller.canRedo,
+      onUndo: _controller.undo,
+      onRedo: _controller.redo,
+      onNewSheet: _startNewSheet,
+    ),
+  );
 
   /// The largest `sheetWidth` x `sheetHeight`-proportioned box that fits
   /// [available] — a phone and a tablet then draw the same picture
@@ -335,6 +396,237 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
     });
 
     _controller.addListener(_onControllerChanged);
+    widget.onControllerChanged?.call(_controller);
     if (oldOwned) oldController.dispose();
+  }
+}
+
+/// How long after a stroke is committed before it is written to disk.
+///
+/// `PLAN.md` §5.3, in its own words: "a finished drawing stroke is the same
+/// event, debounced the same way" a Sudoku move is.
+const Duration drawAutosaveDebounce = Duration(milliseconds: 500);
+
+/// What `/draw/sheet` is pushed with.
+@immutable
+class DrawSheetArgs {
+  /// Resumes [drawingId], or opens a blank sheet when it is null.
+  const DrawSheetArgs({this.drawingId});
+
+  /// Which drawing to open, or null for a new one.
+  final String? drawingId;
+}
+
+/// The route `/draw/sheet` opens: [DrawSheetScreen] plus everything about
+/// *persisting* the picture it draws — loading `args.drawingId` from disk,
+/// autosaving a finished stroke, and filing the sheet away when the app
+/// leaves the foreground, the screen is popped, or **New sheet** is tapped
+/// (`PLAN.md` §5.3, `PLAN-phase-8.md` §4.5, §4.7).
+///
+/// [DrawSheetScreen] itself knows nothing about a repository or a profile —
+/// see its own doc comment — so all of that lives here, the same split
+/// `sudoku_play_screen.dart` draws around `SudokuGridView`.
+class DrawSheetRoute extends ConsumerStatefulWidget {
+  const DrawSheetRoute({required this.args, super.key});
+
+  /// Which drawing this route opens.
+  final DrawSheetArgs args;
+
+  @override
+  ConsumerState<DrawSheetRoute> createState() => _DrawSheetRouteState();
+}
+
+class _DrawSheetRouteState extends ConsumerState<DrawSheetRoute> {
+  /// Captured once, the same reasoning `sudoku_play_screen.dart` gives for
+  /// its own: `dispose` saves through it, and a `ref` is not something to
+  /// reach for while the tree is coming down.
+  late final DrawingRepository _repository;
+  late final ProgressRepository _progress;
+  late final DateTime Function() _now;
+  late final AppLifecycleListener _lifecycle;
+
+  /// Null until [_load] resolves — a JSON file, not a generated puzzle, so
+  /// there is nothing here worth a spinner for (`sudoku_play_screen.dart`'s
+  /// own `puzzleSpinnerDelay`).
+  DrawingController? _controller;
+
+  /// The id [_controller]'s picture is currently saved under, or null before
+  /// its first stroke has been written — see [ProgressRepository.nextDrawingId].
+  String? _drawingId;
+  DateTime? _createdAt;
+
+  /// [DrawingController.strokes]'s length as of the last write this screen
+  /// started. What [_onChanged] compares against to tell a committed stroke —
+  /// [DrawingController.endStroke], [DrawingController.undo] or
+  /// [DrawingController.redo] — from a point still moving under the finger,
+  /// which the same notifier also fires for.
+  int _savedStrokeCount = 0;
+  bool _dirty = false;
+  Timer? _saveTimer;
+
+  /// Bumped by [_bind]. A write already in flight for a sheet **New sheet**
+  /// has since left checks this before touching [_drawingId] and its
+  /// neighbours, so that write cannot land on the bookkeeping for the sheet
+  /// that replaced it (`_writeOnce`'s own note).
+  int _generation = 0;
+
+  /// **One write at a time, latest wins** — the same rule
+  /// `progress_repository.dart` keeps for `save.json`, and for the same
+  /// reason: two `writeFileAtomically` calls racing over the same drawing
+  /// file is the one way that design still corrupts one.
+  bool _writing = false;
+  bool _writeAgain = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = ref.read(drawingRepositoryProvider);
+    _progress = ref.read(progressRepositoryProvider);
+    _now = ref.read(nowProvider);
+    _lifecycle = AppLifecycleListener(onPause: _flushNow, onDetach: _flushNow);
+    unawaited(_load());
+  }
+
+  @override
+  void dispose() {
+    _saveTimer?.cancel();
+    _lifecycle.dispose();
+    _controller?.removeListener(_onChanged);
+    // A write still in the debounce window is started rather than dropped —
+    // the same reasoning `sudoku_play_screen.dart`'s own dispose gives: a
+    // screen that has gone has no later stroke to coalesce it with.
+    unawaited(_writeNow());
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final id = widget.args.drawingId;
+    final loaded = id == null
+        ? null
+        : await _repository.load(_progress.activeProfile.id, id);
+    if (!mounted) return;
+
+    final controller = DrawingController(strokes: loaded?.strokes ?? const []);
+    setState(
+      () => _bind(
+        controller,
+        drawingId: loaded != null ? id : null,
+        createdAt: loaded?.createdAt,
+      ),
+    );
+  }
+
+  /// Called by [DrawSheetScreen] once for whichever controller this screen
+  /// starts on — already bound by [_load], so a no-op here — and again every
+  /// time **New sheet** swaps in a fresh one.
+  void _onControllerSwapped(DrawingController controller) {
+    if (identical(controller, _controller)) return;
+    _flushNow(); // Files the sheet just left, if it holds anything to save.
+    _bind(controller, drawingId: null);
+  }
+
+  void _bind(
+    DrawingController controller, {
+    required String? drawingId,
+    DateTime? createdAt,
+  }) {
+    _controller?.removeListener(_onChanged);
+    controller.addListener(_onChanged);
+    _controller = controller;
+    _drawingId = drawingId;
+    _createdAt = createdAt;
+    _savedStrokeCount = controller.strokes.length;
+    _dirty = false;
+    _generation++;
+  }
+
+  void _onChanged() {
+    final controller = _controller;
+    if (controller == null) return;
+    if (controller.strokes.length == _savedStrokeCount) return;
+    _dirty = true;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(drawAutosaveDebounce, _flushNow);
+  }
+
+  void _flushNow() {
+    _saveTimer?.cancel();
+    _saveTimer = null;
+    unawaited(_writeNow());
+  }
+
+  Future<void> _writeNow() async {
+    if (_writing) {
+      _writeAgain = true;
+      return;
+    }
+    _writing = true;
+    try {
+      await _writeOnce();
+    } finally {
+      _writing = false;
+      if (_writeAgain) {
+        _writeAgain = false;
+        await _writeNow();
+      }
+    }
+  }
+
+  /// Writes the picture currently bound, if it is dirty and holds at least
+  /// one stroke — a sheet opened and left untouched should not burn an id or
+  /// leave an empty file behind.
+  Future<void> _writeOnce() async {
+    final controller = _controller;
+    if (controller == null || !_dirty) return;
+    final strokes = controller.strokes;
+    if (strokes.isEmpty) {
+      _dirty = false;
+      return;
+    }
+
+    final generation = _generation;
+    final profileId = _progress.activeProfile.id;
+    final isNew = _drawingId == null;
+    final id = _drawingId ?? _progress.nextDrawingId();
+    final createdAt = _createdAt ?? _now().toUtc();
+
+    await _repository.save(
+      profileId,
+      Drawing(id: id, createdAt: createdAt, strokes: strokes),
+    );
+    final totalBytes = _repository.profileBytes(profileId);
+    _progress.recordDrawingSaved(
+      drawingId: id,
+      isNew: isNew,
+      totalBytes: totalBytes,
+    );
+
+    // New sheet swapped in a different picture while this write was in
+    // flight — that picture's own [_bind] already set what this would
+    // otherwise stomp back to the sheet that is no longer on screen.
+    if (generation != _generation) return;
+    _drawingId = id;
+    _createdAt = createdAt;
+    _savedStrokeCount = strokes.length;
+    _dirty = false;
+  }
+
+  void _onPopped(bool didPop, Object? result) {
+    if (didPop) _flushNow();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (controller == null) return const SizedBox.expand();
+
+    return PopScope(
+      onPopInvokedWithResult: _onPopped,
+      child: DrawSheetScreen(
+        controller: controller,
+        onControllerChanged: _onControllerSwapped,
+        padSide: _progress.activeProfile.padSide,
+      ),
+    );
   }
 }

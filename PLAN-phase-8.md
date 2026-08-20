@@ -1,6 +1,6 @@
 # Phase 8 — the drawing board
 
-**PR 3 of 7 landed; the rest is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
+**PR 4 of 7 landed; the rest is not started.** [`PLAN.md`](PLAN.md) is the source of truth for scope and phase order; §7 there
 carries this phase's entry and its done-criterion, and §2, §5.2, §5.3, §6 and §8 carry the parts of
 this design that the rest of the app has to agree with. Written ahead of its turn for the reason
 `PLAN.md` §10 gives: the choice of photo-library dependency is settled by resolving a graph, and the
@@ -268,11 +268,10 @@ picture, and 50 strokes of history is what would make the file large for a case 
 
 ### 4.5 Storage
 
-`drawings/<profileId>/<drawingId>.json` for the strokes, `<drawingId>.thumb.png` at 320 x 240 for the
-gallery grid, `<drawingId>.bg.png` for a backdrop. All three under the app support directory
-`path_provider` already resolves for `save.json`, written through the same tmp-then-rename helper
-`FileSaveStore` uses (`core/storage/save_store.dart`), for the same reason: a tablet that dies
-mid-write costs the last stroke, not the picture.
+`drawings/<profileId>/<drawingId>.json` for the strokes, `<drawingId>.bg.png` for a backdrop (PR 6).
+Both under the app support directory `path_provider` already resolves for `save.json`, written through
+the same tmp-then-rename helper `FileSaveStore` uses (`core/storage/save_store.dart`), for the same
+reason: a tablet that dies mid-write costs the last stroke, not the picture.
 
 Why not in `save.json`: `PLAN.md` §5.2's few-kilobyte target, and blast radius — a corrupt drawing
 file loses one picture and is moved aside the way `save.corrupt.json` is, whereas the same bytes
@@ -280,16 +279,25 @@ inside `save.json` would lose the profile. The gallery lists what it can decode 
 the rest; `AGENTS.md`'s rule is that a child never sees an internal error, and a missing picture in a
 grid is self-explanatory in a way an error card is not.
 
+**No `<drawingId>.thumb.png`, taken the other way from what this section first specified.** PR 4's
+gallery grid renders each tile straight from the strokes, through the same `DrawingPainter` the sheet
+itself paints with, scaled to the tile — a drawing has at most a few hundred strokes, which
+`drawing_painter_test.dart` already shows painting inside a frame budget, so caching would trade a PNG
+encode and a second file on disk for a cost the grid already pays each time it is built. Worth
+revisiting once PR 7's device pass has a gallery large enough to measure the difference.
+
 Autosave is `PLAN.md` §5.3's rule unchanged: debounced 500 ms after a stroke ends, and again on the
-app leaving the foreground and on the screen being popped. The thumbnail is regenerated on the same
-schedule, not per stroke.
+app leaving the foreground and on the screen being popped.
 
 `save.json` carries `draw.drawingCount`, `draw.lastDrawingId` and `draw.bytesUsed` per profile
-(`PLAN.md` §5.2). The 64 MB budget is checked against `bytesUsed` before a write, so the check costs
-no directory walk on a device where that walk is slow. Over budget: the gallery shows the drawer as
-full and the child picks something to delete. `bytesUsed` is recomputed by a directory walk exactly
-once — when a profile's folder is first opened after an upgrade — so a number that has drifted from
-the files heals instead of being trusted forever.
+(`PLAN.md` §5.2), all three written by PR 4. **`bytesUsed` is recomputed by
+`DrawingRepository.profileBytes` — a directory walk over `File.lengthSync`, stat calls rather than
+content reads — after every save and delete, not tracked as a running total and healed once**, taken
+the other way from what this section first specified: a number that is recomputed from what is
+actually on disk cannot drift, so there is nothing for a healing step to fix, and a profile's drawing
+count is small enough that the walk costs nothing an autosave needs to avoid. The 64 MB budget itself
+and the gallery's "drawer is full" state are not wired up yet — `bytesUsed` is correct and available,
+but nothing reads it against the cap until a PR asks a child to do something about being over it.
 
 ### 4.6 Export and import
 

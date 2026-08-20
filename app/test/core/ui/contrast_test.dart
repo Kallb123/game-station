@@ -95,13 +95,14 @@ void main() {
     final brightnessLabel = brightness == Brightness.dark ? 'night' : 'day';
 
     // Every seed this brightness actually colours a screen with: the app
-    // theme's own brand seed plus the three role seeds `roleScheme` derives
+    // theme's own brand seed plus the four role seeds `roleScheme` derives
     // from, and every avatar swatch a profile or its picker can be themed
     // with (`profile_screen.dart`'s `_AvatarTheme`).
     final seeds = <String, Color>{
       'brand': palette.brand,
       'sudoku': palette.sudoku,
       'arcade': palette.arcade,
+      'draw': palette.draw,
       'notice': palette.notice,
       for (var i = 0; i < palette.avatarSwatches.length; i++)
         'avatar $i': palette.avatarSwatches[i],

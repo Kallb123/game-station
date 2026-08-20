@@ -6,6 +6,8 @@
 // encoded text: a widget test therefore exercises the real codec and the real
 // repository, and only the filesystem is missing.
 
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +18,8 @@ import 'package:zibo_games/core/haptics.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/draw/data/drawing_repository.dart';
+import 'package:zibo_games/features/draw/data/providers.dart';
 
 /// A fixed clock, so nothing in a test depends on the day it runs.
 DateTime testClock() => DateTime.utc(2026, 8, 12, 9);
@@ -70,4 +74,44 @@ Future<ProviderContainer> pumpApp(
   await tester.pumpWidget(root);
   await tester.pumpAndSettle();
   return root.container;
+}
+
+/// A `drawingRepositoryProvider` override for a test that reaches the draw
+/// feature, over a fresh temp directory it deletes when the test ends.
+///
+/// [DrawingRepository] is `dart:io`-only, unlike [SaveStore]'s
+/// [MemorySaveStore] — a test that opens the gallery or the sheet has to
+/// give it a real, if throwaway, directory, the same reasoning `main()`
+/// gives for the fallback in its own doc comment.
+Override drawTempRepositoryOverride() {
+  final directory = Directory.systemTemp.createTempSync('zibo_games_draw_test');
+  addTearDown(() {
+    if (directory.existsSync()) directory.deleteSync(recursive: true);
+  });
+  return drawingRepositoryProvider.overrideWithValue(
+    DrawingRepository(directory),
+  );
+}
+
+/// Settles the fake frame clock, then gives any real `dart:io` work — a
+/// drawing load, save or delete — a real slice of wall-clock time and drains
+/// it back in.
+///
+/// A widget test's fake clock advances `Timer`s synchronously without
+/// letting the real event loop run, so firing a debounced autosave starts
+/// the real file write but does not wait for it: `tester.runAsync` is what
+/// actually gives it time to run for real, and the `tester.pump()` after it
+/// drains whatever of that completed back into the fake zone. One round is
+/// not always enough for a multi-step write (`writeFileAtomically` opens,
+/// writes, flushes, closes and renames), so this loops a few times rather
+/// than once — every widget test that reaches the draw feature's disk needs
+/// this in place of a bare `pumpAndSettle`.
+Future<void> settleDrawIO(WidgetTester tester) async {
+  await tester.pumpAndSettle();
+  for (var i = 0; i < 20; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 25)),
+    );
+    await tester.pump();
+  }
 }

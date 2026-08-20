@@ -138,6 +138,7 @@ final class AppPalette {
     required this.brand,
     required this.sudoku,
     required this.arcade,
+    required this.draw,
     required this.notice,
     required this.avatarSwatches,
   });
@@ -148,8 +149,11 @@ final class AppPalette {
   /// The Sudoku half of the home screen.
   final Color sudoku;
 
-  /// The arcade half of the home screen.
+  /// The arcade third of the home screen.
   final Color arcade;
+
+  /// The draw third of the home screen, from phase 8.
+  final Color draw;
 
   /// Messages the player is told once and dismisses — the recovered-save
   /// banner in particular. Warm rather than red: nothing here is an error the
@@ -173,6 +177,7 @@ final class AppPalette {
     brand: Color(0xFF3F6FD8),
     sudoku: Color(0xFF2E7D6B),
     arcade: Color(0xFF8E3FBF),
+    draw: Color(0xFFC2410C),
     notice: Color(0xFFB4690E),
     avatarSwatches: <Color>[
       Color(0xFFD24B2E),
@@ -192,6 +197,7 @@ final class AppPalette {
     brand: Color(0xFF7FA0E8),
     sudoku: Color(0xFF67C0AC),
     arcade: Color(0xFFC08FE0),
+    draw: Color(0xFFE8955F),
     notice: Color(0xFFE0A85C),
     avatarSwatches: <Color>[
       Color(0xFFE8907B),

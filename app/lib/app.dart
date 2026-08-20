@@ -10,6 +10,8 @@ import 'core/storage/save_data.dart';
 import 'core/ui/theme.dart';
 import 'features/arcade/arcade_menu_screen.dart';
 import 'features/arcade/invaders/invaders_screen.dart';
+import 'features/draw/ui/draw_gallery_screen.dart';
+import 'features/draw/ui/draw_sheet_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profiles/profile_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -199,6 +201,8 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.sudokuPlay => _playScreen(settings.arguments),
   AppRoutes.arcade => (context) => const ArcadeMenuScreen(),
   AppRoutes.arcadeInvaders => (context) => const InvadersScreen(),
+  AppRoutes.draw => (context) => const DrawGalleryScreen(),
+  AppRoutes.drawSheet => _drawSheetScreen(settings.arguments),
   _ => null,
 };
 
@@ -210,3 +214,14 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
 WidgetBuilder? _playScreen(Object? arguments) => arguments is SudokuPlayArgs
     ? (context) => SudokuPlayScreen(args: arguments)
     : null;
+
+/// The draw sheet for [arguments], defaulting to a blank sheet when the route
+/// is pushed with no arguments at all — unlike [SudokuPlayArgs], a
+/// [DrawSheetArgs] names an optional field, so pushing the route bare is a
+/// valid way to reach it, not a typo the assert in [_generateRoute] should
+/// catch. Only a value of the wrong *type* is.
+WidgetBuilder? _drawSheetScreen(Object? arguments) => switch (arguments) {
+  null => (context) => const DrawSheetRoute(args: DrawSheetArgs()),
+  final DrawSheetArgs args => (context) => DrawSheetRoute(args: args),
+  _ => null,
+};
