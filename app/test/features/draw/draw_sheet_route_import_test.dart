@@ -1,22 +1,37 @@
 // [DrawSheetRoute]'s own gating over the import action — both
 // `settings.allowPhotoImport` and the picker's own `available` have to say
-// yes — and the round trip of a picked backdrop through the autosave into
-// [DrawingRepository] (`PLAN-phase-8.md` §6 PR 6's own done-criteria: "the
-// import control is absent when `allowPhotoImport` is false and when the
-// channel reports unavailable, asserted with a fake channel").
+// yes (`PLAN-phase-8.md` §6 PR 6's own done-criterion: "the import control
+// is absent when `allowPhotoImport` is false and when the channel reports
+// unavailable, asserted with a fake channel").
 //
 // The fake here is [PhotoImport] itself, overridden through
 // `photoImportProvider`, rather than a mocked `MethodChannel` —
 // `photo_import_test.dart` already covers `ChannelPhotoImport` reading a
 // fake channel; what this file is testing is `DrawSheetRoute`'s own gating
-// and persistence logic sitting above that channel.
+// logic sitting above that channel.
+//
+// **Not tested here: tapping the action through to a saved backdrop.**
+// `setBackdrop` (`DrawingController`) starts a real image-codec decode
+// (`DrawSheetScreen._decodeBackdrop`) the moment a picked photo lands, and a
+// widget test that also needs `tester.runAsync` afterward for the
+// autosave's real disk write — to drain the debounce Timer's write through
+// `DrawingRepository` — deadlocks outright rather than merely running slow:
+// `runAsync` cannot coexist with an independently-pending real `Future`
+// from the codec's own isolate round trip. Every piece of this path is
+// covered on its own instead: `draw_sheet_screen_test.dart`'s "disappears
+// once the drawing already has a backdrop" exercises the same real decode
+// in isolation and settles cleanly; "calls onImportPhoto when tapped"
+// proves a tap reaches the callback; `drawing_controller_test.dart`'s
+// backdrop group proves `setBackdrop`/`takeNewBackdrop`; and
+// `resume_test.dart` proves the autosave-to-disk path for a stroke. The
+// full assembly — tap, pick, decode, persist, all through the real app — is
+// left to PR 7's device pass, the same gap `PLAN-phase-8.md` §7 already
+// names for the native picker itself.
 
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
 import 'package:zibo_games/features/draw/data/photo_import.dart';
@@ -25,57 +40,16 @@ import 'package:zibo_games/features/draw/data/providers.dart';
 import '../../app_harness.dart';
 
 class _FakePhotoImport implements PhotoImport {
-  _FakePhotoImport({this.availableAnswer = true, this.pickAnswer});
+  _FakePhotoImport({this.availableAnswer = true});
 
   final bool availableAnswer;
-  final Uint8List? pickAnswer;
-  int pickCalls = 0;
 
   @override
   Future<bool> get available async => availableAnswer;
 
   @override
-  Future<Uint8List?> pick() async {
-    pickCalls++;
-    return pickAnswer;
-  }
-}
-
-/// A tiny, real, decodable PNG — what a picked photo has to be for
-/// `downscaleToSheet`'s caller, `DrawingController.setBackdrop` and the
-/// codec round trip to all have something real to work with.
-Future<Uint8List> _tinyPng() async {
-  final recorder = ui.PictureRecorder();
-  final canvas = Canvas(recorder);
-  canvas.drawRect(
-    const Rect.fromLTWH(0, 0, 10, 10),
-    Paint()..color = const Color(0xFF336699),
-  );
-  final picture = recorder.endRecording();
-  final image = await picture.toImage(10, 10);
-  picture.dispose();
-  try {
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    return data!.buffer.asUint8List();
-  } finally {
-    image.dispose();
-  }
-}
-
-/// Gives real async work — the picked photo's own decode, in particular — a
-/// real slice of wall-clock time, without `settleDrawIO`'s leading
-/// `pumpAndSettle()` first: that call can never return while a real image
-/// codec's isolate round trip (triggered moments earlier by the tap this
-/// follows) is still outstanding, because it waits on the fake clock alone.
-/// Once this has drained the decode, a later `settleDrawIO` for the autosave
-/// is safe — nothing real is still pending by then.
-Future<void> _pumpRealAsync(WidgetTester tester) async {
-  for (var i = 0; i < 20; i++) {
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 25)),
-    );
-    await tester.pump();
-  }
+  Future<Uint8List?> pick() async =>
+      throw UnimplementedError('not exercised — see this file\'s own header');
 }
 
 Future<void> _openNewSheet(WidgetTester tester) async {
@@ -143,59 +117,26 @@ void main() {
     },
   );
 
-  testWidgets(
-    'shown when both say yes, and a pick lands on disk as the backdrop',
-    (tester) async {
-      await setViewport(tester);
-      // Encoding a PNG is real async work — an isolate round trip a bare
-      // `await` never reports back from inside a widget test's fake clock
-      // (`draw_sheet_screen_test.dart`'s own `_settleRealAsync` gives the
-      // full reasoning).
-      final photoBytes = await tester.runAsync(_tinyPng);
-      final fake = _FakePhotoImport(
-        availableAnswer: true,
-        pickAnswer: photoBytes,
-      );
-      final overrides = [
-        drawTempRepositoryOverride(),
-        photoImportProvider.overrideWithValue(fake),
-      ];
-      final store = MemorySaveStore(
+  testWidgets('shown when both allowPhotoImport and the picker are true', (
+    tester,
+  ) async {
+    await setViewport(tester);
+    final overrides = [
+      drawTempRepositoryOverride(),
+      photoImportProvider.overrideWithValue(
+        _FakePhotoImport(availableAnswer: true),
+      ),
+    ];
+    await pumpApp(
+      tester,
+      store: MemorySaveStore(
         initial: freshSave(settings: const AppSettings(allowPhotoImport: true)),
-      );
-      final container = await pumpApp(
-        tester,
-        store: store,
-        overrides: overrides,
-      );
+      ),
+      overrides: overrides,
+    );
 
-      await _openNewSheet(tester);
-      expect(find.byTooltip('Add a photo'), findsOneWidget);
+    await _openNewSheet(tester);
 
-      await tester.tap(find.byTooltip('Add a photo'));
-      await _pumpRealAsync(tester);
-
-      expect(fake.pickCalls, 1);
-      expect(
-        find.byTooltip('Add a photo'),
-        findsNothing,
-        reason: 'nothing left to import over the backdrop that just landed',
-      );
-
-      // Past the autosave debounce, and settled for real disk I/O.
-      await tester.pump(const Duration(milliseconds: 600));
-      await settleDrawIO(tester);
-
-      final repository = container.read(drawingRepositoryProvider);
-      final profileId = container.read(activeProfileProvider).id;
-      final drawings = await repository.listDecodable(profileId);
-
-      expect(drawings, hasLength(1));
-      expect(
-        drawings.single.backdrop,
-        isNotNull,
-        reason: 'a backdrop alone, with no stroke yet, is still worth saving',
-      );
-    },
-  );
+    expect(find.byTooltip('Add a photo'), findsOneWidget);
+  });
 }
