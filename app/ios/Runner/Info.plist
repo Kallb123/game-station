@@ -26,6 +26,16 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Required by package:gal for GalGalleryExport.savePng (PLAN-phase-8.md
+	     §3.2, §4.6): an export writes to Photos, never reads from it, so this
+	     is the add-only string. No album is used, so no NSPhotoLibraryUsageDescription
+	     dialog on modern iOS — but the app's iOS floor is 13 (PLAN.md §1), and
+	     gal's own setup docs call that key required below 14, so it stays
+	     alongside the add-only one rather than being left out. -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save your drawings to Photos when you choose to export one.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Save your drawings to Photos when you choose to export one.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

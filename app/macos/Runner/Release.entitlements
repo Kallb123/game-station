@@ -4,5 +4,10 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- FolderGalleryExport (features/draw/data/gallery_export.dart) writes an
+	     exported drawing under Downloads; the sandbox blocks that write
+	     without this entitlement (PLAN-phase-8.md §4.6). -->
+	<key>com.apple.security.files.downloads.read-write</key>
+	<true/>
 </dict>
 </plist>

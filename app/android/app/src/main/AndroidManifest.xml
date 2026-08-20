@@ -5,6 +5,14 @@
          microphone, and tool/check_apk_permissions.sh fails the release build
          if this line stops removing it. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <!-- Needed only on API 26-28 for a MediaStore write; from API 29 a plain
+         insert into Pictures needs no permission at all, so maxSdkVersion
+         keeps it off the request on every device that does not need it.
+         28, not the 29 gal's own example declares: that example also saves
+         to a named album, which is what needs 29 — this app saves with no
+         album (PLAN-phase-8.md §3.2). -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="28" />
     <application
         android:label="Zibo Games"
         android:name="${applicationName}"
