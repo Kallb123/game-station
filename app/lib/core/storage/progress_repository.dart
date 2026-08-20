@@ -422,6 +422,61 @@ class ProgressRepository extends ChangeNotifier {
     return [...otherMode, ...sameMode.take(arcadeHighScoreCap)];
   }
 
+  // --- drawing -------------------------------------------------------------
+
+  /// The id a new drawing on the active profile would take.
+  ///
+  /// `drawingCount` counts every drawing this profile has ever made,
+  /// including ones since deleted, so an id is never reused
+  /// (`DrawProgress.drawingCount`, `PLAN.md` §5.2) — a pure read, so a screen
+  /// can show or use the id before anything is written to disk.
+  String nextDrawingId() => 'd${activeProfile.draw.drawingCount + 1}';
+
+  /// Records [drawingId] as having just been written to disk: it becomes
+  /// `lastDrawingId`, and `bytesUsed` is set to [totalBytes] — the active
+  /// profile's whole drawing folder, from `DrawingRepository.profileBytes`,
+  /// not a delta this repository would otherwise have to track itself.
+  ///
+  /// [isNew] bumps `drawingCount`; a drawing autosaved again after its first
+  /// write does not, because a growing picture is not a new one.
+  void recordDrawingSaved({
+    required String drawingId,
+    required bool isNew,
+    required int totalBytes,
+  }) => _updateActiveDraw(
+    (draw) => DrawProgress(
+      drawingCount: isNew ? draw.drawingCount + 1 : draw.drawingCount,
+      lastDrawingId: drawingId,
+      bytesUsed: totalBytes,
+    ),
+  );
+
+  /// Records [drawingId] as having just been deleted from disk: `bytesUsed`
+  /// is set to [totalBytes] (see [recordDrawingSaved]), and `lastDrawingId`
+  /// is cleared if it named [drawingId] — reopening the Draw card should
+  /// offer a fresh sheet, not the id of a picture that is gone.
+  ///
+  /// `drawingCount` is untouched: it counts drawings ever made, not drawings
+  /// that still exist (`DrawProgress.drawingCount`).
+  void recordDrawingDeleted({
+    required String drawingId,
+    required int totalBytes,
+  }) => _updateActiveDraw(
+    (draw) => DrawProgress(
+      drawingCount: draw.drawingCount,
+      lastDrawingId: draw.lastDrawingId == drawingId
+          ? null
+          : draw.lastDrawingId,
+      bytesUsed: totalBytes,
+    ),
+  );
+
+  void _updateActiveDraw(DrawProgress Function(DrawProgress) update) =>
+      _replaceProfile(
+        _data.activeProfileId,
+        (profile) => profile.copyWith(draw: update(profile.draw)),
+      );
+
   // --- writing ---------------------------------------------------------------
 
   /// Writes everything outstanding and waits for it to land.

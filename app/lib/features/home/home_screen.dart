@@ -18,6 +18,9 @@ const IconData homeSudokuIcon = Icons.grid_on;
 /// The glyph for the arcade.
 const IconData homeArcadeIcon = Icons.sports_esports;
 
+/// The glyph for Draw, from phase 8.
+const IconData homeDrawIcon = Icons.brush;
+
 /// What the player is told when their save could not be read.
 ///
 /// One sentence, no file path, no version number, nothing the child did wrong
@@ -26,12 +29,12 @@ const IconData homeArcadeIcon = Icons.sports_esports;
 const String saveNoticeText =
     'We couldn’t find your old games, so we started fresh.';
 
-/// The first screen: two things to play, who is playing, and a way to the
+/// The first screen: what there is to do, who is playing, and a way to the
 /// settings.
 ///
-/// Two cards and nothing else on purpose. The child who opens this app is
-/// choosing between Sudoku and the arcade; anything else on the screen is
-/// something to read before they can play.
+/// Three cards and nothing else on purpose. The child who opens this app is
+/// choosing between Sudoku, the arcade and drawing; anything else on the
+/// screen is something to read before they can play.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -94,10 +97,10 @@ class HomeScreen extends ConsumerWidget {
 }
 
 /// Which palette role a card takes its colour from.
-enum _Role { sudoku, arcade }
+enum _Role { sudoku, arcade, draw }
 
-/// The two cards, stacked full-width — unchanged from before this screen knew
-/// about orientation.
+/// The three cards, stacked full-width — unchanged from before this screen
+/// knew about orientation, aside from the third card phase 8 adds.
 class _PortraitCards extends StatelessWidget {
   const _PortraitCards();
 
@@ -123,6 +126,15 @@ class _PortraitCards extends StatelessWidget {
             role: _Role.arcade,
           ),
         ),
+        SizedBox(height: AppSpacing.lg),
+        Expanded(
+          child: _GameCard(
+            icon: homeDrawIcon,
+            label: 'Draw',
+            route: AppRoutes.draw,
+            role: _Role.draw,
+          ),
+        ),
       ],
     );
   }
@@ -133,7 +145,7 @@ class _PortraitCards extends StatelessWidget {
 /// far more than a button wants to stretch across (`PLAN-phase-5.md` §4.8).
 const double _landscapeCardHeight = 200;
 
-/// The two cards, side by side, each letterboxed to [_landscapeCardHeight]
+/// The three cards, side by side, each letterboxed to [_landscapeCardHeight]
 /// rather than stretched to whatever height a landscape window happens to
 /// leave: unlike a phone in portrait, a phone or tablet in landscape can have
 /// height to spare, and a full-bleed button stretched across all of it reads
@@ -172,6 +184,15 @@ class _LandscapeCards extends StatelessWidget {
             label: 'Arcade',
             route: AppRoutes.arcade,
             role: _Role.arcade,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.lg),
+        cell(
+          const _GameCard(
+            icon: homeDrawIcon,
+            label: 'Draw',
+            route: AppRoutes.draw,
+            role: _Role.draw,
           ),
         ),
       ],
@@ -264,6 +285,7 @@ class _GameCard extends StatelessWidget {
     final seed = switch (role) {
       _Role.sudoku => palette.sudoku,
       _Role.arcade => palette.arcade,
+      _Role.draw => palette.draw,
     };
 
     return Theme(

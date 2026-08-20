@@ -30,4 +30,12 @@ abstract final class AppRoutes {
   /// options a run starts with come from the profile, so there is no second
   /// copy to disagree with the stored one (`PLAN-phase-4.md` §4.10).
   static const String arcadeInvaders = '/arcade/invaders';
+
+  /// The drawing gallery, from phase 8.
+  static const String draw = '/draw';
+
+  /// One sheet, being drawn on. Pushed with a `DrawSheetArgs`, which names
+  /// which drawing to resume — or none, for a blank sheet
+  /// (`PLAN-phase-8.md` §6, PR 4).
+  static const String drawSheet = '/draw/sheet';
 }

@@ -1,6 +1,6 @@
 // The home screen's own rules: the size floors it inherits, that it survives a
-// large text scale on a small phone, and that the two cards are told apart by
-// more than their colour.
+// large text scale on a small phone, and that the three cards are told apart
+// by more than their colour.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,7 +26,7 @@ void main() {
   testWidgets('every control clears the tap-target floor', (tester) async {
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
-    for (final card in const ['Sudoku', 'Arcade']) {
+    for (final card in const ['Sudoku', 'Arcade', 'Draw']) {
       expect(
         tester
             .getSize(
@@ -64,25 +64,31 @@ void main() {
 
     expect(find.text('Sudoku'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
+    expect(find.text('Draw'), findsOneWidget);
     expect(find.text('Playing as Player 1'), findsOneWidget);
   });
 
-  testWidgets('the two cards differ by icon as well as by colour', (
+  testWidgets('the three cards differ by icon as well as by colour', (
     tester,
   ) async {
     // Colour never carries information on its own (`tokens.dart`), so a player
-    // who cannot tell the two colours apart still has a glyph and a word.
+    // who cannot tell the colours apart still has a glyph and a word.
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
     expect(find.byIcon(homeSudokuIcon), findsOneWidget);
     expect(find.byIcon(homeArcadeIcon), findsOneWidget);
-    expect(homeSudokuIcon, isNot(homeArcadeIcon));
+    expect(find.byIcon(homeDrawIcon), findsOneWidget);
+    expect(
+      {homeSudokuIcon, homeArcadeIcon, homeDrawIcon},
+      hasLength(3),
+      reason: 'all three icons differ',
+    );
 
     final palette = AppPalette.of(Brightness.light);
-    expect(
-      AppTheme.roleScheme(palette.sudoku, Brightness.light).primary,
-      isNot(AppTheme.roleScheme(palette.arcade, Brightness.light).primary),
-    );
+    final roles = [palette.sudoku, palette.arcade, palette.draw]
+        .map((seed) => AppTheme.roleScheme(seed, Brightness.light).primary)
+        .toSet();
+    expect(roles, hasLength(3), reason: 'all three roles differ');
   });
 
   testWidgets('the chip shows the active profile picture', (tester) async {

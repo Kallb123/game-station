@@ -744,6 +744,135 @@ void main() {
     });
   });
 
+  group('drawing', () {
+    test('nextDrawingId is one past drawingCount, and reads nothing', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      expect(repository.nextDrawingId(), 'd1');
+      expect(
+        repository.activeProfile.draw.drawingCount,
+        0,
+        reason: 'a pure read must not itself count as a drawing made',
+      );
+    });
+
+    test(
+      'recording a new drawing bumps drawingCount and sets lastDrawingId',
+      () async {
+        final repository = repositoryOver(
+          MemorySaveStore(initial: freshSave()),
+        );
+
+        repository.recordDrawingSaved(
+          drawingId: 'd1',
+          isNew: true,
+          totalBytes: 500,
+        );
+
+        final draw = repository.activeProfile.draw;
+        expect(draw.drawingCount, 1);
+        expect(draw.lastDrawingId, 'd1');
+        expect(draw.bytesUsed, 500);
+        expect(repository.nextDrawingId(), 'd2');
+      },
+    );
+
+    test(
+      'autosaving the same drawing again does not bump drawingCount twice',
+      () async {
+        final repository = repositoryOver(
+          MemorySaveStore(initial: freshSave()),
+        );
+
+        repository.recordDrawingSaved(
+          drawingId: 'd1',
+          isNew: true,
+          totalBytes: 100,
+        );
+        repository.recordDrawingSaved(
+          drawingId: 'd1',
+          isNew: false,
+          totalBytes: 340,
+        );
+
+        final draw = repository.activeProfile.draw;
+        expect(draw.drawingCount, 1);
+        expect(draw.bytesUsed, 340, reason: 'the growing picture, not the sum');
+      },
+    );
+
+    test('deleting the last-opened drawing clears lastDrawingId', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      repository.recordDrawingSaved(
+        drawingId: 'd1',
+        isNew: true,
+        totalBytes: 500,
+      );
+
+      repository.recordDrawingDeleted(drawingId: 'd1', totalBytes: 0);
+
+      final draw = repository.activeProfile.draw;
+      expect(draw.lastDrawingId, isNull);
+      expect(draw.bytesUsed, 0);
+      expect(
+        draw.drawingCount,
+        1,
+        reason: 'a deleted drawing still counts toward ids never repeating',
+      );
+    });
+
+    test('deleting a drawing that was not the last-opened one leaves '
+        'lastDrawingId alone', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      repository.recordDrawingSaved(
+        drawingId: 'd1',
+        isNew: true,
+        totalBytes: 100,
+      );
+      repository.recordDrawingSaved(
+        drawingId: 'd2',
+        isNew: true,
+        totalBytes: 200,
+      );
+
+      repository.recordDrawingDeleted(drawingId: 'd1', totalBytes: 200);
+
+      expect(repository.activeProfile.draw.lastDrawingId, 'd2');
+    });
+
+    test('drawing history belongs to the profile, not the device', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      repository.createProfile(name: 'Bo', avatar: AvatarId.owl);
+      repository.recordDrawingSaved(
+        drawingId: 'd1',
+        isNew: true,
+        totalBytes: 500,
+      );
+
+      expect(
+        repository.profiles.firstWhere((p) => p.id == 'p1').draw.drawingCount,
+        0,
+        reason: 'the drawing belongs to Bo, the profile that made it',
+      );
+    });
+
+    test('a burst of drawing mutations costs one write', () async {
+      final store = MemorySaveStore(initial: freshSave());
+      final repository = repositoryOver(store);
+
+      for (var i = 0; i < 5; i++) {
+        repository.recordDrawingSaved(
+          drawingId: 'd1',
+          isNew: i == 0,
+          totalBytes: i * 10,
+        );
+      }
+      await repository.flush();
+
+      expect(store.writes, 1);
+    });
+  });
+
   group('fromLoad', () {
     test(
       'a stale generator version drops the cache and adopts the current one',

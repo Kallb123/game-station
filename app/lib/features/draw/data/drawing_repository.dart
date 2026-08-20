@@ -86,6 +86,30 @@ class DrawingRepository {
     }
   }
 
+  /// The bytes every one of [profileId]'s drawings takes on disk right now —
+  /// what a caller writes into `DrawProgress.bytesUsed` after a save or a
+  /// delete (`ProgressRepository.recordDrawingSaved`,
+  /// `.recordDrawingDeleted`).
+  ///
+  /// Summed from [File.lengthSync] over the profile's folder rather than
+  /// tracked as a running total: `PLAN-phase-8.md` §4.5 keeps a running total
+  /// and heals it with an occasional directory walk, but a stat call per file
+  /// is cheap enough that this repository walks on every mutation instead —
+  /// simpler, and a number that can never drift from what is actually stored
+  /// needs no healing step to begin with. A profile with the phase's own 64
+  /// MB budget's worth of drawings is at most a few hundred files, so the
+  /// walk costs a few hundred stat syscalls, not a content read.
+  int profileBytes(String profileId) {
+    final dir = _profileDir(profileId);
+    if (!dir.existsSync()) return 0;
+
+    var total = 0;
+    for (final entity in dir.listSync()) {
+      if (entity is File) total += entity.lengthSync();
+    }
+    return total;
+  }
+
   /// Every drawing of [profileId] that decodes cleanly, in no particular
   /// order — a caller sorts by [Drawing.createdAt] or by id, rather than
   /// trusting the order a filesystem happens to list entries in.

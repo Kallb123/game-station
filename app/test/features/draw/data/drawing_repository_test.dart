@@ -141,4 +141,50 @@ void main() {
       utf8.encode(encodeDrawing(drawing)).length,
     );
   });
+
+  group('profileBytes', () {
+    test('zero for a profile with no drawings folder at all', () {
+      expect(repository.profileBytes('p1'), 0);
+    });
+
+    test(
+      "sums every file actually on disk, not the codec's own estimate",
+      () async {
+        await repository.save('p1', _drawing('d1'));
+        await repository.save('p1', _drawing('d2'));
+
+        final dir = Directory('${root.path}/drawings/p1');
+        final onDisk = dir
+            .listSync()
+            .whereType<File>()
+            .map((file) => file.lengthSync())
+            .fold(0, (total, length) => total + length);
+
+        expect(repository.profileBytes('p1'), onDisk);
+        expect(onDisk, greaterThan(0));
+      },
+    );
+
+    test('drops to what remains after a delete', () async {
+      await repository.save('p1', _drawing('d1'));
+      await repository.save('p1', _drawing('d2'));
+      final withBoth = repository.profileBytes('p1');
+
+      await repository.delete('p1', 'd1');
+
+      expect(repository.profileBytes('p1'), lessThan(withBoth));
+      expect(repository.profileBytes('p1'), greaterThan(0));
+    });
+
+    test('two profiles are counted separately', () async {
+      await repository.save('p1', _drawing('d1'));
+      await repository.save('p2', _drawing('d1'));
+      await repository.save('p2', _drawing('d2'));
+
+      expect(
+        repository.profileBytes('p2'),
+        greaterThan(repository.profileBytes('p1')),
+      );
+    });
+  });
 }

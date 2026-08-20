@@ -21,6 +21,25 @@ void main() {
     expect(find.text('Zibo Games'), findsOneWidget);
     expect(find.text('Sudoku'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
+    expect(find.text('Draw'), findsOneWidget);
+  });
+
+  testWidgets('Draw opens its screen and comes back', (tester) async {
+    await pumpApp(
+      tester,
+      store: MemorySaveStore(initial: freshSave()),
+      overrides: [drawTempRepositoryOverride()],
+    );
+
+    await tester.tap(find.text('Draw'));
+    await settleDrawIO(tester);
+    expect(find.bySemanticsLabel('New sheet'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sudoku'), findsOneWidget);
+    expect(find.text('Draw'), findsOneWidget);
+    expect(find.bySemanticsLabel('New sheet'), findsNothing);
   });
 
   // Every card leads somewhere, and every somewhere leads back. A card that
