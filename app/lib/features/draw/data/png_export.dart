@@ -13,13 +13,11 @@
 // resumed or freshly imported backdrop with, so the export cannot show a
 // photo scaled or placed differently from how the sheet already showed it.
 //
-// Strokes are painted inside a `saveLayer`, not directly onto the paper rect.
-// `drawing_painter.dart`'s own canvas gets away with a flat, unlayered paint
-// order — an eraser's `BlendMode.clear` clears straight to transparent, and
-// what shows through is whatever real widget sits behind the `CustomPaint`,
-// which happens to be painted the same colour as `paperColor`. Nothing sits
-// behind a `PictureRecorder`: without the layer, an eraser stroke would clear
-// a genuine hole in the PNG — transparent, not paper-coloured — the moment a
+// Strokes are painted inside a `saveLayer`, not directly onto the paper rect —
+// the same reason `drawing_painter.dart`'s own `paint` isolates its backdrop,
+// bake and live strokes in one: nothing sits behind a `PictureRecorder`, so
+// without the layer an eraser stroke's `BlendMode.clear` would clear a
+// genuine hole in the PNG — transparent, not paper-coloured — the moment a
 // drawing used it. Inside the layer, `clear` only ever erases ink this same
 // export already painted; restoring the layer composites it back over the
 // paper rect underneath with a normal blend, so a transparent stroke pixel

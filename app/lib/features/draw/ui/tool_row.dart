@@ -339,10 +339,49 @@ class _EraserButton extends StatelessWidget {
               color: selected ? colors.primary : colors.outlineVariant,
             ),
           ),
-          child: Icon(
-            Icons.backspace_outlined,
+          child: _EraserGlyph(
             size: selected ? AppIconSizes.large : AppIconSizes.standard,
             color: colors.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A rubber eraser, drawn rather than pulled from [Icons]: a rounded block
+/// with a divider near one end — the two-tone rubber every eraser icon
+/// (Material Symbols' own `ink_eraser` among them) uses to read as a drawing
+/// tool, not [Icons.backspace_outlined]'s keyboard key.
+class _EraserGlyph extends StatelessWidget {
+  const _EraserGlyph({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final strokeWidth = size / 10;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Center(
+        child: Transform.rotate(
+          angle: -0.5,
+          child: SizedBox(
+            width: size * 0.9,
+            height: size * 0.58,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: color, width: strokeWidth),
+                borderRadius: BorderRadius.circular(size / 6),
+              ),
+              child: Align(
+                alignment: const Alignment(0.35, 0),
+                child: Container(width: strokeWidth, color: color),
+              ),
+            ),
           ),
         ),
       ),
