@@ -4,6 +4,7 @@
 // feels directly: a button under it is a button they miss.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 import 'package:zibo_games/core/ui/theme.dart';
@@ -135,13 +136,14 @@ void main() {
     );
 
     testWidgets(
-      'a greyed-out digit fades its own text past Material\'s default '
-      'disabled opacity',
+      'a greyed-out digit fades its own rendered text, not just its fill',
       (tester) async {
-        // Material's own disabled foreground (`onSurface` at 38%) is bold
-        // enough at this label's weight to still read as solid ink, so the
-        // pad fades it further (`sudoku_keypad.dart`) rather than leaning on
-        // the tonal fill alone to say "done".
+        // `headlineSmall` carries its own opaque `onSurface` colour (Material's
+        // default typography merged with the theme), so it always wins over
+        // whatever colour `FilledButton` sets for its disabled state —
+        // checking `ButtonStyle.disabledForegroundColor` here would pass even
+        // if the digit never actually faded on screen. Reading the painted
+        // `RenderParagraph` is what catches that.
         final session = SudokuSession.start(
           id: large,
           record: PuzzleRecord(
@@ -152,6 +154,14 @@ void main() {
         const digit = 5;
         await pumpKeypad(tester, session);
 
+        Color textColorOf(String label) => tester
+            .renderObject<RenderParagraph>(find.text(label))
+            .text
+            .style!
+            .color!;
+
+        final enabledColor = textColorOf('$digit');
+
         for (var index = 0; index < session.spec.digits; index++) {
           session
             ..select(index)
@@ -159,13 +169,9 @@ void main() {
         }
         await tester.pump();
 
-        final button = tester.widget<FilledButton>(
-          find.widgetWithText(FilledButton, '$digit'),
-        );
-        final disabledColor = button.style!.foregroundColor!.resolve(
-          <WidgetState>{WidgetState.disabled},
-        )!;
+        final disabledColor = textColorOf('$digit');
 
+        expect(disabledColor.a, lessThan(enabledColor.a));
         expect(disabledColor.a, lessThan(0.38));
       },
     );
