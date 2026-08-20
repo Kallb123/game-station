@@ -122,6 +122,13 @@ class _DigitButton extends StatelessWidget {
       // nothing to pad away from.
       padding: EdgeInsets.zero,
       minimumSize: const Size(AppTapTargets.min, AppTapTargets.min),
+      // Material's default disabled digit is `onSurface` at 38% opacity — bold
+      // enough at this label's weight that a completed digit still reads as
+      // dark ink, not as "done". Faded further so the number itself, not just
+      // the tonal fill behind it, is what tells a child the digit is used up.
+      disabledForegroundColor: Theme.of(
+        context,
+      ).colorScheme.onSurface.withValues(alpha: 0.26),
     ),
     child: Text('$digit', style: Theme.of(context).textTheme.headlineSmall),
   );

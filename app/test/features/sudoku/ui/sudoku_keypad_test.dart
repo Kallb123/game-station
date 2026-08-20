@@ -134,6 +134,42 @@ void main() {
       },
     );
 
+    testWidgets(
+      'a greyed-out digit fades its own text past Material\'s default '
+      'disabled opacity',
+      (tester) async {
+        // Material's own disabled foreground (`onSurface` at 38%) is bold
+        // enough at this label's weight to still read as solid ink, so the
+        // pad fades it further (`sudoku_keypad.dart`) rather than leaning on
+        // the tonal fill alone to say "done".
+        final session = SudokuSession.start(
+          id: large,
+          record: PuzzleRecord(
+            clues: PuzzleRecord.emptyCell * large.spec.cells,
+            solution: fixtureRecord(large).solution,
+          ),
+        );
+        const digit = 5;
+        await pumpKeypad(tester, session);
+
+        for (var index = 0; index < session.spec.digits; index++) {
+          session
+            ..select(index)
+            ..enter(digit);
+        }
+        await tester.pump();
+
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, '$digit'),
+        );
+        final disabledColor = button.style!.foregroundColor!.resolve(
+          <WidgetState>{WidgetState.disabled},
+        )!;
+
+        expect(disabledColor.a, lessThan(0.38));
+      },
+    );
+
     testWidgets('write a pencil mark instead when pencil mode is on', (
       tester,
     ) async {
