@@ -9,7 +9,10 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/ui/theme.dart';
+import 'package:zibo_games/core/ui/tokens.dart';
 import 'package:zibo_games/features/draw/model/drawing_controller.dart';
 import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
 import 'package:zibo_games/features/draw/ui/drawing_painter.dart';
@@ -59,6 +62,11 @@ final Finder _canvasFinder = find.byWidgetPredicate(
   (widget) => widget is CustomPaint && widget.painter is DrawingPainter,
 );
 
+/// Wraps the pumped screen so [_rasterise] has a boundary to capture, and
+/// puts the capture's origin at the screen's own top left — which makes the
+/// image's pixel coordinates the same ones the finders report.
+const _screenBoundaryKey = ValueKey<String>('screen-boundary');
+
 /// Pumps [DrawSheetScreen] over [controller] at a fixed, generous viewport
 /// and returns the canvas's rect in the test's coordinate space.
 Future<Rect> _pumpAndFindCanvas(
@@ -71,7 +79,12 @@ Future<Rect> _pumpAndFindCanvas(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   await tester.pumpWidget(
-    MaterialApp(home: DrawSheetScreen(controller: controller)),
+    MaterialApp(
+      home: RepaintBoundary(
+        key: _screenBoundaryKey,
+        child: DrawSheetScreen(controller: controller),
+      ),
+    ),
   );
   await tester.pumpAndSettle();
 
@@ -79,6 +92,46 @@ Future<Rect> _pumpAndFindCanvas(
   final size = tester.getSize(_canvasFinder);
   return topLeft & size;
 }
+
+/// Rasterises the whole pumped screen, so a test can ask what a child
+/// actually sees rather than what the widget tree claims. Returns the pixels
+/// with the row width they are laid out in, which [_pixelAt] needs and only
+/// the capture itself knows.
+///
+/// Through `runAsync` for the same reason `_settleRealAsync` exists, and the
+/// same reason `matchesGoldenFile` does it: rasterising is real work off the
+/// fake clock, so a plain `await` here waits on a future the widget test's
+/// zone never completes, and the test hangs rather than fails.
+Future<(ByteData, int)> _rasterise(WidgetTester tester) async {
+  final boundary = tester.renderObject<RenderRepaintBoundary>(
+    find.byKey(_screenBoundaryKey),
+  );
+  final captured = await tester.runAsync(() async {
+    final image = await boundary.toImage();
+    try {
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      return (bytes!, image.width);
+    } finally {
+      image.dispose();
+    }
+  });
+  return captured!;
+}
+
+Color _pixelAt(ByteData rgba, int width, {required int x, required int y}) {
+  final offset = (y * width + x) * 4;
+  return Color.fromARGB(
+    rgba.getUint8(offset + 3),
+    rgba.getUint8(offset),
+    rgba.getUint8(offset + 1),
+    rgba.getUint8(offset + 2),
+  );
+}
+
+/// The paper the sheet is painted on, read off the screen's own theme rather
+/// than restated here, so this stays true if the surface colour moves.
+Color _paperColorOf(WidgetTester tester) =>
+    Theme.of(tester.element(_canvasFinder)).colorScheme.surface;
 
 void main() {
   testWidgets(
@@ -273,6 +326,55 @@ void main() {
     final borderSize = tester.getSize(borderBox);
     expect(borderTopLeft, canvas.topLeft);
     expect(borderSize, canvas.size);
+  });
+
+  testWidgets('the border is actually painted, not covered by the paper', (
+    tester,
+  ) async {
+    // A border in the tree is not a border on the screen: `DrawingPainter`
+    // fills the whole canvas with the paper colour, so a decoration painted
+    // behind it renders and is then covered over. Only the pixels answer
+    // that, which is why this test reads them rather than the widget.
+    final controller = DrawingController();
+    final canvas = await _pumpAndFindCanvas(tester, controller);
+    final (pixels, width) = await _rasterise(tester);
+
+    // The same colour the screen resolves, off the same theme, rather than a
+    // second copy of that derivation to keep in step with the first.
+    final brightness = Theme.of(tester.element(_canvasFinder)).brightness;
+    final borderColor = AppTheme.roleScheme(
+      AppPalette.of(brightness).draw,
+      brightness,
+    ).outline;
+
+    // One pixel inside each edge — inside the 2 dp band whichever side of a
+    // whole pixel the sheet's own edge lands on.
+    final y = canvas.center.dy.floor();
+    final x = canvas.center.dx.floor();
+    expect(
+      _pixelAt(pixels, width, x: (canvas.left + 1).floor(), y: y),
+      borderColor,
+      reason: 'left edge',
+    );
+    expect(
+      _pixelAt(pixels, width, x: (canvas.right - 1).floor(), y: y),
+      borderColor,
+      reason: 'right edge',
+    );
+    expect(
+      _pixelAt(pixels, width, x: x, y: (canvas.top + 1).floor()),
+      borderColor,
+      reason: 'top edge',
+    );
+    expect(
+      _pixelAt(pixels, width, x: x, y: (canvas.bottom - 1).floor()),
+      borderColor,
+      reason: 'bottom edge',
+    );
+
+    // ...and the sheet itself is still paper, so the border frames the
+    // drawing area rather than tinting it.
+    expect(_pixelAt(pixels, width, x: x, y: y), _paperColorOf(tester));
   });
 
   group('the import photo action', () {

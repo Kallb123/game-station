@@ -301,6 +301,13 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
             child: DecoratedBox(
               // Frames the sheet's extent — a blank paper-coloured canvas has
               // no other visible edge to show a child where it ends.
+              //
+              // In front of the canvas, not behind it: `DrawingPainter` fills
+              // the whole of this box with the paper colour before it paints
+              // anything else, so a background decoration is painted and then
+              // covered over — a border that exists in the tree and is
+              // invisible on the device.
+              position: DecorationPosition.foreground,
               decoration: BoxDecoration(
                 border: Border.all(
                   color: borderColor,
