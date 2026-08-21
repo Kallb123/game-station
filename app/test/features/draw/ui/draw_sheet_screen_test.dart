@@ -15,6 +15,7 @@ import 'package:zibo_games/core/storage/save_data.dart' show PadSide;
 import 'package:zibo_games/core/ui/theme.dart';
 import 'package:zibo_games/core/ui/tokens.dart';
 import 'package:zibo_games/features/draw/model/drawing_controller.dart';
+import 'package:zibo_games/features/draw/model/palette.dart';
 import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
 import 'package:zibo_games/features/draw/ui/drawing_painter.dart';
 import 'package:zibo_games/features/draw/ui/tool_row.dart';
@@ -472,6 +473,54 @@ void main() {
     });
   });
 
+  group('in portrait', () {
+    testWidgets('a short phone scrolls the band rather than taking the room '
+        'out of the sheet', (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(home: DrawSheetScreen(controller: DrawingController())),
+      );
+      await tester.pumpAndSettle();
+
+      // Eighteen colours are four rows of swatches on a 360 dp-wide window,
+      // and a 640 dp-tall one has no room for the fourth: the band is the
+      // side that gives (`_minSheetShare`), because a canvas can be squeezed
+      // and a 56 dp control cannot.
+      final band = tester.state<ScrollableState>(find.byType(Scrollable));
+      expect(band.position.maxScrollExtent, greaterThan(0));
+
+      // 160 dp is what a third of this window comes to once the header and
+      // the padding have taken theirs — measured, and well above the 108 dp
+      // the sheet is left with when the band takes what it likes.
+      expect(
+        tester.getSize(_canvasFinder).height,
+        greaterThanOrEqualTo(160),
+        reason: 'the sheet has been squeezed below its share',
+      );
+
+      // And the row the fold cuts off is still reachable: the swatch a child
+      // scrolls to is the deepest skin tone, the last in the palette.
+      await tester.drag(
+        find.byKey(ToolRow.colorKey(0)),
+        Offset(0, -band.position.maxScrollExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .getBottomLeft(
+              find.byKey(ToolRow.colorKey(DrawPalette.colors.length - 1)),
+            )
+            .dy,
+        lessThanOrEqualTo(640),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('in landscape', () {
     /// Pumps the sheet in a landscape window with its rail on [side].
     Future<void> pumpLandscape(WidgetTester tester, PadSide side) async {
@@ -503,17 +552,37 @@ void main() {
       );
     });
 
-    testWidgets('a phone-sized window still fits every control without '
-        'scrolling', (tester) async {
+    testWidgets('a phone-sized window is within one swatch row of fitting, '
+        'and every control is reachable', (tester) async {
       await pumpLandscape(tester, PadSide.right);
 
-      // Two rows of six colours are what keeps the rail inside a 400 dp-tall
-      // window; three rows of four would leave the last row to be scrolled
-      // to (`ToolRow.railWidth`).
+      // Two rows of six colours used to fit a 400 dp-tall window exactly.
+      // The six skin tones cost a third row (`palette.dart`), and the rail's
+      // scroll view — there since the panel was written, for windows shorter
+      // than this one — carries the overhang. Asserted as under one row
+      // rather than as a number: at most one row of swatches is then out of
+      // view, and never a control that is not a colour.
       final rail = tester.state<ScrollableState>(find.byType(Scrollable));
-      expect(rail.position.maxScrollExtent, 0);
       expect(
-        tester.getBottomLeft(find.byKey(ToolRow.colorKey(11))).dy,
+        rail.position.maxScrollExtent,
+        lessThan(AppTapTargets.min + AppSpacing.sm),
+        reason: 'the rail overhangs a 400 dp window by more than a row',
+      );
+
+      // Six swatches wide, so the last row is the skin tones, and scrolling
+      // to it brings the deepest of them fully into the window.
+      expect(tester.getSize(find.byType(ToolRow)).width, ToolRow.railWidth);
+      await tester.drag(
+        find.byKey(ToolRow.colorKey(0)),
+        Offset(0, -rail.position.maxScrollExtent),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .getBottomLeft(
+              find.byKey(ToolRow.colorKey(DrawPalette.colors.length - 1)),
+            )
+            .dy,
         lessThanOrEqualTo(400),
       );
       expect(tester.takeException(), isNull);

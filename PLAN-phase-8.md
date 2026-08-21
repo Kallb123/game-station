@@ -7,7 +7,8 @@ this design that the rest of the app has to agree with. Written ahead of its tur
 answer changes the phase's shape.
 
 The plan for `app/lib/features/draw`: a sheet a child draws on with a finger, four pencil sizes,
-twelve colours, an eraser, undo and redo, and a round trip to the device photo library. Where this
+eighteen colours — twelve paint-box colours and six skin tones — an eraser, undo and redo, and a
+round trip to the device photo library. Where this
 file and `PLAN.md` disagree, the reason is stated here and the closing pull request updates `PLAN.md`.
 
 The phase's real difficulty is not the canvas. It is that "save and load from the gallery" is five
@@ -38,7 +39,7 @@ allowed to take. §3 is mostly about that.
 | A phone and a tablet draw the same picture | A fixed 1600 x 1200 virtual sheet, scaled to the widget — the same rule as `PLAN.md` §4.1's 224 x 256 field. A stroke is stored in sheet coordinates, so a drawing started on a phone opens undistorted on a tablet and exports at the same size from both |
 | Undo and redo cannot cost a frame | Strokes are data (§4.1). Undo moves the last `Stroke` to the redo stack; nothing is re-rasterised. A snapshot-per-move canvas would be megabytes per undo step, which is what `PLAN.md` §3.7 already capped the Sudoku undo stack to avoid in the save |
 | A 500-stroke drawing paints inside one 60 Hz frame | Strokes below the 50-stroke undo horizon are baked into a cached `ui.Image` (§4.3), so the painter walks at most 51 strokes plus the live one however long a child draws. Asserted by a test counting the strokes the painter touches, not by watching a device — a bound nobody measures is a bound that drifts |
-| No control signals its state by colour alone | `PLAN.md` §7's phase-5 accessibility rule, arriving here already met rather than retrofitted. Selection is a 3 dp `AppBorders.selected` ring plus a size change, never a colour change. The palette itself is the exception that proves the rule: a paint box's swatches *are* colour, and no arrangement of twelve of them is safe under every deficiency — so each carries a spoken name, and a widget test asserts every swatch has a `Semantics` label. Choosing a colour is the one place in the app where a child needs to see one |
+| No control signals its state by colour alone | `PLAN.md` §7's phase-5 accessibility rule, arriving here already met rather than retrofitted. Selection is a 3 dp `AppBorders.selected` ring plus a size change, never a colour change. The palette itself is the exception that proves the rule: a paint box's swatches *are* colour, and no arrangement of eighteen of them is safe under every deficiency — so each carries a spoken name, and a widget test asserts every swatch has a `Semantics` label. Choosing a colour is the one place in the app where a child needs to see one |
 | Tap targets: 56 dp for every tool, 72 dp for undo and redo | `AppTapTargets.min` and `.primary` (`core/ui/tokens.dart`). Undo and redo get the primary size for the reason FIRE did in phase 4 — they are tapped repeatedly and in a hurry. Asserted per control in a widget test, as phase 3's keypad and phase 4's pad are |
 | Nothing a child made is lost by a mis-tap | There is no clear button. **New sheet** files the current drawing in the in-app gallery and opens a blank one, so the destructive action does not exist rather than being guarded by a dialog a six-year-old will tap through |
 | No ambient randomness in `lib/` | `PLAN-phase-1.md` §1, enforced by `app/test/no_random_test.dart`. Drawing ids are `"d1"`, `"d2"`, … from a counter, like profile ids. Nothing here needs a random number, and the existing scanner already fails the build if someone reaches for one |
@@ -63,7 +64,7 @@ Each of these was considered and dropped, because a drawing app is where scope g
 | Editing an imported photo's pixels | The backdrop is locked. Crop, rotate and filter are a photo editor, and a photo editor is a different app |
 | Sharing to another app, or printing | `PLAN.md` §1's no-network constraint does not forbid a share sheet, but a share sheet is how a child's drawing leaves the device, and "nothing leaves the device" is the promise the project is built on. The photo library is the handover point; what a parent does from there is the parent's |
 | Animation, GIF, video | `gal` can save video. Nothing here produces one |
-| A colour wheel or eyedropper | A continuous picker is a poor control for a small hand and cannot be given a spoken name. Twelve named swatches can |
+| A colour wheel or eyedropper | A continuous picker is a poor control for a small hand and cannot be given a spoken name. Eighteen named swatches can |
 | Unbounded undo | §4.3's horizon is 50. An undo stack that reaches the first stroke of the afternoon holds every point of it in memory |
 | Drawings in the save file, or synced anywhere | `PLAN.md` §5.2 and §5.3. No cloud, by design, and a picture is not a few kilobytes |
 
@@ -190,7 +191,7 @@ class Drawing {
 
 `colorIndex` and `sizeIndex`, not an `int` colour and a `double` width: the palette and the four sizes
 are a closed set, and storing the index means a later change to a swatch's exact value redraws old
-drawings in the new colour instead of freezing twelve constants into every file a child has saved.
+drawings in the new colour instead of freezing the palette's constants into every file a child has saved.
 The trade is deliberate and the opposite of `PLAN.md` §3.1's frozen-forever rule for puzzles — a
 drawing that shifts one shade of blue is not a drawing that has been lost, whereas a puzzle that
 changes is a solved puzzle that comes back unsolved.
@@ -380,21 +381,58 @@ Three, all `ScreenScaffold`:
   band to the side the profile's `padSide` already names, which is a setting the child has set once
   for the arcade and should not have to set twice.
 
-The tool row: four pencil dots at their actual widths, twelve colour swatches in two rows, an eraser,
-undo, redo, and a **New sheet** button. No labels; `Semantics` on every one of them.
+The tool row: four pencil dots at their actual widths, eighteen colour swatches, an eraser, undo,
+redo, and a **New sheet** button. No labels; `Semantics` on every one of them.
+
+**The last six swatches are skin tones** — a light-to-deep ramp, added after PR 6 because a paint box
+whose only answer for a person is Brown answers badly. Six rather than five or eight so that they
+fill one line of the landscape rail, which is six swatches wide, and appended to the palette rather
+than sorted in among the colours they sit between on a colour wheel: a stroke stores a colour as an
+index (§4.1), so adding at the end is the only edit that leaves every saved drawing looking the way
+it was drawn. Each carries "skin" in its spoken name — the ramp reads as one set on the row, and
+"Medium deep" heard on its own would not say what it is.
+
+They cost a row of swatches, and a row is 64 dp of the tool row wherever it lands. A phone 800 dp tall
+and up takes that out of empty space and nothing else moves. A shorter one has no room for it, and
+two things follow.
+
+**The portrait band scrolls rather than taking the room out of the sheet.** The sheet keeps a third of
+the window (`_minSheetShare`, `draw_sheet_screen.dart`) and the band carries the overhang — 67 dp on a
+360 x 640 phone, so at most one row of swatches is below the fold. That rule is the landscape rail's,
+which has scrolled since the panel was written; portrait needed it once the palette grew, because at
+200% text on a 640 dp-tall phone the band alone was taller than the space under the header and the
+column overflowed. It leaves the sheet no smaller than twelve colours did — 233 x 175 against
+229 x 172 on that phone — and larger at 200% text, where the same floor stops a band that used to
+squeeze the sheet to 128 dp. The landscape rail pays the same way: three rows of six overhang a
+400 dp-tall window by 52 dp where two rows fitted exactly.
+
+**The band takes the rail's order, and its eraser with it**: sizes, then undo, redo, the eraser and
+**New sheet**, then the colours. The band used to end on the actions with the eraser among the
+swatches, which was fine while everything fitted and wrong the moment something had to fall below a
+fold — the first thing lost was undo and redo, which are tapped in a hurry, and then the eraser,
+which is reached for mid-drawing. The colours are the only group that folds onto lines of its own, so
+putting them last makes the group that gets cut the one where losing a line costs a colour and not a
+tool. The two layouts now differ only in the width their groups are given.
+
+Every control is still 56 dp, still labelled and still reachable; what a short window costs is a
+scroll, not a tool. Whether a child finds a swatch below the fold is PR 7's device pass to answer,
+and §9 carries it.
 
 **Landscape lays that out as a panel rather than a column** — a change made after PR 3, because the
 column it first shipped as put all twenty controls in single file, which is taller than any landscape
 window: everything below the pencil dots had to be scrolled to. The panel keeps the same three
 groups and the same order of them, each on its own line or lines: the four sizes, then undo, redo,
-the eraser and **New sheet**, then the twelve colours in equal rows of six. The eraser moves up to
-the action line there because that line has the room, and because twelve colours divide evenly into
-rows where thirteen controls do not. The panel is as wide as six swatches where the window can spare
+the eraser and **New sheet**, then the eighteen colours in equal rows of six. Eighteen colours divide
+evenly into those rows where nineteen controls would not, which is why the eraser sits with the
+actions — in the band as well, since the skin tones landed. The panel is as wide as six swatches where the window can spare
 that much and as wide as the action line where it cannot — never more than half of what it and the
 sheet share, so the sheet always keeps its own half — and every group folds onto more lines when it is given less, so a
-window narrower than either still lays out rather than overflowing. Two rows of six is what makes the
-whole panel fit a 400 dp-tall phone without scrolling; three rows of four does not
-(`tool_row.dart`, `draw_sheet_screen.dart`).
+window narrower than either still lays out rather than overflowing. Six to a row is also what keeps
+the panel close to fitting a 400 dp-tall phone: the colours take three rows there where four to a row
+would need five, and the rail's scroll view carries the 52 dp left over rather than the 180 dp the
+narrow width would leave (`tool_row.dart`, `draw_sheet_screen.dart`). A widget test holds that
+overhang under one row, so what is below the fold is always a row whose top edge is already
+visible.
 
 **The sheet's header also carries a Save-picture action and, once §1's `allowPhotoImport` says yes,
 an Add-a-photo one** — added at PR 6 rather than named here originally. Neither PR 5 nor this section
@@ -415,7 +453,7 @@ has somewhere to save to at all (`§4.6`).
 app/lib/features/draw/
 ├─ model/
 │  ├─ stroke.dart                # Stroke, Drawing, sheetSize
-│  ├─ palette.dart               # the twelve colours and their spoken names, the four widths
+│  ├─ palette.dart               # the eighteen colours and their spoken names, the four widths
 │  └─ drawing_controller.dart    # strokes, redo stack, the horizon and the bake trigger
 ├─ data/
 │  ├─ drawing_codec.dart         # Drawing <-> JSON, rounding as §4.1
@@ -467,7 +505,9 @@ on a rebuild that changed nothing.
 
 ### PR 3 — the tool row (0.5–0.75 day)
 
-Four sizes, twelve colours, the eraser, undo and redo with greyed states, **New sheet**.
+Four sizes, twelve colours, the eraser, undo and redo with greyed states, **New sheet**. The six
+skin tones (§4.7) were appended to the palette after PR 6, which is why they are described there
+rather than here.
 
 **Done when:** every control's hit rect is at least 56 dp and undo and redo are at least 72 dp;
 selection is asserted by border width, not colour; every control has a `Semantics` label; undo is
@@ -591,7 +631,7 @@ than ticked.
 | Question | What would resolve it |
 |---|---|
 | Is the system photo picker legible to a six-year-old, or does an adult have to drive the import? | PR 7's pass. If an adult has to drive it, that is an argument for leaving `allowPhotoImport` off by default, which is where it already is |
-| Are twelve colours and four sizes the right counts for a small hand, or does the row need to be shorter? | PR 7. The counts are one constant each in `palette.dart` |
+| Are eighteen colours and four sizes the right counts for a small hand, or does the row need to be shorter? | PR 7, and more pointed since the skin tones landed: on a phone shorter than about 700 dp the last row of swatches is below the fold of a band that scrolls (§4.7), and a child who does not scroll it never meets the deepest tones. Watch whether one does. The counts are one list each in `palette.dart` |
 | Is 64 MB per profile the right budget, and 50 the right undo horizon? | Both are guesses with a stated basis, not measurements. A tablet with several profiles and a few weeks of drawings answers the first; a child holding undo answers the second |
 | Should the iOS floor move from 13 to 14 so `PHPickerViewController` is always there? | Phase 6, when iOS is built at all. iOS 13 devices are the ones that would lose the app, against a feature the rest gain |
 | Should `allowPhotoImport` default to true after all? | The user's call, not a technical one. It is stated as an assumption in §1 rather than settled: default false means the feature is invisible until a parent finds it in settings, which is the safe direction and also the one that gets a bug report saying import is missing |

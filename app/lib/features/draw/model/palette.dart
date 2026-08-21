@@ -1,4 +1,4 @@
-// The twelve colours and four pencil sizes a child chooses from — the
+// The eighteen colours and four pencil sizes a child chooses from — the
 // concrete meaning behind [Stroke.colorIndex] and [Stroke.sizeIndex]
 // (`stroke.dart`), and what [DrawingPainter]'s `colorOf`/`widthOf` callbacks
 // resolve through (`drawing_painter.dart`).
@@ -10,14 +10,17 @@
 
 import 'package:flutter/painting.dart' show Color;
 
-/// The twelve colours a child can draw with, and what each is called.
+/// The eighteen colours a child can draw with, and what each is called:
+/// twelve paint-box colours, then six skin tones.
 ///
 /// [colors] and [names] are positional against each other and against
 /// [Stroke.colorIndex] — index 3 is [Color]s[3], named `names[3]`, for the
 /// life of every drawing that has ever used it. Reordering or removing an
 /// entry here changes what an old drawing looks like when it is reopened
 /// (`stroke.dart`'s note on why `colorIndex` is an index rather than a
-/// stored value); adding one at the end is safe.
+/// stored value); adding one at the end is safe, which is why the skin
+/// tones are appended rather than sorted in among the colours they sit
+/// between on a colour wheel.
 abstract final class DrawPalette {
   static const List<Color> colors = <Color>[
     Color(0xFFE53935), // Red
@@ -32,6 +35,16 @@ abstract final class DrawPalette {
     Color(0xFF6D4C41), // Brown
     Color(0xFF000000), // Black
     Color(0xFFFFFFFF), // White
+    // Skin tones: a light-to-deep ramp, drawing a person being the thing a
+    // child asks a paint box for that twelve rainbow colours cannot answer.
+    // Six rather than five or eight because the rail is six swatches wide
+    // (`tool_row.dart`), so the tones land there as a row of their own.
+    Color(0xFFFFDBAC), // Lightest skin
+    Color(0xFFF1C27D), // Light skin
+    Color(0xFFE0AC69), // Medium skin
+    Color(0xFFC68642), // Medium deep skin
+    Color(0xFF8D5524), // Deep skin
+    Color(0xFF4A2C1A), // Deepest skin
   ];
 
   static const List<String> names = <String>[
@@ -47,6 +60,14 @@ abstract final class DrawPalette {
     'Brown',
     'Black',
     'White',
+    // Every skin tone says "skin": the ramp reads as one set on the row, and
+    // a name spoken on its own ('Medium deep') would not say what it is.
+    'Lightest skin',
+    'Light skin',
+    'Medium skin',
+    'Medium deep skin',
+    'Deep skin',
+    'Deepest skin',
   ];
 
   /// The paint colour for [Stroke.colorIndex] `index`. Never called for an

@@ -31,7 +31,7 @@ class Stroke {
     required this.points,
   }) : assert(sizeIndex >= 0, 'sizeIndex indexes the pencil-width table');
 
-  /// Index into the twelve-swatch palette (`palette.dart`, PR 3).
+  /// Index into the swatch palette (`palette.dart`, PR 3).
   final int colorIndex;
 
   /// Whether [colorIndex] means "erase" rather than a palette entry.

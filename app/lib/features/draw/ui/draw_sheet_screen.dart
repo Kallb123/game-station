@@ -12,6 +12,7 @@
 // to and samples a pointer stream into.
 
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -36,6 +37,16 @@ import '../model/palette.dart';
 import '../model/stroke.dart';
 import 'drawing_painter.dart';
 import 'tool_row.dart';
+
+/// The share of a portrait window the sheet keeps whatever the tool row asks
+/// for. Below this the band scrolls instead of squeezing the canvas further
+/// (`_portraitLayout`).
+///
+/// A third rather than a half: the tool row is the taller of the two on a
+/// short phone and shrinking it is not an option — every control has a 56 dp
+/// floor — so this is the point at which a canvas stops being worth drawing
+/// on, not a fair split.
+const double _minSheetShare = 1 / 3;
 
 /// How far, in sheet units, the finger must move past the last sampled point
 /// before a new one is appended. A 60-unit-long stroke is then at most 30
@@ -249,15 +260,34 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
     );
   }
 
-  /// The band below the sheet, unchanged from before this screen knew about
-  /// orientation.
-  Widget _portraitLayout(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Expanded(child: _canvas(context)),
-      const SizedBox(height: AppSpacing.lg),
-      _toolRow(ToolRowLayout.band),
-    ],
+  /// The band below the sheet.
+  ///
+  /// The band scrolls where it does not fit rather than taking the space out
+  /// of the sheet, which is the rule the landscape rail has always followed
+  /// (`_landscapeLayout`) and which portrait needed once the palette grew to
+  /// eighteen colours (`PLAN-phase-8.md` §4.7): the band's height is a whole
+  /// number of 56 dp rows, so on a short phone the row that does not fit used
+  /// to come off the canvas — and at 200% text on the shortest of them there
+  /// was no canvas left to take it from, which overflowed the column.
+  Widget _portraitLayout(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: _canvas(context)),
+        const SizedBox(height: AppSpacing.lg),
+        ConstrainedBox(
+          // Bounded, not sized: a band that fits still takes its natural
+          // height and has nothing to scroll, exactly as the rail does.
+          constraints: BoxConstraints(
+            maxHeight: math.max(
+              0,
+              constraints.maxHeight * (1 - _minSheetShare) - AppSpacing.lg,
+            ),
+          ),
+          child: SingleChildScrollView(child: _toolRow(ToolRowLayout.band)),
+        ),
+      ],
+    ),
   );
 
   /// A rail beside the sheet, on [DrawSheetScreen.padSide] — the same split
