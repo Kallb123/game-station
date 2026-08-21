@@ -5,7 +5,7 @@ description: >-
 publish_to: none
 
 # The build number is bumped per store submission, the version per release.
-version: 0.4.4+10
+version: 0.4.5+11
 
 environment:
   sdk: ^3.12.2
