@@ -1,5 +1,5 @@
 // The guard `PLAN-phase-5.md` §4.8 exists to add: every route, pumped at
-// three window sizes and two text scales, with the assertion that nothing
+// four window sizes and two text scales, with the assertion that nothing
 // throws. Nothing before this pull request had ever driven these screens
 // through a size or an orientation they were not built and eyeballed at —
 // a `RenderFlex` overflow, an unbounded constraint or a failed assertion
@@ -39,13 +39,21 @@ import 'package:zibo_games/routes.dart';
 import 'app_harness.dart';
 import 'features/sudoku/puzzle_fixtures.dart';
 
-/// The three window sizes `PLAN-phase-5.md` §4.8 names: a phone, the same
-/// phone turned on its side, and a tablet — an `830x1112` window is
+/// The window sizes `PLAN-phase-5.md` §4.8 names — a phone, the same phone
+/// turned on its side, and a tablet, an `834x1112` window being
 /// [AppFormFactor.expanded] by its short side alone, whichever way round it
-/// is held.
+/// is held — plus the small tablet that size misses.
+///
+/// A 600 dp-wide window is expanded by exactly the breakpoint, and is the
+/// narrowest window that takes every expanded branch in the app: it has 552 dp
+/// of room where `834x1112` has 786, which is the difference between fitting
+/// [maxContentWidth] and not. The 7" and 10" Android tablets that report 600 dp
+/// across in portrait are the devices this size stands for, and a menu on one
+/// of them used to lose 88 dp off its right-hand edge (`layout.dart`).
 const Map<String, Size> _sweepSizes = {
   'a phone': Size(360, 640),
   'a phone in landscape': Size(640, 360),
+  'a small tablet': Size(600, 960),
   'a tablet': Size(834, 1112),
 };
 

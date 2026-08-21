@@ -49,6 +49,18 @@ bool isLandscapeWindow(BuildContext context) =>
 /// height too — every screen this wraps already has the height it needs from
 /// its own `Expanded`, and only the width is what a wide window leaves too
 /// much of.
+///
+/// The cap is a maximum and never a minimum, which is why the child is
+/// [Flexible] rather than laid out loose: a `Row` offers an unflexed child
+/// unbounded width, so a bare `ConstrainedBox` takes the whole
+/// [maxContentWidth] whether the window has that much room or not, and the
+/// difference is drawn off the right-hand edge. A window can be
+/// [AppFormFactor.expanded] and still be narrower than the cap — the form
+/// factor is decided by the *short* side, so a 600 dp-wide tablet in portrait
+/// has 552 dp left after the screen padding and used to lose 88 dp of every
+/// menu off the edge. A `Row` cannot flex a child inside an unbounded width,
+/// so this asserts rather than guesses when given one — every screen's frame
+/// gives it a bounded width (`screen_scaffold.dart`).
 class ContentWidthCap extends StatelessWidget {
   const ContentWidthCap({required this.child, super.key});
 
@@ -64,9 +76,11 @@ class ContentWidthCap extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: maxContentWidth),
-          child: child,
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: maxContentWidth),
+            child: child,
+          ),
         ),
       ],
     );

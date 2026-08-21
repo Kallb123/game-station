@@ -933,8 +933,11 @@ guards, and the eleven arcade motifs are a synthesiser session rather than a cod
   become tests: contrast ratios over the palette, tap-target floors per control, and a sweep that
   pumps every route at 200% text scale.
 - Portrait and landscape, with a tablet layout that does not stretch the grid — a 560 dp cap on the
-  board, a 640 dp cap on a column of content, and one sweep test over every route at three sizes and
-  two text scales, since a `RenderFlex` overflow throws in a widget test.
+  board, a 640 dp cap on a column of content, and one sweep test over every route at four sizes and
+  two text scales, since a `RenderFlex` overflow throws in a widget test. The fourth size, a 600 dp
+  small tablet, was added after the phase closed: the 640 dp cap was being applied as a width rather
+  than as a maximum, so every menu on a tablet narrower than 688 dp lost the difference off its
+  right-hand edge, and the phase's own 834 dp tablet was too wide to show it.
 - **No i18n scaffolding.** `.arb` files and English-first localisation are dropped from this phase:
   no translation is planned, and a pipeline with one locale in it is a build step and an indirection
   bought against a need nobody has. The screens already name their strings as public constants because
