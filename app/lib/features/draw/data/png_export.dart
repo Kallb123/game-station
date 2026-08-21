@@ -8,10 +8,11 @@
 // the same format is a dependency this phase does not need.
 //
 // The backdrop, when there is one, is drawn beneath the strokes and outside
-// the `saveLayer` below — `drawBackdropImage` and `decodeSheetImage`
+// the `saveLayer` below — `drawBackdropImage` and `decodeBackdrop`
 // (`drawing_painter.dart`) are the same functions the sheet screen draws a
-// resumed or freshly imported backdrop with, so the export cannot show a
-// photo scaled or placed differently from how the sheet already showed it.
+// resumed or freshly imported backdrop with, and it is decoded here at full
+// resolution, so the export cannot show a photo scaled or placed differently
+// from how the sheet already showed it.
 //
 // Strokes are painted inside a `saveLayer`, not directly onto the paper rect —
 // the same reason `drawing_painter.dart`'s own `paint` isolates its backdrop,
@@ -47,11 +48,11 @@ Future<Uint8List> exportDrawingToPng(
   final canvas = Canvas(recorder);
   canvas.drawRect(sheetRect, Paint()..color = paperColor);
   if (drawing.backdrop case final bytes?) {
-    final backdropImage = await decodeSheetImage(bytes);
+    final backdrop = await decodeBackdrop(bytes);
     try {
-      drawBackdropImage(canvas, backdropImage);
+      drawBackdropImage(canvas, backdrop);
     } finally {
-      backdropImage.dispose();
+      backdrop.dispose();
     }
   }
   canvas.saveLayer(sheetRect, Paint());

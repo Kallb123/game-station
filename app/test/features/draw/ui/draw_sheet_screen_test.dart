@@ -36,7 +36,7 @@ Future<void> _settleRealAsync(WidgetTester tester) async {
 }
 
 /// A tiny, real, decodable PNG — enough for `DrawingController(backdrop:)`
-/// to have something `decodeSheetImage` can actually decode. Encoding to PNG
+/// to have something `decodeBackdrop` can actually decode. Encoding to PNG
 /// is itself real async work, so every call site awaits it through
 /// `tester.runAsync` rather than directly.
 Future<Uint8List> _tinyPng() async {
