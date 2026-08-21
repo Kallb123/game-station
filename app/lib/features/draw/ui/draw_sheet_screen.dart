@@ -120,7 +120,7 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   /// been decoded or when this drawing has none. Also what gates the header
   /// import action: showing it again once a backdrop has already landed
   /// would invite a tap [DrawingController.setBackdrop] silently no-ops on.
-  ui.Image? _backdropImage;
+  SheetBackdrop? _decodedBackdrop;
 
   /// Strokes the controller has reported baked but that [_baked] does not
   /// contain yet — composited in, one at a time, by [_bakeChain]. Painted
@@ -194,23 +194,23 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
     _controller.removeListener(_onControllerChanged);
     if (_ownsController) _controller.dispose();
     _baked?.dispose();
-    _backdropImage?.dispose();
+    _decodedBackdrop?.dispose();
     super.dispose();
   }
 
-  /// Decodes [bytes] into [_backdropImage], guarding against a sheet the
+  /// Decodes [bytes] into [_decodedBackdrop], guarding against a sheet the
   /// child has since left the same way [_applyBake] does — see
   /// [_sheetGeneration]'s own doc comment.
   void _decodeBackdrop(Uint8List bytes) {
     final generation = _sheetGeneration;
     unawaited(
-      decodeSheetImage(bytes).then((image) {
+      decodeBackdrop(bytes).then((backdrop) {
         if (!mounted || generation != _sheetGeneration) {
-          image.dispose();
+          backdrop.dispose();
           return;
         }
-        final old = _backdropImage;
-        setState(() => _backdropImage = image);
+        final old = _decodedBackdrop;
+        setState(() => _decodedBackdrop = backdrop);
         old?.dispose();
       }),
     );
@@ -238,7 +238,7 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
         // Hidden once a backdrop has landed, not merely disabled: nothing
         // left to import over one, and `setBackdrop` would silently no-op
         // rather than replace it (`DrawingController.setBackdrop`).
-        if (onImportPhoto != null && _backdropImage == null)
+        if (onImportPhoto != null && _decodedBackdrop == null)
           IconButton(
             onPressed: onImportPhoto,
             icon: const Icon(Icons.add_photo_alternate_outlined),
@@ -341,7 +341,7 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
                     builder: (context, _) => CustomPaint(
                       size: size,
                       painter: DrawingPainter(
-                        backdrop: _backdropImage,
+                        backdrop: _decodedBackdrop,
                         baked: _baked,
                         liveStrokes: [
                           ..._pendingBakes,
@@ -515,8 +515,8 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
       _bakeChain = Future<void>.value();
       _baked?.dispose();
       _baked = null;
-      _backdropImage?.dispose();
-      _backdropImage = null;
+      _decodedBackdrop?.dispose();
+      _decodedBackdrop = null;
       _controller = DrawingController();
       _ownsController = true;
     });

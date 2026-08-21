@@ -15,6 +15,7 @@
 // paper-under-strokes ordering the eraser risk depends on
 // (`PLAN-phase-8.md` §4.3, §7).
 
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -46,7 +47,7 @@ class DrawingPainter extends CustomPainter {
   /// folded into it — a later "remove the photo" stays a field change
   /// rather than a re-render of pixels already mixed together
   /// (`PLAN-phase-8.md` §4.3, §4.6).
-  final ui.Image? backdrop;
+  final SheetBackdrop? backdrop;
 
   /// Every stroke below the undo horizon, folded into one image by the
   /// screen's bake — or null before the first bake.
@@ -92,7 +93,7 @@ class DrawingPainter extends CustomPainter {
       const Rect.fromLTWH(0, 0, sheetWidth, sheetHeight),
       Paint(),
     );
-    if (backdrop case final image?) drawBackdropImage(canvas, image);
+    if (backdrop case final backdrop?) drawBackdropImage(canvas, backdrop);
     if (baked case final image?) drawBakedImage(canvas, image);
     for (final stroke in liveStrokes) {
       paintStroke(canvas, stroke, colorOf: colorOf, widthOf: widthOf);
@@ -131,31 +132,97 @@ void drawBakedImage(Canvas canvas, ui.Image image) {
   );
 }
 
-/// Draws [image] centered in the sheet at its own size, never stretched.
+/// A decoded backdrop photo, and the sheet-space rectangle it occupies.
 ///
-/// `downscaleToSheet` (`photo_import.dart`) guarantees [image] already fits
-/// within [sheetWidth] x [sheetHeight] without upscaling, so centering it is
-/// the only placement decision left — stretching it to fill the sheet would
-/// distort whatever aspect ratio the photo actually had.
-void drawBackdropImage(Canvas canvas, ui.Image image) {
-  final size = Size(image.width.toDouble(), image.height.toDouble());
+/// The two are kept together because they are allowed to disagree: the
+/// gallery decodes the same photo at a fraction of its stored resolution to
+/// keep a grid of thumbnails off the heap (`draw_gallery_screen.dart`), and a
+/// thumbnail's smaller [image] still has to land exactly where the sheet's
+/// full-size one does. [sheetSize] is therefore the photo's *stored* size —
+/// always inside the sheet, since `downscaleToSheet` (`photo_import.dart`)
+/// put it there — and never the decoded image's own dimensions.
+@immutable
+class SheetBackdrop {
+  const SheetBackdrop({required this.image, required this.sheetSize});
+
+  /// The decoded pixels, at whatever resolution [decodeBackdrop] was asked
+  /// for.
+  final ui.Image image;
+
+  /// The size, in sheet units, that [image] stands for.
+  final Size sheetSize;
+
+  /// Releases [image]. Named for the owner's benefit: a screen that decoded a
+  /// backdrop disposes the pair rather than reaching inside for the image.
+  void dispose() => image.dispose();
+}
+
+/// Draws [backdrop] centered in the sheet at its stored size, never
+/// stretched.
+///
+/// `downscaleToSheet` (`photo_import.dart`) guarantees a backdrop's
+/// [SheetBackdrop.sheetSize] already fits within [sheetWidth] x [sheetHeight]
+/// without upscaling, so centering it is the only placement decision left —
+/// stretching it to fill the sheet would distort whatever aspect ratio the
+/// photo actually had.
+void drawBackdropImage(Canvas canvas, SheetBackdrop backdrop) {
+  final image = backdrop.image;
+  final size = backdrop.sheetSize;
   final offset = Offset(
     (sheetWidth - size.width) / 2,
     (sheetHeight - size.height) / 2,
   );
-  canvas.drawImageRect(image, Offset.zero & size, offset & size, Paint());
+  canvas.drawImageRect(
+    image,
+    Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+    offset & size,
+    Paint(),
+  );
 }
 
-/// Decodes [bytes] into a [ui.Image].
+/// Decodes [bytes] into a [SheetBackdrop], at [scale] of the stored photo's
+/// resolution.
 ///
 /// Shared by `draw_sheet_screen.dart`, which decodes a resumed or freshly
-/// imported backdrop once, and `png_export.dart`, which decodes one to draw
-/// into the export — so a backdrop is never decoded by two different code
-/// paths that could disagree.
-Future<ui.Image> decodeSheetImage(Uint8List bytes) async {
-  final codec = await ui.instantiateImageCodec(bytes);
-  final frame = await codec.getNextFrame();
-  return frame.image;
+/// imported backdrop once, `png_export.dart`, which decodes one to draw into
+/// the export, and `draw_gallery_screen.dart`, which decodes one per
+/// thumbnail — so a backdrop is never decoded by two different code paths
+/// that could disagree about where it belongs.
+///
+/// A [scale] below 1 decodes fewer pixels rather than shrinking them
+/// afterwards: the point is the memory a full 1600 x 1200 backdrop costs
+/// (7.7 MB of RGBA), which a gallery of them would pay several times over.
+/// The reported [SheetBackdrop.sheetSize] is the stored size either way.
+Future<SheetBackdrop> decodeBackdrop(
+  Uint8List bytes, {
+  double scale = 1,
+}) async {
+  // Captured out of the target-size callback rather than read off a decoded
+  // frame: it is the one place the *stored* dimensions are offered, and at
+  // any scale below 1 the frame no longer has them.
+  var sheetSize = Size.zero;
+  final codec = await ui.instantiateImageCodecWithSize(
+    // Disposed by `instantiateImageCodecWithSize` itself, which takes
+    // ownership of the buffer it is handed.
+    await ui.ImmutableBuffer.fromUint8List(bytes),
+    getTargetSize: (width, height) {
+      sheetSize = Size(width.toDouble(), height.toDouble());
+      if (scale >= 1) return const ui.TargetImageSize();
+      // At least one pixel each way: a target of zero is an assertion
+      // failure inside `dart:ui`, and a photo thin enough to round to it is
+      // still a photo.
+      return ui.TargetImageSize(
+        width: math.max(1, (width * scale).round()),
+        height: math.max(1, (height * scale).round()),
+      );
+    },
+  );
+  try {
+    final frame = await codec.getNextFrame();
+    return SheetBackdrop(image: frame.image, sheetSize: sheetSize);
+  } finally {
+    codec.dispose();
+  }
 }
 
 /// Draws one [stroke] into [canvas], in sheet coordinates.

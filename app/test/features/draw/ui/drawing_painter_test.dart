@@ -21,19 +21,33 @@ Color _colorOf(int colorIndex) => const Color(0xFF3A66C4);
 
 double _widthOf(int sizeIndex) => 16;
 
-/// A 1x1 real [ui.Image] — the painter only ever passes it to `drawImageRect`
-/// without reading its pixels, so its content does not matter.
-Future<ui.Image> _tinyImage() {
+/// A real [ui.Image] of [width] x [height] — the painter only ever passes it
+/// to `drawImageRect` without reading its pixels, so its content does not
+/// matter.
+Future<ui.Image> _tinyImage({int width = 1, int height = 1}) {
   final completer = Completer<ui.Image>();
   ui.decodeImageFromPixels(
-    Uint8List(4),
-    1,
-    1,
+    Uint8List(width * height * 4),
+    width,
+    height,
     ui.PixelFormat.rgba8888,
     completer.complete,
   );
   return completer.future;
 }
+
+/// A backdrop whose decoded image is [width] x [height] pixels and which
+/// stands for [sheetSize] sheet units — the two differ for a gallery
+/// thumbnail, which decodes the photo at a fraction of its stored size
+/// (`draw_gallery_screen.dart`).
+Future<SheetBackdrop> _backdrop({
+  int width = 1,
+  int height = 1,
+  Size? sheetSize,
+}) async => SheetBackdrop(
+  image: await _tinyImage(width: width, height: height),
+  sheetSize: sheetSize ?? Size(width.toDouble(), height.toDouble()),
+);
 
 Stroke _tap(double x) =>
     Stroke(colorIndex: 0, sizeIndex: 0, points: [Offset(x, 0)]);
@@ -46,7 +60,7 @@ Stroke _drag(double x) => Stroke(
 
 DrawingPainter _painter({
   ui.Image? baked,
-  ui.Image? backdrop,
+  SheetBackdrop? backdrop,
   List<Stroke> liveStrokes = const [],
   Stroke? current,
 }) => DrawingPainter(
@@ -163,7 +177,7 @@ void main() {
   });
 
   test('a backdrop is drawn before the baked image, once', () async {
-    final backdrop = await _tinyImage();
+    final backdrop = await _backdrop();
     final baked = await _tinyImage();
     final canvas = TestRecordingCanvas();
 
@@ -191,10 +205,41 @@ void main() {
   });
 
   test('shouldRepaint is true when the backdrop changes', () async {
-    final before = _painter(backdrop: await _tinyImage());
-    final after = _painter(backdrop: await _tinyImage());
+    final before = _painter(backdrop: await _backdrop());
+    final after = _painter(backdrop: await _backdrop());
 
     expect(after.shouldRepaint(before), isTrue);
+  });
+
+  test('a backdrop decoded smaller than it was stored still fills its own '
+      'sheet rectangle', () async {
+    // What a gallery thumbnail hands the painter: a third of the photo's
+    // pixels, standing for the full 1200 x 900 the sheet stored it at. The
+    // destination rectangle has to come from that stored size and not from
+    // the decoded image, or a thumbnail would show the photo at a third of
+    // the size the sheet and the export show it in
+    // (`draw_gallery_screen.dart`, `png_export.dart`).
+    final canvas = TestRecordingCanvas();
+
+    _painter(
+      backdrop: await _backdrop(
+        width: 400,
+        height: 300,
+        sheetSize: const Size(1200, 900),
+      ),
+    ).paint(canvas, const Size(1600, 1200));
+
+    final call = _calls(canvas, #drawImageRect).single.invocation;
+    expect(
+      call.positionalArguments[1],
+      const Rect.fromLTWH(0, 0, 400, 300),
+      reason: 'the whole decoded image is the source',
+    );
+    expect(
+      call.positionalArguments[2],
+      const Rect.fromLTWH(200, 150, 1200, 900),
+      reason: 'centered at its stored size, not at its decoded one',
+    );
   });
 
   test('shouldRepaint is true when the live stroke grows a point', () {

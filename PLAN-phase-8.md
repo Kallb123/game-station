@@ -286,6 +286,24 @@ itself paints with, scaled to the tile — a drawing has at most a few hundred s
 encode and a second file on disk for a cost the grid already pays each time it is built. Worth
 revisiting once PR 7's device pass has a gallery large enough to measure the difference.
 
+**A thumbnail includes the drawing's imported photo, decoded at a third of its stored resolution.**
+Added after PR 6, which is what gave a drawing a photo to leave out: a picture drawn over a backdrop
+is mostly backdrop, so a strokes-only tile showed a few marks floating on blank paper and a child
+could not tell one drawing from another in the grid. The photos are decoded by the gallery screen and
+held in its state, keyed by drawing id — not by the tiles, because `GridView.builder` discards a tile
+that scrolls out of view and would make it decode again on the way back, and not once per frame,
+because a decode is the one part of a thumbnail that is not cheap to repeat. A backdrop is locked
+once imported (§4.6), so an id's photo never changes and a listing that still names it needs no
+second decode; a delete or a profile switch is what disposes one.
+
+A third of the stored resolution rather than all of it: a tile is at most 176 points wide, so it has
+about 530 physical pixels on a 3x screen to show the sheet's 1600 units in, and a third of a
+sheet-filling backdrop is 533 across. The full photo would cost 7.7 MB of RGBA each, times however
+many of them a profile's 64 MB of drawings holds, for pixels the tile cannot draw. This is why a
+decoded backdrop travels as a `SheetBackdrop` — the image together with the sheet-space size it
+stands for — rather than as a bare `ui.Image`: the sheet and the export place a photo by its stored
+size, and a thumbnail's smaller image has to land in the same rectangle rather than a third of it.
+
 Autosave is `PLAN.md` §5.3's rule unchanged: debounced 500 ms after a stroke ends, and again on the
 app leaving the foreground and on the screen being popped.
 
