@@ -68,8 +68,8 @@ class DrawingPainter extends CustomPainter {
   final Color paperColor;
 
   /// Resolves a [Stroke.colorIndex] to a paint colour. A placeholder
-  /// signature until `palette.dart` (PR 3) supplies the twelve named
-  /// swatches — never called for an eraser stroke.
+  /// signature until `palette.dart` (PR 3) supplies the named swatches —
+  /// never called for an eraser stroke.
   final Color Function(int colorIndex) colorOf;
 
   /// Resolves a [Stroke.sizeIndex] to a stroke width, in sheet units.

@@ -1,4 +1,4 @@
-// The tool row: four pencil sizes, twelve colours, the eraser, undo, redo
+// The tool row: four pencil sizes, eighteen colours, the eraser, undo, redo
 // and New sheet — every control a child chooses a pencil, a colour or an
 // action from (`PLAN-phase-8.md` §4.7, §6 PR 3).
 //
@@ -11,16 +11,21 @@
 // `Row` so a `Wrap` has no seam to split them at — never separate across
 // lines.
 //
-// What [ToolRowLayout] changes is the width the groups get and which group
-// the eraser belongs to. As a band below the sheet (portrait) it is the
-// window's width, and the eraser sits with the colours: one line of thirteen
-// swatch-sized controls that folds as the window demands. As a rail beside
-// the sheet (landscape) it is [ToolRow.railWidthFor] the window — so the four
-// sizes take one line, undo, redo, the eraser and New sheet the next, and the
-// twelve colours fold into equal rows beneath them, filling the rail rather
-// than running down it one control at a time. The eraser moves up to the
-// action line there because that line has the room, and because twelve
-// colours divide into equal rows where thirteen controls do not.
+// The order is the same either way — the four sizes, then undo, redo, the
+// eraser and New sheet, then the colours — and what [ToolRowLayout] changes
+// is the width the groups are given. As a band below the sheet (portrait) it
+// is the window's width; as a rail beside it (landscape) it is
+// [ToolRow.railWidthFor] the window, six swatches wide where the window can
+// spare it, so the eighteen colours fill the rail in three rows of six rather
+// than running down it one control at a time (`palette.dart`: twelve
+// paint-box colours and six skin tones, so the tones are the third row).
+//
+// The colours come last because they are the group that folds onto lines of
+// its own, and so the only one that can be left below the fold on a window
+// too short for all three: both layouts scroll rather than shrink a control
+// (`draw_sheet_screen.dart`), and a colour is the one thing here worth
+// scrolling for. The eraser sits with the actions rather than at the end of
+// the swatches for the same reason — it is reached for mid-drawing.
 //
 // Selection is never colour alone (`PLAN.md` §7's accessibility rule,
 // `PLAN-phase-8.md` §1): every selectable control here gains a 3 dp
@@ -59,7 +64,7 @@ enum ToolRowLayout {
   rail,
 }
 
-/// The four pencil sizes, the twelve colours, the eraser, undo, redo and New
+/// The four pencil sizes, the eighteen colours, the eraser, undo, redo and New
 /// sheet, laid out for [DrawSheetScreen] (`draw_sheet_screen.dart`).
 class ToolRow extends StatelessWidget {
   const ToolRow({
@@ -119,9 +124,10 @@ class ToolRow extends StatelessWidget {
   /// six colour swatches and the five gaps between them.
   ///
   /// Six, because the whole point of the rail is to use the width a landscape
-  /// window has and the height it does not: two rows of six are short enough
-  /// to leave a short landscape phone's rail unscrolled, where three rows of
-  /// four are not.
+  /// window has and the height it does not: the colours take three rows of
+  /// six where four to a row would need five, which is the difference
+  /// between a short landscape phone's rail scrolling a little and scrolling
+  /// a lot.
   static const double railWidth = AppTapTargets.min * 6 + AppSpacing.sm * 5;
 
   /// The width a rail falls back to when [railWidth] would take more than
@@ -136,9 +142,12 @@ class ToolRow extends StatelessWidget {
   ///
   /// Never more than half of it — the rail's groups fold onto more lines when
   /// they are given less, and the sheet has nothing to fold — and one of the
-  /// two widths above wherever that leaves a choice, so the twelve colours
-  /// land in equal rows of six or of four rather than in a ragged grid of
-  /// whatever number happens to fit.
+  /// two widths above wherever that leaves a choice, so the colours land in
+  /// rows of six or of four rather than in a ragged grid of whatever number
+  /// happens to fit. Eighteen divides evenly into the wide rail's rows of
+  /// six; at the narrow width the last row carries the two left over, which
+  /// is the price of the six skin tones and cheaper than a row length that
+  /// changes with every window.
   static double railWidthFor(double available) {
     final half = available / 2;
     return half >= railWidth ? railWidth : math.min(narrowRailWidth, half);
@@ -226,20 +235,19 @@ class ToolRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       spacing: AppSpacing.md,
-      children: switch (layout) {
-        // Brush thickness first and on its own, never sharing a line with
-        // colour selection.
-        ToolRowLayout.band => [
-          sizes,
-          _group([...colors, eraser]),
-          _group([undoRedo, newSheet]),
-        ],
-        ToolRowLayout.rail => [
-          sizes,
-          _group([undoRedo, eraser, newSheet]),
-          _group(colors),
-        ],
-      },
+      // Brush thickness first and on its own, never sharing a line with
+      // colour selection; then the actions; then the colours, which are the
+      // only group that folds onto lines of its own and so the only one that
+      // can be left with a line below the fold when the window is too short
+      // for all three (`draw_sheet_screen.dart`'s `_portraitLayout`, the
+      // rail's own scroll view). Undo and redo are tapped in a hurry and the
+      // eraser is tapped mid-drawing: none of the three is a control to make
+      // a child scroll for.
+      children: [
+        sizes,
+        _group([undoRedo, eraser, newSheet]),
+        _group(colors),
+      ],
     );
 
     return switch (layout) {

@@ -1031,7 +1031,7 @@ One game per minor release from the §4.4 table, each reusing `GameShell` and `O
 ### Phase 8 — drawing board (5–7 days)
 
 A third card on the home screen: a blank sheet a child draws on with a finger, four pencil sizes,
-twelve colours, an eraser, undo and redo, saved to and loaded from the device photo library. Planned
+eighteen colours, an eraser, undo and redo, saved to and loaded from the device photo library. Planned
 as seven pull requests in [`PLAN-phase-8.md`](PLAN-phase-8.md), which carries the design, the rejected
 alternatives and the verification checklist. The estimate assumes the same one developer working part
 time as the phases above, and is wide because one of the seven pull requests is Kotlin and Swift that
@@ -1042,11 +1042,11 @@ CI cannot run and another ends in a device pass.
   the same picture. Undo is then dropping a stroke rather than restoring a bitmap, and export
   rasterises at whatever size the file wants. This is the phase's load-bearing decision; a raster
   canvas would change the save format, the undo model and the export path together.
-- Four pencil sizes, twelve colours and an eraser, each a 56 dp round target carrying a 3 dp
-  `AppBorders.selected` ring when chosen. Colour-blindness cannot be designed out of a paint box — the
-  swatches *are* the content — so what §7's phase-5 rule buys here is that every swatch carries a
-  spoken name and that *selection* is signalled by the ring and a size change rather than by colour.
-  No control needs a word of text.
+- Four pencil sizes, eighteen colours — twelve paint-box colours and six skin tones — and an eraser,
+  each a 56 dp round target carrying a 3 dp `AppBorders.selected` ring when chosen. Colour-blindness
+  cannot be designed out of a paint box — the swatches *are* the content — so what §7's phase-5 rule
+  buys here is that every swatch carries a spoken name and that *selection* is signalled by the ring
+  and a size change rather than by colour. No control needs a word of text.
 - Undo and redo at 72 dp, `AppTapTargets.primary`, greyed rather than hidden when their stack is
   empty. The undo horizon is 50 strokes: older strokes are baked into a cached `ui.Image`, which
   bounds the paint cost and what a repeated tap can undo away in one direction.

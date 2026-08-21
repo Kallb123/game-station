@@ -326,14 +326,17 @@ void main() {
       expect(actions.first, greaterThan(sizes.first));
     });
 
-    testWidgets('folds the twelve colours into two rows of six below the '
+    testWidgets('folds the eighteen colours into three rows of six below the '
         'actions', (tester) async {
       await pumpRow(tester, layout: ToolRowLayout.rail);
 
       expect(tester.getSize(find.byType(ToolRow)).width, ToolRow.railWidth);
 
+      // Three rows of six, and the six skin tones are the last six swatches
+      // (`palette.dart`), so they are the third row rather than a tail on the
+      // end of a ragged grid.
       final rows = rowsOf(tester, colorKeys);
-      expect(rows, hasLength(2), reason: 'rows: $rows');
+      expect(rows, hasLength(3), reason: 'rows: $rows');
       expect(rows.values, everyElement(6));
       expect(
         rows.keys.first,
@@ -350,9 +353,11 @@ void main() {
         canUndo: true,
       );
 
+      // Eighteen does not divide by four: the last row carries the two that
+      // are left, which is what the narrow rail costs (`tool_row.dart`'s
+      // `railWidthFor`).
       final rows = rowsOf(tester, colorKeys);
-      expect(rows, hasLength(3), reason: 'rows: $rows');
-      expect(rows.values, everyElement(4));
+      expect(rows.values.toList(), [4, 4, 4, 4, 2], reason: 'rows: $rows');
 
       final actions = lineCentres(tester, [
         ToolRow.undoKey,
@@ -373,19 +378,38 @@ void main() {
     });
   });
 
-  testWidgets('the band keeps the eraser on the colours line, above the '
-      'actions', (tester) async {
-    // Wide enough for all thirteen swatch-sized controls on one line:
-    // twelve colours, the eraser and the twelve gaps between them.
-    tester.view.physicalSize = const Size(13 * 56 + 12 * 8, 600);
+  testWidgets('the band puts the eraser on the action line and the colours '
+      'below it, the order the rail uses', (tester) async {
+    // Wide enough for every colour on one line, so what this asserts is the
+    // order of the groups rather than which of them happened to fold.
+    final colours = DrawPalette.colors.length;
+    tester.view.physicalSize = Size(
+      colours * AppTapTargets.min + (colours - 1) * AppSpacing.sm,
+      600,
+    );
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await pumpRow(tester);
 
-    final eraser = tester.getCenter(find.byKey(ToolRow.eraserKey)).dy;
-    expect(eraser, tester.getCenter(find.byKey(ToolRow.colorKey(11))).dy);
-    expect(eraser, lessThan(tester.getCenter(find.byKey(ToolRow.undoKey)).dy));
+    // Undo, redo, the eraser and New sheet share one line, above every
+    // swatch: a short window folds the colours, never these
+    // (`draw_sheet_screen.dart`'s `_portraitLayout`).
+    final actions = lineCentres(tester, [
+      ToolRow.undoKey,
+      ToolRow.redoKey,
+      ToolRow.eraserKey,
+      ToolRow.newSheetKey,
+    ]);
+    expect(actions.toSet(), hasLength(1), reason: 'actions: $actions');
+    expect(
+      actions.first,
+      greaterThan(tester.getCenter(find.byKey(ToolRow.sizeKey(0))).dy),
+    );
+    expect(
+      actions.first,
+      lessThan(tester.getCenter(find.byKey(ToolRow.colorKey(0))).dy),
+    );
   });
 }
