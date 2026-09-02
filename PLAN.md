@@ -1026,7 +1026,15 @@ What differed from the plan, decided while building it:
 
 ### Phase 7 — more games (ongoing)
 
-One game per minor release from the §4.4 table, each reusing `GameShell` and `OnScreenPad`.
+One game per minor release from the §4.4 table, each reusing `GameShell` and `OnScreenPad`. Each game
+gets its own plan file rather than a section of a shared one, so a finished game's reasoning stays
+frozen where its code cites it: a phase that never closes cannot hold one document still.
+
+- **Snake**, planned in [`PLAN-phase-7-snake.md`](PLAN-phase-7-snake.md) as seven pull requests, with
+  a counting mode in which the things the snake eats are the numbers 1 to 10, then 11 to 20, one
+  decade per level. It is also the phase that reshapes `shared/` around a second game, which
+  `PLAN-phase-4.md` §2 and §5 deferred to exactly this point — four-way `PadInput`, a D-pad layout
+  for `OnScreenPad`, and the fixed-step accumulator moved where both games share one copy.
 
 ### Phase 8 — drawing board (5–7 days)
 
