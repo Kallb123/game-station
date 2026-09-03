@@ -26,6 +26,7 @@
 
 import 'package:flutter/foundation.dart';
 
+import '../../shared/fixed_step.dart' as shared_step;
 import '../../shared/game_rng.dart';
 import '../../shared/pad_input.dart';
 import 'invaders_rules.dart';
@@ -317,7 +318,13 @@ class InvadersSim {
   /// Every fixed step is exactly this many seconds — 1/120 s
   /// (`PLAN-phase-4.md` §4.2). It divides 60 Hz exactly and halves the
   /// judder 1/60 s would leave at 144 Hz.
-  static const double fixedStep = 1 / 120;
+  ///
+  /// Forwards to `shared/fixed_step.dart`'s top-level constant rather than
+  /// defining its own — that file is the single source of the value now that
+  /// a second game steps on it too (`PLAN-phase-7-snake.md` §4.7) — kept as a
+  /// static member here so every existing `InvadersSim.fixedStep` call site
+  /// keeps compiling unchanged.
+  static const double fixedStep = shared_step.fixedStep;
 
   final GameRng _rng;
 

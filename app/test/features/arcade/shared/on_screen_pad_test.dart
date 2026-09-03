@@ -69,9 +69,42 @@ void main() {
     return input;
   }
 
+  /// Pumps [OnScreenPad] with [PadLayout.dPad], the way `GameShell` will once
+  /// Snake wires it up (`PLAN-phase-7-snake.md` §4.6) — this file only checks
+  /// the layout itself, since no game reaches it yet in this pull request.
+  Future<ValueNotifier<PadInput>> pumpDPad(
+    WidgetTester tester, {
+    PadSide side = PadSide.right,
+    EdgeInsets padding = EdgeInsets.zero,
+  }) async {
+    final input = ValueNotifier(PadInput.none);
+    addTearDown(input.dispose);
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: SafeArea(
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: OnScreenPad(
+              input: input,
+              side: side,
+              haptics: const SilentHaptics(),
+              layout: PadLayout.dPad,
+            ),
+          ),
+        ),
+      ),
+      theme: AppTheme.day(),
+      padding: padding,
+    );
+    return input;
+  }
+
   final left = find.byKey(OnScreenPad.leftKey);
   final right = find.byKey(OnScreenPad.rightKey);
   final fire = find.byKey(OnScreenPad.fireKey);
+  final up = find.byKey(OnScreenPad.upKey);
+  final down = find.byKey(OnScreenPad.downKey);
 
   testWidgets('two fingers move and fire in the same frame', (tester) async {
     final input = await pumpPad(tester);
@@ -249,6 +282,97 @@ void main() {
       await pumpVerticalPad(tester, side: PadSide.left);
 
       expect(tester.getCenter(fire).dx, lessThan(tester.getCenter(left).dx));
+    });
+  });
+
+  group('PadLayout.dPad', () {
+    testWidgets('draws four 72 dp buttons and no FIRE', (tester) async {
+      await pumpDPad(tester);
+
+      expect(fire, findsNothing);
+      for (final button in [up, down, left, right]) {
+        expect(
+          tester.getSize(button).shortestSide,
+          greaterThanOrEqualTo(AppTapTargets.primary),
+          reason: '$button',
+        );
+      }
+    });
+
+    testWidgets('each button releases on up, on cancel and on a move '
+        'outside its bounds', (tester) async {
+      final input = await pumpDPad(tester);
+
+      final upGesture = await tester.startGesture(tester.getCenter(up));
+      await tester.pump();
+      expect(input.value.up, isTrue);
+      await upGesture.up();
+      await tester.pump();
+      expect(input.value.up, isFalse, reason: 'released on pointer up');
+
+      final downGesture = await tester.startGesture(tester.getCenter(down));
+      await tester.pump();
+      expect(input.value.down, isTrue);
+      await downGesture.cancel();
+      expect(input.value.down, isFalse, reason: 'released on pointer cancel');
+
+      final leftGesture = await tester.startGesture(tester.getCenter(left));
+      await tester.pump();
+      expect(input.value.left, isTrue);
+      await leftGesture.moveTo(Offset.zero);
+      await tester.pump();
+      expect(
+        input.value.left,
+        isFalse,
+        reason: 'released on a move outside its bounds',
+      );
+    });
+
+    testWidgets('two simultaneous pointers hold two directions at once', (
+      tester,
+    ) async {
+      final input = await pumpDPad(tester);
+
+      final upFinger = await tester.startGesture(tester.getCenter(up));
+      final rightFinger = await tester.startGesture(tester.getCenter(right));
+      await tester.pump();
+
+      expect(input.value.up, isTrue);
+      expect(input.value.right, isTrue);
+      expect(input.value.down, isFalse);
+      expect(input.value.left, isFalse);
+
+      await upFinger.up();
+      await rightFinger.up();
+    });
+
+    testWidgets('no button intersects a 34 dp bottom safe-area inset', (
+      tester,
+    ) async {
+      await usePhoneSurface(tester);
+      await pumpDPad(tester, padding: const EdgeInsets.only(bottom: 34));
+
+      for (final button in [up, down, left, right]) {
+        expect(
+          tester.getBottomLeft(button).dy,
+          lessThanOrEqualTo(640 - 34),
+          reason: '$button',
+        );
+      }
+    });
+
+    testWidgets('the lateral layout is unchanged', (tester) async {
+      // `layout` defaults to `PadLayout.lateral`, so a call site that never
+      // heard of `PadLayout` still gets today's pad — the same assertion
+      // `padSide.left puts FIRE on the left of LEFT and RIGHT` above makes,
+      // repeated here explicitly against the default rather than a named
+      // layout (`PLAN-phase-7-snake.md` §4.7's "nothing; the default is
+      // today's pad").
+      await pumpPad(tester);
+
+      expect(find.byKey(OnScreenPad.fireKey), findsOneWidget);
+      expect(find.byKey(OnScreenPad.upKey), findsNothing);
+      expect(find.byKey(OnScreenPad.downKey), findsNothing);
     });
   });
 }

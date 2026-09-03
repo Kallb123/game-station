@@ -25,6 +25,7 @@ import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
 import 'package:zibo_games/features/arcade/invaders/model/invaders_rules.dart';
 import 'package:zibo_games/features/arcade/invaders/model/invaders_sim.dart';
 import 'package:zibo_games/features/arcade/shared/arcade_controller.dart';
+import 'package:zibo_games/features/arcade/shared/fixed_step.dart';
 import 'package:zibo_games/features/arcade/shared/pad_input.dart';
 
 import '../../../core/audio/recording_audio.dart';

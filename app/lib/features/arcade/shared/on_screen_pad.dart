@@ -20,18 +20,37 @@ import '../../../core/storage/save_data.dart' show PadSide;
 import '../../../core/ui/tokens.dart';
 import 'pad_input.dart';
 
-/// LEFT, RIGHT and FIRE, below the play field.
+/// Which buttons [OnScreenPad] draws (`PLAN-phase-7-snake.md` §4.6).
+enum PadLayout {
+  /// LEFT, RIGHT and FIRE — what phase 4 built and what Invaders keeps.
+  lateral,
+
+  /// UP, DOWN, LEFT and RIGHT in a diamond, no FIRE — Snake has nothing to
+  /// fire.
+  dPad,
+}
+
+/// The diamond's side, in dp: three [AppTapTargets.primary] buttons across
+/// with [AppSpacing.sm] between them, the same square in both dimensions
+/// (`PLAN-phase-7-snake.md` §4.6).
+const double _dPadExtent = 3 * AppTapTargets.primary + 2 * AppSpacing.sm;
+
+/// LEFT, RIGHT and FIRE, or a four-way D-pad, below the play field.
 ///
-/// [side] decides which side FIRE sits on: LEFT and RIGHT always stay
-/// adjacent to each other, and only the two groups — movement and FIRE — swap
-/// ends, as one `Row` whose children are reversed rather than two separate
-/// layouts (`PLAN-phase-4.md` §4.6).
+/// [side] decides which side of the band the controls sit on. In
+/// [PadLayout.lateral], LEFT and RIGHT always stay adjacent to each other and
+/// only the two groups — movement and FIRE — swap ends, as one `Row` whose
+/// children are reversed rather than two separate layouts
+/// (`PLAN-phase-4.md` §4.6). [PadLayout.dPad] has one cluster rather than
+/// two, so [side] instead names which side that cluster sits on
+/// (`PLAN-phase-7-snake.md` §4.6).
 class OnScreenPad extends StatefulWidget {
   const OnScreenPad({
     required this.input,
     required this.haptics,
     this.side = PadSide.right,
     this.axis = Axis.horizontal,
+    this.layout = PadLayout.lateral,
     this.child,
     super.key,
   }) : assert(
@@ -39,22 +58,28 @@ class OnScreenPad extends StatefulWidget {
          'a vertical pad needs the field to place between its two rails',
        );
 
-  /// Written to on every button press and release, combining whichever of
-  /// left, right and fire are currently held.
+  /// Written to on every button press and release, combining whichever
+  /// directions and fire are currently held.
   final ValueNotifier<PadInput> input;
 
-  /// Which side FIRE sits on — mirrors a profile's stored `padSide` for a
-  /// left-handed player.
+  /// Which side FIRE sits on in [PadLayout.lateral], or which side the D-pad
+  /// itself sits on in [PadLayout.dPad] — mirrors a profile's stored
+  /// `padSide` for a left-handed player.
   final PadSide side;
 
-  /// [Axis.horizontal] (the default) draws LEFT, RIGHT and FIRE in one strip
-  /// below the play field, as `PLAN.md` §4.2 sketches it.
+  /// [Axis.horizontal] (the default) draws the pad in one strip below the
+  /// play field, as `PLAN.md` §4.2 sketches it.
   ///
   /// [Axis.vertical] draws two rails either side of [child] instead: a
   /// landscape field already letterboxes to empty space on both sides, which
   /// is where the pad goes rather than below a field with no room left to
   /// give it (`PLAN-phase-5.md` §4.8).
   final Axis axis;
+
+  /// Which buttons this pad draws. Defaults to [PadLayout.lateral], today's
+  /// pad, so every existing call site is unchanged (`PLAN-phase-7-snake.md`
+  /// §4.7).
+  final PadLayout layout;
 
   /// The play field, placed between the two rails. Only read when [axis] is
   /// [Axis.vertical], and required there.
@@ -70,25 +95,40 @@ class OnScreenPad extends StatefulWidget {
   static const Key leftKey = ValueKey('OnScreenPad.left');
   static const Key rightKey = ValueKey('OnScreenPad.right');
   static const Key fireKey = ValueKey('OnScreenPad.fire');
+  static const Key upKey = ValueKey('OnScreenPad.up');
+  static const Key downKey = ValueKey('OnScreenPad.down');
 
   @override
   State<OnScreenPad> createState() => _OnScreenPadState();
 }
 
 class _OnScreenPadState extends State<OnScreenPad> {
+  bool _up = false;
+  bool _down = false;
   bool _left = false;
   bool _right = false;
   bool _fire = false;
 
-  void _update({bool? left, bool? right, bool? fire}) {
+  void _update({bool? up, bool? down, bool? left, bool? right, bool? fire}) {
+    _up = up ?? _up;
+    _down = down ?? _down;
     _left = left ?? _left;
     _right = right ?? _right;
     _fire = fire ?? _fire;
-    widget.input.value = PadInput(left: _left, right: _right, fire: _fire);
+    widget.input.value = PadInput(
+      up: _up,
+      down: _down,
+      left: _left,
+      right: _right,
+      fire: _fire,
+    );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      widget.layout == PadLayout.dPad ? _buildDPad() : _buildLateral();
+
+  Widget _buildLateral() {
     final movement = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -127,27 +167,138 @@ class _OnScreenPadState extends State<OnScreenPad> {
       );
     }
 
-    // Stretched, so `Expanded(child: widget.child!)` gets the row's full
-    // height for the field — but each rail is wrapped in its own `Center`
-    // first, or that same stretch would hand its fixed-size buttons a tight
-    // height too and force them to fill it, a 72 dp circle stretched into a
-    // bar the height of the screen.
-    Widget rail(Widget buttons) => Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: buttons,
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _rail(rails[0]),
+        Expanded(child: widget.child!),
+        _rail(rails[1]),
+      ],
     );
+  }
+
+  Widget _buildDPad() {
+    final dPad = _DPad(haptics: widget.haptics, onUpdate: _update);
+
+    if (widget.axis == Axis.horizontal) {
+      return Row(
+        mainAxisAlignment: widget.side == PadSide.right
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        children: [dPad],
+      );
+    }
+
+    // The rail the D-pad does not occupy becomes an equal-width spacer
+    // rather than collapsing to nothing, so the field stays centred instead
+    // of sliding towards whichever side is empty (`PLAN-phase-7-snake.md`
+    // §4.6).
+    const spacer = SizedBox(width: _dPadExtent, height: _dPadExtent);
+    final rails = widget.side == PadSide.right
+        ? [spacer, dPad]
+        : [dPad, spacer];
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        rail(rails[0]),
+        _rail(rails[0]),
         Expanded(child: widget.child!),
-        rail(rails[1]),
+        _rail(rails[1]),
       ],
     );
   }
+
+  // Stretched, so `Expanded(child: widget.child!)` gets the row's full
+  // height for the field — but each rail is wrapped in its own `Center`
+  // first, or that same stretch would hand its fixed-size buttons a tight
+  // height too and force them to fill it, a 72 dp circle stretched into a
+  // bar the height of the screen.
+  Widget _rail(Widget buttons) => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: buttons,
+    ),
+  );
+}
+
+/// UP, DOWN, LEFT and RIGHT in a diamond (`PLAN-phase-7-snake.md` §4.6): a
+/// 3x3 grid of [AppTapTargets.primary] cells with a button on each edge and
+/// nothing in the corners or the centre, which is the arrangement that puts
+/// each arrow where its direction points.
+class _DPad extends StatelessWidget {
+  const _DPad({required this.haptics, required this.onUpdate});
+
+  final AppHaptics haptics;
+  final void Function({bool? up, bool? down, bool? left, bool? right}) onUpdate;
+
+  static const _empty = SizedBox(
+    width: AppTapTargets.primary,
+    height: AppTapTargets.primary,
+  );
+  static const _gap = SizedBox(width: AppSpacing.sm, height: AppSpacing.sm);
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _empty,
+          _gap,
+          _PadButton(
+            key: OnScreenPad.upKey,
+            label: 'Up',
+            icon: Icons.arrow_upward,
+            haptics: haptics,
+            onHeldChanged: (held) => onUpdate(up: held),
+          ),
+          _gap,
+          _empty,
+        ],
+      ),
+      _gap,
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _PadButton(
+            key: OnScreenPad.leftKey,
+            label: 'Left',
+            icon: Icons.arrow_back,
+            haptics: haptics,
+            onHeldChanged: (held) => onUpdate(left: held),
+          ),
+          _gap,
+          _empty,
+          _gap,
+          _PadButton(
+            key: OnScreenPad.rightKey,
+            label: 'Right',
+            icon: Icons.arrow_forward,
+            haptics: haptics,
+            onHeldChanged: (held) => onUpdate(right: held),
+          ),
+        ],
+      ),
+      _gap,
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _empty,
+          _gap,
+          _PadButton(
+            key: OnScreenPad.downKey,
+            label: 'Down',
+            icon: Icons.arrow_downward,
+            haptics: haptics,
+            onHeldChanged: (held) => onUpdate(down: held),
+          ),
+          _gap,
+          _empty,
+        ],
+      ),
+    ],
+  );
 }
 
 /// One button, [AppTapTargets.primary] (72 dp) on a side — `PLAN.md` §4.2

@@ -22,7 +22,12 @@ import 'pad_input.dart';
 /// real change, not on every fixed step.
 @immutable
 class ArcadeHud {
-  const ArcadeHud({required this.score, this.lives = 0, this.wave = 0});
+  const ArcadeHud({
+    required this.score,
+    this.lives = 0,
+    this.wave = 0,
+    this.note = '',
+  });
 
   /// Points scored so far this run.
   final int score;
@@ -33,15 +38,21 @@ class ArcadeHud {
   /// The wave, level or round reached. Zero where a game has no such thing.
   final int wave;
 
+  /// A short game-specific line drawn after the wave and folded into the
+  /// same `Semantics` label — Snake's `Next 7` (`PLAN-phase-7-snake.md`
+  /// §4.7). Empty draws nothing; Invaders never sets this.
+  final String note;
+
   @override
   bool operator ==(Object other) =>
       other is ArcadeHud &&
       other.score == score &&
       other.lives == lives &&
-      other.wave == wave;
+      other.wave == wave &&
+      other.note == note;
 
   @override
-  int get hashCode => Object.hash(score, lives, wave);
+  int get hashCode => Object.hash(score, lives, wave, note);
 }
 
 /// What `GameShell` needs from one arcade game, and nothing it does not
