@@ -742,6 +742,114 @@ void main() {
 
       expect(store.writes, 1);
     });
+
+    // `PLAN-phase-7-snake.md` §6, PR 1's own done-criterion.
+    test('five scores are kept per (easy, counting) pair, and a sixth is '
+        'dropped only when it is worse', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      for (final score in [500, 400, 300, 200, 100]) {
+        repository.recordArcadeResult(
+          'snake',
+          ArcadeResult(score: score, counting: true),
+        );
+      }
+
+      // Worse than every entry already there: dropped.
+      repository.recordArcadeResult(
+        'snake',
+        const ArcadeResult(score: 50, counting: true),
+      );
+      var scores = repository.activeProfile.arcade.games['snake']!.highScores;
+      expect(scores.map((s) => s.score), [500, 400, 300, 200, 100]);
+
+      // Better than the worst entry: keeps five, and the worst is gone.
+      repository.recordArcadeResult(
+        'snake',
+        const ArcadeResult(score: 250, counting: true),
+      );
+      scores = repository.activeProfile.arcade.games['snake']!.highScores;
+      expect(scores.map((s) => s.score), [500, 400, 300, 250, 200]);
+    });
+
+    test('a counting score never evicts a classic one, and neither evicts '
+        'an easy-mode one', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      for (final score in [900, 800, 700, 600, 500]) {
+        repository.recordArcadeResult('snake', ArcadeResult(score: score));
+      }
+      for (final score in [90, 80, 70, 60, 50]) {
+        repository.recordArcadeResult(
+          'snake',
+          ArcadeResult(score: score, easy: true),
+        );
+      }
+
+      // A run of every combination of easy and counting, each better than
+      // anything already stored, so a bug that shared one table would show up
+      // as an eviction rather than as an addition.
+      repository.recordArcadeResult(
+        'snake',
+        const ArcadeResult(score: 1000, counting: true),
+      );
+      repository.recordArcadeResult(
+        'snake',
+        const ArcadeResult(score: 1000, easy: true, counting: true),
+      );
+
+      final scores = repository.activeProfile.arcade.games['snake']!.highScores;
+      expect(
+        scores.where((s) => !s.easy && !s.counting).map((s) => s.score),
+        [900, 800, 700, 600, 500],
+        reason: 'the classic normal table is untouched by any counting run',
+      );
+      expect(
+        scores.where((s) => s.easy && !s.counting).map((s) => s.score),
+        [90, 80, 70, 60, 50],
+        reason:
+            'the classic easy-mode table is untouched by any counting '
+            'run',
+      );
+      expect(scores.where((s) => !s.easy && s.counting).map((s) => s.score), [
+        1000,
+      ]);
+      expect(scores.where((s) => s.easy && s.counting).map((s) => s.score), [
+        1000,
+      ]);
+    });
+
+    test('bestLength rises from a run that scored nothing, and never '
+        'falls', () async {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      // A snake that crashed having eaten nothing still grew: the run scored
+      // no points, but bestLength must still rise from it
+      // (`PLAN-phase-7-snake.md` §4.8).
+      repository.recordArcadeResult(
+        'snake',
+        const ArcadeResult(score: 0, length: 5),
+      );
+      expect(repository.activeProfile.arcade.games['snake']!.bestLength, 5);
+
+      repository.recordArcadeResult(
+        'snake',
+        const ArcadeResult(score: 200, length: 3),
+      );
+      expect(
+        repository.activeProfile.arcade.games['snake']!.bestLength,
+        5,
+        reason: 'a shorter run must never lower the lifetime best',
+      );
+
+      repository.recordArcadeResult(
+        'snake',
+        const ArcadeResult(score: 200, length: 9),
+      );
+      expect(repository.activeProfile.arcade.games['snake']!.bestLength, 9);
+
+      // Starting a fresh run must not reset the lifetime best either.
+      repository.startArcadeGame('snake');
+      expect(repository.activeProfile.arcade.games['snake']!.bestLength, 9);
+    });
   });
 
   group('drawing', () {
