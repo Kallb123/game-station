@@ -240,6 +240,18 @@ class _OnScreenPadState extends State<OnScreenPad> {
 /// [_dPadReach] from the shared centre — the arrangement that puts each
 /// arrow where its direction points, packed to [_dPadExtent]'s compact
 /// footprint rather than a spaced-out 3x3 grid (`_dPadReach`'s own doc).
+///
+/// Each button is wrapped in a [ClipOval] here — and only here, not inside
+/// [_PadButton] itself, which the lateral layout also uses and has no reason
+/// to shrink from a square target to a circular one. [_dPadReach] only keeps
+/// the four drawn *circles* apart; [_PadButton]'s own hit-test area is its
+/// full 72 dp *square*, and at this reach adjacent squares still overlap by
+/// design (`_dPadReach`'s doc). Left unclipped, a tap in that overlap —
+/// visually well inside one button's circle — would resolve to whichever
+/// button is later in this [Stack] instead, which is exactly the dropped
+/// turn `PLAN-phase-7-snake.md` §7 calls out as its highest-severity risk.
+/// [ClipOval] restricts each button's hit-test to the same circle it draws,
+/// so a point belongs to at most one of them regardless of paint order.
 class _DPad extends StatelessWidget {
   const _DPad({required this.haptics, required this.onUpdate});
 
@@ -262,45 +274,53 @@ class _DPad extends StatelessWidget {
         Positioned(
           left: _left(0),
           top: _top(-1),
-          child: _PadButton(
-            key: OnScreenPad.upKey,
-            label: 'Up',
-            icon: Icons.arrow_upward,
-            haptics: haptics,
-            onHeldChanged: (held) => onUpdate(up: held),
+          child: ClipOval(
+            child: _PadButton(
+              key: OnScreenPad.upKey,
+              label: 'Up',
+              icon: Icons.arrow_upward,
+              haptics: haptics,
+              onHeldChanged: (held) => onUpdate(up: held),
+            ),
           ),
         ),
         Positioned(
           left: _left(0),
           top: _top(1),
-          child: _PadButton(
-            key: OnScreenPad.downKey,
-            label: 'Down',
-            icon: Icons.arrow_downward,
-            haptics: haptics,
-            onHeldChanged: (held) => onUpdate(down: held),
+          child: ClipOval(
+            child: _PadButton(
+              key: OnScreenPad.downKey,
+              label: 'Down',
+              icon: Icons.arrow_downward,
+              haptics: haptics,
+              onHeldChanged: (held) => onUpdate(down: held),
+            ),
           ),
         ),
         Positioned(
           left: _left(-1),
           top: _top(0),
-          child: _PadButton(
-            key: OnScreenPad.leftKey,
-            label: 'Left',
-            icon: Icons.arrow_back,
-            haptics: haptics,
-            onHeldChanged: (held) => onUpdate(left: held),
+          child: ClipOval(
+            child: _PadButton(
+              key: OnScreenPad.leftKey,
+              label: 'Left',
+              icon: Icons.arrow_back,
+              haptics: haptics,
+              onHeldChanged: (held) => onUpdate(left: held),
+            ),
           ),
         ),
         Positioned(
           left: _left(1),
           top: _top(0),
-          child: _PadButton(
-            key: OnScreenPad.rightKey,
-            label: 'Right',
-            icon: Icons.arrow_forward,
-            haptics: haptics,
-            onHeldChanged: (held) => onUpdate(right: held),
+          child: ClipOval(
+            child: _PadButton(
+              key: OnScreenPad.rightKey,
+              label: 'Right',
+              icon: Icons.arrow_forward,
+              haptics: haptics,
+              onHeldChanged: (held) => onUpdate(right: held),
+            ),
           ),
         ),
       ],
