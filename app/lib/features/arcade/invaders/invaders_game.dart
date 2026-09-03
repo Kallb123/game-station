@@ -28,17 +28,11 @@ import '../../../core/audio/motif.dart';
 import '../../../core/haptics.dart';
 import '../shared/arcade_controller.dart';
 import '../shared/arcade_result.dart';
+import '../shared/fixed_step.dart';
 import '../shared/pad_input.dart';
 import 'model/invaders_rules.dart';
 import 'model/invaders_sim.dart';
 import 'model/sprites.dart' as sprites;
-
-/// A frame that arrives this late — a garbage-collection pause, a resumed
-/// app, a debugger breakpoint — asks for far more steps than a frame can
-/// afford (`PLAN-phase-4.md` §4.2). Past this many, the remainder is dropped
-/// rather than chased: losing time reads to a child as a shorter pause,
-/// where chasing it would fire shots nobody saw coming.
-const int maxStepsPerFrame = 8;
 
 /// Drives [InvadersSim] on Flame's frame loop, draws its current state, and
 /// is the first [ArcadeGameController] `GameShell` wraps
@@ -138,8 +132,7 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
       autoFire: _sim.autoFire,
     );
     _field.sim = _sim;
-    _elapsed = 0;
-    _consumedSteps = 0;
+    _accumulator.reset();
     hud.value = _hudOf(_sim);
     isOver.value = false;
     resumeEngine();
@@ -164,31 +157,13 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
   /// §4.5) needs a way back in rather than only a way in.
   set color(Color value) => _field.color = value;
 
-  /// Seconds of frame time not yet turned into an [InvadersSim.step] call.
-  ///
-  /// A running total rather than something decremented back towards zero —
-  /// see `invaders_sim_equivalence_test.dart`'s header for why the
-  /// subtractive form this file's plan sketch first used is the wrong one:
-  /// it rounds two frame rates to a different leftover remainder at exactly
-  /// the point their totals should agree.
-  double _elapsed = 0;
-
-  /// How many fixed-step-worths of [_elapsed] have been accounted for —
-  /// either by a real [InvadersSim.step] call, or by [maxStepsPerFrame]
-  /// dropping the rest of a backlog. Distinct from [_totalSteps]: after a
-  /// drop this jumps ahead of the steps actually taken, which is the point —
-  /// it is what stops the next frame trying to make up the difference.
-  int _consumedSteps = 0;
-
-  /// The steps [update] has actually fed to [InvadersSim.step] — a test
-  /// seam, in the same spirit as `InvadersSim`'s own `debugSetAliveRows`: it
-  /// lets a test assert the accumulator's arithmetic directly, rather than
-  /// through a side effect on the sim that would also depend on what a step
-  /// happened to do.
-  int _totalSteps = 0;
+  /// Turns frame deltas into fixed steps — `shared/fixed_step.dart`'s running
+  /// total, shared with every other arcade game's Flame layer
+  /// (`PLAN-phase-7-snake.md` §4.7).
+  final FixedStepAccumulator _accumulator = FixedStepAccumulator();
 
   @visibleForTesting
-  int get debugStepsDone => _totalSteps;
+  int get debugStepsDone => _accumulator.totalSteps;
 
   @override
   void update(double dt) {
@@ -198,19 +173,10 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
     // all), but nothing here should assume its caller.
     if (paused) return;
 
-    _elapsed += dt;
-    final target = (_elapsed / InvadersSim.fixedStep).floor();
-    var steps = 0;
-    while (_consumedSteps < target && steps < maxStepsPerFrame) {
+    final steps = _accumulator.advance(dt);
+    for (var i = 0; i < steps; i++) {
       _sim.step(input.value);
-      _consumedSteps++;
-      _totalSteps++;
-      steps++;
     }
-    // The clamp above stopped short of `target`: drop the backlog rather than
-    // letting the next frame try to make it up in one go (`PLAN-phase-4.md`
-    // §4.2).
-    if (steps == maxStepsPerFrame) _consumedSteps = target;
 
     // Skipped when nothing stepped: a `ValueNotifier` already drops a write
     // that equals its current value, but a run that is over settles at one
@@ -288,10 +254,9 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
     // The delta across a pause is not game time (`PLAN-phase-4.md` §4.5):
     // without this, backgrounding the app for a minute and returning would
     // ask next frame for the thousands of steps that minute is worth, which
-    // the clamp above would then have to drop anyway. Zeroing here reaches
+    // the clamp above would then have to drop anyway. Resetting here reaches
     // the same outcome without a frame that briefly owes them.
-    _elapsed = 0;
-    _consumedSteps = 0;
+    _accumulator.reset();
     super.resumeEngine();
   }
 }
