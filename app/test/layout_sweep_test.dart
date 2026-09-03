@@ -67,6 +67,7 @@ Map<String, Object?> _sweepRoutes(PuzzleId puzzleId) => {
   AppRoutes.sudokuPlay: SudokuPlayArgs(puzzleId),
   AppRoutes.arcade: null,
   AppRoutes.arcadeInvaders: null,
+  AppRoutes.arcadeSnake: null,
   AppRoutes.draw: null,
   AppRoutes.drawSheet: const DrawSheetArgs(),
 };

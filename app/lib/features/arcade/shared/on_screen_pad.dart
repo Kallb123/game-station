@@ -30,10 +30,25 @@ enum PadLayout {
   dPad,
 }
 
-/// The diamond's side, in dp: three [AppTapTargets.primary] buttons across
-/// with [AppSpacing.sm] between them, the same square in both dimensions
-/// (`PLAN-phase-7-snake.md` §4.6).
-const double _dPadExtent = 3 * AppTapTargets.primary + 2 * AppSpacing.sm;
+/// How far each button's centre sits from the diamond's own centre, in dp.
+///
+/// Four [AppTapTargets.primary] (72 dp) circles placed 90 degrees apart
+/// around a shared centre must keep every adjacent pair — which sit
+/// `sqrt(2)` times [_dPadReach] apart, not [_dPadReach] itself — at least
+/// 72 dp apart so neither circle draws into the other. `72 / sqrt(2)` is
+/// that floor; the two extra dp are margin so rounding never lets two
+/// circles just touch. This is `PLAN-phase-7-snake.md` §7's "compact diamond
+/// with the buttons overlapping their corners" fallback: each button's
+/// square *bounding box* overlaps its neighbours', but the drawn circles
+/// inside those boxes never do — found necessary once `layout_sweep_test.dart`
+/// covered `/arcade/snake` in landscape at 200% text scale, where the
+/// original one-cell-gap grid (232 dp square) overflowed the field's
+/// available height by 29 dp.
+const double _dPadReach = 52.92;
+
+/// The diamond's side, in dp — the smallest square that holds all four
+/// buttons at [_dPadReach], the same square in both dimensions.
+const double _dPadExtent = 2 * (_dPadReach + AppTapTargets.primary / 2);
 
 /// LEFT, RIGHT and FIRE, or a four-way D-pad, below the play field.
 ///
@@ -221,83 +236,75 @@ class _OnScreenPadState extends State<OnScreenPad> {
   );
 }
 
-/// UP, DOWN, LEFT and RIGHT in a diamond (`PLAN-phase-7-snake.md` §4.6): a
-/// 3x3 grid of [AppTapTargets.primary] cells with a button on each edge and
-/// nothing in the corners or the centre, which is the arrangement that puts
-/// each arrow where its direction points.
+/// UP, DOWN, LEFT and RIGHT in a diamond (`PLAN-phase-7-snake.md` §4.6), each
+/// [_dPadReach] from the shared centre — the arrangement that puts each
+/// arrow where its direction points, packed to [_dPadExtent]'s compact
+/// footprint rather than a spaced-out 3x3 grid (`_dPadReach`'s own doc).
 class _DPad extends StatelessWidget {
   const _DPad({required this.haptics, required this.onUpdate});
 
   final AppHaptics haptics;
   final void Function({bool? up, bool? down, bool? left, bool? right}) onUpdate;
 
-  static const _empty = SizedBox(
-    width: AppTapTargets.primary,
-    height: AppTapTargets.primary,
-  );
-  static const _gap = SizedBox(width: AppSpacing.sm, height: AppSpacing.sm);
+  /// A button's top-left corner, [_dPadReach] dp from the diamond's centre
+  /// in the direction [dx], [dy] (each -1, 0 or 1) points.
+  static double _left(double dx) =>
+      _dPadExtent / 2 + dx * _dPadReach - AppTapTargets.primary / 2;
+  static double _top(double dy) =>
+      _dPadExtent / 2 + dy * _dPadReach - AppTapTargets.primary / 2;
 
   @override
-  Widget build(BuildContext context) => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _empty,
-          _gap,
-          _PadButton(
+  Widget build(BuildContext context) => SizedBox(
+    width: _dPadExtent,
+    height: _dPadExtent,
+    child: Stack(
+      children: [
+        Positioned(
+          left: _left(0),
+          top: _top(-1),
+          child: _PadButton(
             key: OnScreenPad.upKey,
             label: 'Up',
             icon: Icons.arrow_upward,
             haptics: haptics,
             onHeldChanged: (held) => onUpdate(up: held),
           ),
-          _gap,
-          _empty,
-        ],
-      ),
-      _gap,
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _PadButton(
-            key: OnScreenPad.leftKey,
-            label: 'Left',
-            icon: Icons.arrow_back,
-            haptics: haptics,
-            onHeldChanged: (held) => onUpdate(left: held),
-          ),
-          _gap,
-          _empty,
-          _gap,
-          _PadButton(
-            key: OnScreenPad.rightKey,
-            label: 'Right',
-            icon: Icons.arrow_forward,
-            haptics: haptics,
-            onHeldChanged: (held) => onUpdate(right: held),
-          ),
-        ],
-      ),
-      _gap,
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _empty,
-          _gap,
-          _PadButton(
+        ),
+        Positioned(
+          left: _left(0),
+          top: _top(1),
+          child: _PadButton(
             key: OnScreenPad.downKey,
             label: 'Down',
             icon: Icons.arrow_downward,
             haptics: haptics,
             onHeldChanged: (held) => onUpdate(down: held),
           ),
-          _gap,
-          _empty,
-        ],
-      ),
-    ],
+        ),
+        Positioned(
+          left: _left(-1),
+          top: _top(0),
+          child: _PadButton(
+            key: OnScreenPad.leftKey,
+            label: 'Left',
+            icon: Icons.arrow_back,
+            haptics: haptics,
+            onHeldChanged: (held) => onUpdate(left: held),
+          ),
+        ),
+        Positioned(
+          left: _left(1),
+          top: _top(0),
+          child: _PadButton(
+            key: OnScreenPad.rightKey,
+            label: 'Right',
+            icon: Icons.arrow_forward,
+            haptics: haptics,
+            onHeldChanged: (held) => onUpdate(right: held),
+          ),
+        ),
+      ],
+    ),
   );
 }
 

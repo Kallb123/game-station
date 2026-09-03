@@ -64,6 +64,7 @@ class GameShell extends StatefulWidget {
     required this.padSide,
     required this.haptics,
     this.waveLabel = 'Wave',
+    this.padLayout = PadLayout.lateral,
     super.key,
   });
 
@@ -91,6 +92,12 @@ class GameShell extends StatefulWidget {
   /// Buzzes a pad button press, handed to [OnScreenPad]
   /// (`PLAN-phase-5.md` §4.5).
   final AppHaptics haptics;
+
+  /// Which buttons [OnScreenPad] draws — the lateral LEFT/RIGHT/FIRE row
+  /// every game before Snake used, or Snake's four-way diamond
+  /// (`PLAN-phase-7-snake.md` §4.6). Defaults to [PadLayout.lateral], so
+  /// Invaders passes nothing.
+  final PadLayout padLayout;
 
   @override
   State<GameShell> createState() => _GameShellState();
@@ -366,6 +373,7 @@ class _GameShellState extends State<GameShell> {
                       input: widget.controller.input,
                       side: widget.padSide,
                       haptics: widget.haptics,
+                      layout: widget.padLayout,
                     ),
                   )
                 : const SizedBox.shrink(),
@@ -382,6 +390,7 @@ class _GameShellState extends State<GameShell> {
               side: widget.padSide,
               haptics: widget.haptics,
               axis: Axis.vertical,
+              layout: widget.padLayout,
               child: field,
             )
           : field,
