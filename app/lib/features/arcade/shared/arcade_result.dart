@@ -20,6 +20,8 @@ class ArcadeResult {
     this.wave = 0,
     this.kills = 0,
     this.easy = false,
+    this.counting = false,
+    this.length = 0,
   });
 
   /// Points scored this run.
@@ -36,14 +38,29 @@ class ArcadeResult {
   /// produces, so the top five is kept separately per mode.
   final bool easy;
 
+  /// Whether the run was a Snake counting run. Carried onto the [HighScore]
+  /// it produces, so the top five is kept separately per `(easy, counting)`
+  /// pair (`PLAN-phase-7-snake.md` §4.8). Always false for every game but
+  /// Snake.
+  final bool counting;
+
+  /// How long the snake grew this run. `ProgressRepository.recordArcadeResult`
+  /// raises `ArcadeGameProgress.bestLength` by `max` regardless of [score], so
+  /// the longest snake a profile has ever grown is never lost to a run that
+  /// scored nothing (`PLAN-phase-7-snake.md` §4.8). Always zero for every game
+  /// but Snake.
+  final int length;
+
   @override
   bool operator ==(Object other) =>
       other is ArcadeResult &&
       other.score == score &&
       other.wave == wave &&
       other.kills == kills &&
-      other.easy == easy;
+      other.easy == easy &&
+      other.counting == counting &&
+      other.length == length;
 
   @override
-  int get hashCode => Object.hash(score, wave, kills, easy);
+  int get hashCode => Object.hash(score, wave, kills, easy, counting, length);
 }

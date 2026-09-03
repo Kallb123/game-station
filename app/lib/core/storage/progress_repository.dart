@@ -351,31 +351,45 @@ class ProgressRepository extends ChangeNotifier {
       highScores: game.highScores,
       gamesPlayed: game.gamesPlayed + 1,
       totalKills: game.totalKills,
+      bestLength: game.bestLength,
     ),
   );
 
   /// Records how a run of [gameId] ended: adds [result] to the top-five table
-  /// for its mode and its kills to the lifetime count.
+  /// for its `(easy, counting)` pair, its kills to the lifetime count, and
+  /// raises `bestLength` to [ArcadeResult.length] if that run grew longer than
+  /// any before it.
   ///
-  /// A run worth zero points is not stored — there is nothing to show for it
-  /// (`PLAN-phase-4.md` §4.8). Quitting mid-run still calls this: a run
+  /// A run worth zero points adds no high score and no kills — there is
+  /// nothing to show for it (`PLAN-phase-4.md` §4.8) — but still raises
+  /// `bestLength`: a snake that grew before it crashed without eating
+  /// anything worth points has still set a length worth remembering
+  /// (`PLAN-phase-7-snake.md` §4.8). Quitting mid-run still calls this: a run
   /// stopped at 3,000 points is still a run.
   void recordArcadeResult(String gameId, ArcadeResult result) {
-    if (result.score <= 0) return;
+    if (result.score <= 0 && result.length <= 0) return;
     _updateArcadeGame(
       gameId,
       (game) => ArcadeGameProgress(
-        highScores: _withHighScore(
-          game.highScores,
-          HighScore(
-            score: result.score,
-            wave: result.wave,
-            at: _now().toUtc(),
-            easy: result.easy,
-          ),
-        ),
+        highScores: result.score > 0
+            ? _withHighScore(
+                game.highScores,
+                HighScore(
+                  score: result.score,
+                  wave: result.wave,
+                  at: _now().toUtc(),
+                  easy: result.easy,
+                  counting: result.counting,
+                ),
+              )
+            : game.highScores,
         gamesPlayed: game.gamesPlayed,
-        totalKills: game.totalKills + result.kills,
+        totalKills: result.score > 0
+            ? game.totalKills + result.kills
+            : game.totalKills,
+        bestLength: result.length > game.bestLength
+            ? result.length
+            : game.bestLength,
       ),
     );
   }
@@ -406,20 +420,25 @@ class ProgressRepository extends ChangeNotifier {
   });
 
   /// [existing] with [entry] inserted among the scores that share its
-  /// [HighScore.easy] flag, capped at [arcadeHighScoreCap] within that flag
-  /// alone. The other mode's entries pass through untouched, so a normal-mode
-  /// score can never evict an easy-mode one (`PLAN-phase-4.md` §3, §4.9).
+  /// `(easy, counting)` pair, capped at [arcadeHighScoreCap] within that pair
+  /// alone. Every other pair's entries pass through untouched, so a
+  /// normal-mode score can never evict an easy-mode one, and a counting score
+  /// can never evict a classic one (`PLAN-phase-4.md` §3, §4.9;
+  /// `PLAN-phase-7-snake.md` §4.8).
   List<HighScore> _withHighScore(List<HighScore> existing, HighScore entry) {
-    final otherMode = [
+    bool samePair(HighScore score) =>
+        score.easy == entry.easy && score.counting == entry.counting;
+
+    final otherPairs = [
       for (final score in existing)
-        if (score.easy != entry.easy) score,
+        if (!samePair(score)) score,
     ];
-    final sameMode = [
+    final samePairScores = [
       for (final score in existing)
-        if (score.easy == entry.easy) score,
+        if (samePair(score)) score,
       entry,
     ]..sort((a, b) => b.score.compareTo(a.score));
-    return [...otherMode, ...sameMode.take(arcadeHighScoreCap)];
+    return [...otherPairs, ...samePairScores.take(arcadeHighScoreCap)];
   }
 
   // --- drawing -------------------------------------------------------------
