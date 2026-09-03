@@ -63,6 +63,7 @@ class GameShell extends StatefulWidget {
     required this.repository,
     required this.padSide,
     required this.haptics,
+    this.waveLabel = 'Wave',
     super.key,
   });
 
@@ -71,6 +72,11 @@ class GameShell extends StatefulWidget {
 
   /// The game's name, shown in the header row.
   final String title;
+
+  /// What the HUD calls [ArcadeHud.wave] — Invaders counts waves, Snake
+  /// counts levels, and a shell that called Snake's levels "Wave" would be
+  /// telling the child the wrong word (`PLAN-phase-7-snake.md` §4.7).
+  final String waveLabel;
 
   /// The key [ProgressRepository.recordArcadeResult] stores this game's
   /// progress under — `"invaders"` for the first one.
@@ -292,7 +298,8 @@ class _GameShellState extends State<GameShell> {
         ),
         ValueListenableBuilder<ArcadeHud>(
           valueListenable: widget.controller.hud,
-          builder: (context, hud, _) => _HudText(hud: hud),
+          builder: (context, hud, _) =>
+              _HudText(hud: hud, waveLabel: widget.waveLabel),
         ),
       ],
     );
@@ -491,20 +498,27 @@ class _GameShellState extends State<GameShell> {
 /// Lives are drawn as glyphs *and* a number: a count that is only a row of
 /// icons is unreadable at a glance past four (`PLAN-phase-4.md` §4.8).
 class _HudText extends StatelessWidget {
-  const _HudText({required this.hud});
+  const _HudText({required this.hud, required this.waveLabel});
 
   final ArcadeHud hud;
+  final String waveLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final lives = '♥' * hud.lives;
+    final note = hud.note;
 
     return Semantics(
-      label: 'Score ${hud.score}, ${hud.lives} lives, wave ${hud.wave}',
+      label:
+          'Score ${hud.score}, ${hud.lives} lives, '
+          '$waveLabel ${hud.wave}'
+          '${note.isEmpty ? '' : ', $note'}',
       child: ExcludeSemantics(
         child: Text(
-          'Score ${hud.score}   $lives ${hud.lives}   Wave ${hud.wave}',
+          'Score ${hud.score}   $lives ${hud.lives}   '
+          '$waveLabel ${hud.wave}'
+          '${note.isEmpty ? '' : '   $note'}',
           style: theme.textTheme.bodyLarge,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

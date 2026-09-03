@@ -66,6 +66,7 @@ Future<ProgressRepository> _pumpShell(
   WidgetTester tester,
   _FakeController controller, {
   EdgeInsets padding = EdgeInsets.zero,
+  String waveLabel = 'Wave',
 }) async {
   final save = SaveData.initial(createdAt: _clock());
   final repository = ProgressRepository(
@@ -96,6 +97,7 @@ Future<ProgressRepository> _pumpShell(
                     repository: repository,
                     padSide: PadSide.right,
                     haptics: const SilentHaptics(),
+                    waveLabel: waveLabel,
                   ),
                 ),
               ),
@@ -291,5 +293,51 @@ void main() {
     // 562 dp safe area — but a regression that crushed it to less than this
     // is a field no child could see enough of to play.
     expect(field.height, greaterThanOrEqualTo(200));
+  });
+
+  testWidgets(
+    'a note renders after the wave and appears in the Semantics label',
+    (tester) async {
+      final controller = _FakeController();
+      await _pumpShell(tester, controller);
+
+      controller.hud.value = const ArcadeHud(
+        score: 10,
+        lives: 3,
+        wave: 2,
+        note: 'Next 7',
+      );
+      await tester.pump();
+
+      expect(find.textContaining('Next 7'), findsOneWidget);
+      final semanticsData = tester.getSemantics(find.textContaining('Next 7'));
+      expect(semanticsData.label, contains('Next 7'));
+      expect(
+        semanticsData.label.indexOf('Wave 2'),
+        lessThan(semanticsData.label.indexOf('Next 7')),
+        reason: 'the note follows the wave',
+      );
+    },
+  );
+
+  testWidgets('a run with no note draws no trailing gap', (tester) async {
+    final controller = _FakeController();
+    await _pumpShell(tester, controller);
+
+    controller.hud.value = const ArcadeHud(score: 10, lives: 3, wave: 2);
+    await tester.pump();
+
+    expect(find.textContaining('Next'), findsNothing);
+  });
+
+  testWidgets('waveLabel changes the word', (tester) async {
+    final controller = _FakeController();
+    await _pumpShell(tester, controller, waveLabel: 'Level');
+
+    controller.hud.value = const ArcadeHud(score: 10, lives: 3, wave: 4);
+    await tester.pump();
+
+    expect(find.textContaining('Level 4'), findsOneWidget);
+    expect(find.textContaining('Wave 4'), findsNothing);
   });
 }
