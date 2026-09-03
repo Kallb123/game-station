@@ -99,6 +99,45 @@ void main() {
         expect(decoded.schemaVersion, currentSchemaVersion);
       },
     );
+
+    // The PR's own done-criterion (`PLAN-phase-7-snake.md` §6, PR 1): all four
+    // `(easy, counting)` high-score tables, a `bestLength` and a non-default
+    // `snakeCounting` round trip without moving the schema.
+    test('four snake high-score tables, a bestLength and a non-default '
+        'snakeCounting round trip', () {
+      final save = SaveData(
+        activeProfileId: 'p1',
+        profiles: [
+          Profile(
+            id: 'p1',
+            name: 'Ana',
+            avatar: AvatarId.fox,
+            createdAt: DateTime.utc(2026),
+            snakeCounting: SnakeCounting.off,
+            arcade: ArcadeProgress(
+              games: {
+                'snake': const ArcadeGameProgress(
+                  highScores: [
+                    HighScore(score: 900),
+                    HighScore(score: 800, easy: true),
+                    HighScore(score: 700, counting: true),
+                    HighScore(score: 600, easy: true, counting: true),
+                  ],
+                  gamesPlayed: 9,
+                  totalKills: 41,
+                  bestLength: 24,
+                ),
+              },
+            ),
+          ),
+        ],
+      );
+
+      final decoded = decodeSave(encodeSave(save));
+
+      expect(decoded, save);
+      expect(decoded.schemaVersion, currentSchemaVersion);
+    });
   });
 
   group('decoding a v1 file', () {
@@ -199,6 +238,38 @@ void main() {
       // `allowPhotoImport` (`PLAN-phase-8.md` §6, PR 1's own done-criterion).
       expect(save.settings.allowPhotoImport, isFalse);
       expect(save.activeProfile.draw, const DrawProgress());
+    });
+
+    // A save written before this phase has none of Snake's fields at all:
+    // `snakeCounting`, `HighScore.counting` and `ArcadeGameProgress.bestLength`
+    // must still decode, each at its default (`PLAN-phase-7-snake.md` §6,
+    // PR 1's own done-criterion).
+    test('a v1 file written before this phase decodes with every snake '
+        'field at its default', () {
+      final save = decodeSave(planExampleJson);
+
+      expect(save.activeProfile.snakeCounting, SnakeCounting.ones);
+      final invaders = save.activeProfile.arcade.games['invaders']!;
+      expect(invaders.bestLength, 0);
+      expect(
+        invaders.highScores.every((score) => score.counting == false),
+        isTrue,
+      );
+
+      final minimal = decodeSave(minimalSaveJson);
+      expect(minimal.activeProfile.snakeCounting, SnakeCounting.ones);
+    });
+
+    test('an unknown snakeCounting string decodes to ones', () {
+      final save = decodeSave(
+        _patch(
+          minimalSaveJson,
+          '"createdAt": "2026-08-11T10:00:00Z" }',
+          '"createdAt": "2026-08-11T10:00:00Z", "snakeCounting": "threes" }',
+        ),
+      );
+
+      expect(save.activeProfile.snakeCounting, SnakeCounting.ones);
     });
 
     test('a profile\'s draw block and allowPhotoImport round trip', () {

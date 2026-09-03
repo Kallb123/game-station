@@ -30,6 +30,7 @@ SaveData fullSave() => SaveData(
       arcadeEasyMode: true,
       arcadeAutoFire: true,
       padSide: PadSide.left,
+      snakeCounting: SnakeCounting.twos,
       sudoku: SudokuProgress(
         solved: {
           'sudoku:9x9:easy:0': SolvedPuzzle(
@@ -62,6 +63,19 @@ SaveData fullSave() => SaveData(
             ],
             gamesPlayed: 22,
             totalKills: 3110,
+          ),
+          'snake': ArcadeGameProgress(
+            highScores: [
+              HighScore(
+                score: 320,
+                at: DateTime.utc(2026, 8, 9),
+                counting: true,
+              ),
+              const HighScore(score: 180, easy: true, counting: true),
+            ],
+            gamesPlayed: 14,
+            totalKills: 96,
+            bestLength: 24,
           ),
         },
       ),
