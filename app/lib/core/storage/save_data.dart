@@ -69,6 +69,20 @@ enum PadSide {
   left,
 }
 
+/// What a Snake run counts, fixed when the run starts
+/// (`PLAN-phase-7-snake.md` §3, §4.3).
+enum SnakeCounting {
+  /// Classic Snake: one target on the field, no numeral.
+  off,
+
+  /// 1, 2, 3 … one decade per level. The default — counting is why this game
+  /// is in this app; a child who wants plain snake turns it off.
+  ones,
+
+  /// 2, 4, 6 … one decade per level.
+  twos,
+}
+
 /// How hard [AppSettings] buzzes. Replaces the plain on/off `haptics` bool
 /// PR 5 first shipped, once a device pass found every call too faint to feel
 /// reliably (`PLAN-phase-5.md` §4.5) — `core/haptics.dart` climbs a four-rung
@@ -365,6 +379,7 @@ class HighScore {
     this.wave = 0,
     this.at,
     this.easy = false,
+    this.counting = false,
   });
 
   /// Points.
@@ -387,16 +402,26 @@ class HighScore {
   /// flag, so a normal-mode score can never evict an easy-mode one.
   final bool easy;
 
+  /// Whether the run that set it was a Snake counting run.
+  ///
+  /// A counting run travels further per point than a classic one, so the two
+  /// are not comparable and share no table — the top-five cap applies within
+  /// one `(easy, counting)` pair, the same reasoning that keeps [easy]'s
+  /// tables apart (`PLAN-phase-7-snake.md` §4.8). Counting in twos sets the
+  /// same flag as counting in ones. Always false for every game but Snake.
+  final bool counting;
+
   @override
   bool operator ==(Object other) =>
       other is HighScore &&
       other.score == score &&
       other.wave == wave &&
       other.at == at &&
-      other.easy == easy;
+      other.easy == easy &&
+      other.counting == counting;
 
   @override
-  int get hashCode => Object.hash(score, wave, at, easy);
+  int get hashCode => Object.hash(score, wave, at, easy, counting);
 }
 
 /// One profile's history for one arcade game.
@@ -405,6 +430,7 @@ class ArcadeGameProgress {
     this.highScores = const [],
     this.gamesPlayed = 0,
     this.totalKills = 0,
+    this.bestLength = 0,
   });
 
   /// Best first, capped at five by the repository (`PLAN.md` §4.3). The cap is
@@ -415,19 +441,33 @@ class ArcadeGameProgress {
   /// Lifetime games started.
   final int gamesPlayed;
 
-  /// Lifetime aliens destroyed.
+  /// Lifetime aliens (or the equivalent) destroyed.
   final int totalKills;
+
+  /// The longest Snake has ever grown, `PLAN.md` §4.4's "longest snake".
+  ///
+  /// A lifetime best like [totalKills], updated from every run whether or not
+  /// it made the top five — a per-entry length would lose the longest snake
+  /// of a run that scored badly, and would leave one number with two places
+  /// to look for it (`PLAN-phase-7-snake.md` §4.8). Zero, and unread, for
+  /// every game but Snake.
+  final int bestLength;
 
   @override
   bool operator ==(Object other) =>
       other is ArcadeGameProgress &&
       _listEquals(other.highScores, highScores) &&
       other.gamesPlayed == gamesPlayed &&
-      other.totalKills == totalKills;
+      other.totalKills == totalKills &&
+      other.bestLength == bestLength;
 
   @override
-  int get hashCode =>
-      Object.hash(Object.hashAll(highScores), gamesPlayed, totalKills);
+  int get hashCode => Object.hash(
+    Object.hashAll(highScores),
+    gamesPlayed,
+    totalKills,
+    bestLength,
+  );
 }
 
 /// One profile's arcade history, keyed by game id — `"invaders"` in phase 4.
@@ -516,6 +556,7 @@ class Profile {
     this.arcadeEasyMode = false,
     this.arcadeAutoFire = false,
     this.padSide = PadSide.right,
+    this.snakeCounting = SnakeCounting.ones,
   }) : assert(createdAt.isUtc, 'createdAt must be UTC');
 
   /// `"p1"`, `"p2"`, … — a counter, never random and never a clock reading, so
@@ -554,6 +595,10 @@ class Profile {
   /// Which side LEFT and RIGHT sit on.
   final PadSide padSide;
 
+  /// What a Snake run counts. A child's choice, not the tablet's — see
+  /// [SnakeCounting] (`PLAN-phase-7-snake.md` §4.8).
+  final SnakeCounting snakeCounting;
+
   Profile copyWith({
     String? name,
     AvatarId? avatar,
@@ -564,6 +609,7 @@ class Profile {
     bool? arcadeEasyMode,
     bool? arcadeAutoFire,
     PadSide? padSide,
+    SnakeCounting? snakeCounting,
   }) => Profile(
     id: id,
     name: name ?? this.name,
@@ -576,6 +622,7 @@ class Profile {
     arcadeEasyMode: arcadeEasyMode ?? this.arcadeEasyMode,
     arcadeAutoFire: arcadeAutoFire ?? this.arcadeAutoFire,
     padSide: padSide ?? this.padSide,
+    snakeCounting: snakeCounting ?? this.snakeCounting,
   );
 
   @override
@@ -591,7 +638,8 @@ class Profile {
       other.mistakeFeedback == mistakeFeedback &&
       other.arcadeEasyMode == arcadeEasyMode &&
       other.arcadeAutoFire == arcadeAutoFire &&
-      other.padSide == padSide;
+      other.padSide == padSide &&
+      other.snakeCounting == snakeCounting;
 
   @override
   int get hashCode => Object.hash(
@@ -606,6 +654,7 @@ class Profile {
     arcadeEasyMode,
     arcadeAutoFire,
     padSide,
+    snakeCounting,
   );
 }
 

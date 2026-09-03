@@ -269,7 +269,25 @@ Profile _readProfile(Map<String, Object?> raw, String path) => Profile(
           _string(raw['padSide'], _at(path, 'padSide')),
           _at(path, 'padSide'),
         ),
+  snakeCounting: _readSnakeCounting(raw, path),
 );
+
+/// Reads `snakeCounting`, defaulting to [SnakeCounting.ones] both when the key
+/// is missing and when it names a value this build does not know
+/// (`PLAN-phase-7-snake.md` §4.8) — unlike every other enum in this file,
+/// which [_enum] refuses rather than defaults. A value this build cannot read
+/// is elsewhere a sign of corruption, but here it is also what a newer build's
+/// third counting mode looks like to an older one, and defaulting to the mode
+/// this game exists for costs a save nothing an older build would notice.
+SnakeCounting _readSnakeCounting(Map<String, Object?> raw, String path) {
+  final value = raw['snakeCounting'];
+  if (value == null) return SnakeCounting.ones;
+  final name = _string(value, _at(path, 'snakeCounting'));
+  for (final counting in SnakeCounting.values) {
+    if (counting.name == name) return counting;
+  }
+  return SnakeCounting.ones;
+}
 
 SudokuProgress _readSudoku(Map<String, Object?> raw, String path) =>
     SudokuProgress(
@@ -349,6 +367,7 @@ ArcadeGameProgress _readArcadeGame(Map<String, Object?> raw, String path) {
     ],
     gamesPlayed: _optInt(raw, 'gamesPlayed', path, 0),
     totalKills: _optInt(raw, 'totalKills', path, 0),
+    bestLength: _optInt(raw, 'bestLength', path, 0),
   );
 }
 
@@ -357,6 +376,7 @@ HighScore _readHighScore(Map<String, Object?> raw, String path) => HighScore(
   wave: _optInt(raw, 'wave', path, 0),
   at: raw['at'] == null ? null : _dateTime(raw['at'], _at(path, 'at')),
   easy: _optBool(raw, 'easy', path, false),
+  counting: _optBool(raw, 'counting', path, false),
 );
 
 // --- writing ----------------------------------------------------------------
@@ -392,6 +412,7 @@ Map<String, Object?> _writeProfile(Profile profile) => {
   'arcadeEasyMode': profile.arcadeEasyMode,
   'arcadeAutoFire': profile.arcadeAutoFire,
   'padSide': profile.padSide.name,
+  'snakeCounting': profile.snakeCounting.name,
 };
 
 Map<String, Object?> _writeSudoku(SudokuProgress sudoku) => {
@@ -436,10 +457,12 @@ Map<String, Object?> _writeArcadeGame(ArcadeGameProgress game) => {
         'wave': score.wave,
         if (score.at != null) 'at': _writeDateTime(score.at!),
         'easy': score.easy,
+        'counting': score.counting,
       },
   ],
   'gamesPlayed': game.gamesPlayed,
   'totalKills': game.totalKills,
+  'bestLength': game.bestLength,
 };
 
 /// UTC and ISO-8601, matching the reason `PLAN.md` §3.2 gives for indexing days
