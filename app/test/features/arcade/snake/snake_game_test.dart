@@ -15,6 +15,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/audio/app_audio.dart';
+import 'package:zibo_games/core/audio/motif.dart';
+import 'package:zibo_games/core/haptics.dart';
+import 'package:zibo_games/core/storage/save_data.dart' hide SnakeCounting;
 import 'package:zibo_games/features/arcade/shared/arcade_controller.dart';
 import 'package:zibo_games/features/arcade/shared/fixed_step.dart';
 import 'package:zibo_games/features/arcade/shared/pad_input.dart';
@@ -23,15 +27,22 @@ import 'package:zibo_games/features/arcade/snake/model/snake_rules.dart';
 import 'package:zibo_games/features/arcade/snake/model/snake_sim.dart';
 import 'package:zibo_games/features/arcade/snake/snake_game.dart';
 
+import '../../../core/audio/recording_audio.dart';
+import '../../../core/recording_haptics.dart';
+
 SnakeGame _newGame({
   SnakeRules rules = SnakeRules.normal,
   SnakeCounting counting = SnakeCounting.ones,
   int seed = 1,
+  AppAudio audio = const SilentAudio(),
+  AppHaptics haptics = const SilentHaptics(),
 }) => SnakeGame(
   sim: SnakeSim(rules: rules, counting: counting, seed: seed),
   seed: () => seed,
   input: ValueNotifier(PadInput.none),
   color: Colors.green,
+  audio: audio,
+  haptics: haptics,
 );
 
 void main() {
@@ -218,6 +229,119 @@ void main() {
         expect(extent.bottom, lessThanOrEqualTo(cellSize));
       });
     }
+  });
+
+  group('events turn into sounds', () {
+    test('eating the next target plays snakeEat', () {
+      final audio = RecordingAudio();
+      final game = _newGame(audio: audio, counting: SnakeCounting.ones);
+
+      game.sim.debugSetBody([const Cell(5, 5)], heading: SnakeDirection.right);
+      game.sim.debugSetTargets([
+        SnakeTarget(cell: const Cell(6, 5), value: game.sim.nextValue),
+      ]);
+      game.sim.debugForceMoveNext();
+      game.update(fixedStep);
+
+      expect(audio.played, [Motif.snakeEat]);
+    });
+
+    test('a decoy crossed plays snakeNotYet once, not once per tick spent '
+        'sitting on it', () {
+      final audio = RecordingAudio();
+      final game = _newGame(audio: audio, counting: SnakeCounting.ones);
+
+      game.sim.debugSetBody([const Cell(5, 5)], heading: SnakeDirection.right);
+      // A value other than `nextValue`, so this is a decoy rather than the
+      // target the sequence is waiting for.
+      game.sim.debugSetTargets([
+        SnakeTarget(cell: const Cell(6, 5), value: game.sim.nextValue + 1),
+      ]);
+      game.sim.debugForceMoveNext();
+      game.update(fixedStep); // crosses onto the decoy
+
+      expect(audio.played, [Motif.snakeNotYet]);
+
+      // The head stays on that cell for the rest of this move interval —
+      // `_advance` runs again only once `moveTicksAt` ticks have passed
+      // (`snake_sim.dart`'s own comment on why `notYet` fires on entering
+      // a cell, not on every step inside it) — so nothing more should
+      // play while it sits there.
+      final ticksLeft = game.sim.rules.moveTicksAt(game.sim.level, 0) - 1;
+      for (var i = 0; i < ticksLeft; i++) {
+        game.update(fixedStep);
+      }
+
+      expect(audio.played, [
+        Motif.snakeNotYet,
+      ], reason: 'one sound, not one per tick spent on the decoy');
+    });
+
+    test('a crash plays snakeCrash and buzzes haptics', () {
+      final audio = RecordingAudio();
+      final haptics = RecordingHaptics();
+      final game = _newGame(audio: audio, haptics: haptics);
+
+      game.sim.debugSetBody([
+        Cell(columns - 1, 5),
+      ], heading: SnakeDirection.right);
+      game.sim.debugForceMoveNext();
+      game.update(fixedStep);
+
+      expect(audio.played, [Motif.snakeCrash]);
+      expect(haptics.calls, ['impact']);
+    });
+
+    test('clearing a level plays snakeLevelClear after the final snakeEat, '
+        'and buzzes haptics', () {
+      final audio = RecordingAudio();
+      final haptics = RecordingHaptics();
+      final game = _newGame(
+        audio: audio,
+        haptics: haptics,
+        counting: SnakeCounting.ones,
+      );
+
+      for (var i = 0; i < SnakeRules.normal.targetsPerLevel; i++) {
+        game.sim.debugSetBody([
+          const Cell(5, 5),
+        ], heading: SnakeDirection.right);
+        game.sim.debugSetTargets([
+          SnakeTarget(cell: const Cell(6, 5), value: game.sim.nextValue),
+        ]);
+        game.sim.debugForceMoveNext();
+        // `resumeEngine` zeroes the accumulator (`snake_game.dart`'s own
+        // doc on why), which is what makes one `fixedStep`-sized `update`
+        // advance the sim by exactly one tick on every iteration —
+        // otherwise floating-point drift across ten calls occasionally
+        // carries a leftover into a call that then advances by zero or
+        // two, decoupling this loop's debug state from the tick that
+        // actually consumes it.
+        game.resumeEngine();
+        game.update(fixedStep);
+      }
+
+      expect(audio.played, [
+        ...List.filled(SnakeRules.normal.targetsPerLevel, Motif.snakeEat),
+        Motif.snakeLevelClear,
+      ]);
+      expect(haptics.calls, ['impact']);
+    });
+
+    test('a muted profile plays nothing', () {
+      final audio = RecordingAudio()
+        ..applySettings(const AppSettings(sound: false));
+      final game = _newGame(audio: audio, counting: SnakeCounting.ones);
+
+      game.sim.debugSetBody([const Cell(5, 5)], heading: SnakeDirection.right);
+      game.sim.debugSetTargets([
+        SnakeTarget(cell: const Cell(6, 5), value: game.sim.nextValue),
+      ]);
+      game.sim.debugForceMoveNext();
+      game.update(fixedStep);
+
+      expect(audio.played, isEmpty);
+    });
   });
 
   test('isOver flips once the last life is lost', () {

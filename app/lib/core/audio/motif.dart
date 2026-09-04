@@ -1,11 +1,11 @@
 /// Every sound in the app, and the asset each one is.
 ///
-/// `PLAN-phase-5.md` §4.2. Six of the fifteen files exist today, synthesised by
-/// `tool/audio/generate_motifs.py` into `assets/audio/sudoku/`; the nine
-/// `arcade/` ones arrive with `PLAN-phase-5.md`'s PR 3 and are named here first
-/// so PR 3 needs no Dart change and PR 4's event map has something to point at.
-/// There is no `isMusic`: `settings.sound` gates all fifteen, because there is
-/// no music (`PLAN-phase-5.md` §4.6).
+/// `PLAN-phase-5.md` §4.2. Six are Sudoku's, synthesised by
+/// `tool/audio/generate_motifs.py` into `assets/audio/sudoku/`; nine are
+/// Invaders' `arcade/` set (`PLAN-phase-5.md` PR 3); four are Snake's
+/// `snake/` set (`PLAN-phase-7-snake.md` §4.10). There is no `isMusic`:
+/// `settings.sound` gates all nineteen, because there is no music
+/// (`PLAN-phase-5.md` §4.6).
 enum Motif {
   sudokuPlace('sudoku/place.wav'),
   sudokuCorrect('sudoku/correct.wav'),
@@ -21,7 +21,11 @@ enum Motif {
   arcadeUfoLoop('arcade/ufo_loop.wav'),
   arcadeUfoHit('arcade/ufo_hit.wav'),
   arcadeWaveClear('arcade/wave_clear.wav'),
-  arcadeExtraLife('arcade/extra_life.wav');
+  arcadeExtraLife('arcade/extra_life.wav'),
+  snakeEat('snake/eat.wav'),
+  snakeNotYet('snake/not_yet.wav'),
+  snakeCrash('snake/crash.wav'),
+  snakeLevelClear('snake/level_clear.wav');
 
   const Motif(this.asset);
 
@@ -31,8 +35,8 @@ enum Motif {
   /// The nine arcade motifs, in the same order as `PLAN-phase-5.md` §4.1's
   /// table. What `InvadersScreen` hands `AppAudio.preload` on entry, so a
   /// run pays no first-play decode cost for its own sounds mid-game — and
-  /// not [values] entire, which would spend that same budget decoding six
-  /// Sudoku motifs an arcade run can never play.
+  /// not [values] entire, which would spend that same budget decoding motifs
+  /// an Invaders run can never play.
   static const List<Motif> arcadeSet = [
     arcadePlayerShoot,
     arcadePlayerHit,
@@ -43,5 +47,15 @@ enum Motif {
     arcadeUfoHit,
     arcadeWaveClear,
     arcadeExtraLife,
+  ];
+
+  /// The four snake motifs, in the same order as `PLAN-phase-7-snake.md`
+  /// §4.10's table. What `SnakeScreen` hands `AppAudio.preload` on entry, for
+  /// the same reason [arcadeSet] exists.
+  static const List<Motif> snakeSet = [
+    snakeEat,
+    snakeNotYet,
+    snakeCrash,
+    snakeLevelClear,
   ];
 }

@@ -78,6 +78,31 @@ that already detects one of these nine, and `InvadersGame.update` drains them ev
 each into the motif above — `ufoAppeared` and `ufoLeft` start and stop the loop, the rest play once
 (`PLAN-phase-5.md` §4.4, PR 4).
 
+## The snake set
+
+`PLAN-phase-7-snake.md` §4.10. Four files, named after `SnakeEvent` rather than the play field, the
+same convention the arcade set above uses and for the same reason.
+
+| File | Plays when | Level |
+|---|---|---|
+| `snake/eat.wav` | The next number is eaten — the sound of this game a child hears most | −14 dBFS |
+| `snake/not_yet.wav` | The snake crosses a number that is not next. Soft and low, and deliberately not a buzzer: nothing went wrong | −22 dBFS |
+| `snake/crash.wav` | A life is lost | −12 dBFS |
+| `snake/level_clear.wav` | A decade is finished | −9 dBFS |
+
+`eat` is a short rising blip — `sudoku/place.wav`'s role, played far more than any other sound in a
+run. `not_yet` is the quietest motif in the whole set on purpose: a decoy is scenery, not a mistake,
+and score, level and the counting position all survive it untouched (`PLAN-phase-7-snake.md` §4.1).
+`crash` is `arcade/player_hit.wav`'s filtered-noise sweep scaled back, because a crash here costs a
+life rather than the run, and the sound should read as a stumble rather than a punishment
+(`AGENTS.md`: no scary failure states). `level_clear` is `arcade/wave_clear.wav`'s family, one note
+shorter, because a level is ten targets where a wave can be dozens of aliens.
+
+Wired the same way the arcade set is: `SnakeSim` appends a `SnakeEvent` beside each mutation that
+already detects one of these four, and `SnakeGame.update` drains them every frame and turns each into
+the motif above; `crashed` and `levelCleared` also buzz through `AppHaptics` — the two moments in a
+run worth feeling (`PLAN-phase-7-snake.md` §4.10).
+
 ## Not here yet
 
 Drawing-board sounds. Phase 8's pencil has none designed for it yet (`PLAN-phase-8.md`).
@@ -92,6 +117,7 @@ cannot forget to check it. `sudoku/complete.wav` plays under the completion conf
 in `sudoku_play_screen.dart` rather than called from the keypad or the grid (`PLAN-phase-5.md` §3.3,
 §4.3).
 
-Both `assets/audio/sudoku/` and `assets/audio/arcade/` are declared in
+`assets/audio/sudoku/`, `assets/audio/arcade/` and `assets/audio/snake/` are all declared in
 [`pubspec.yaml`](../../pubspec.yaml) — an asset directory declared before it has content fails the
-build, which is why the arcade line waited for this pull request.
+build, which is why the arcade and snake lines each waited for the pull request that gave them
+something to hold.
