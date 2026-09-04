@@ -10,6 +10,7 @@ import 'core/storage/save_data.dart';
 import 'core/ui/theme.dart';
 import 'features/arcade/arcade_menu_screen.dart';
 import 'features/arcade/invaders/invaders_screen.dart';
+import 'features/arcade/snake/snake_screen.dart';
 import 'features/draw/ui/draw_gallery_screen.dart';
 import 'features/draw/ui/draw_sheet_screen.dart';
 import 'features/home/home_screen.dart';
@@ -201,6 +202,7 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.sudokuPlay => _playScreen(settings.arguments),
   AppRoutes.arcade => (context) => const ArcadeMenuScreen(),
   AppRoutes.arcadeInvaders => (context) => const InvadersScreen(),
+  AppRoutes.arcadeSnake => (context) => const SnakeScreen(),
   AppRoutes.draw => (context) => const DrawGalleryScreen(),
   AppRoutes.drawSheet => _drawSheetScreen(settings.arguments),
   _ => null,

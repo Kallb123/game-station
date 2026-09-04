@@ -21,6 +21,11 @@ import '../../routes.dart';
 import 'invaders/invaders_screen.dart' show invadersGameId;
 import 'shared/game_shell.dart' show noScoresYetMessage;
 
+/// A stand-in for Snake's own card, deleted the moment PR 5 gives Snake the
+/// real one `_InvadersCard` has (`PLAN-phase-7-snake.md` §6, PR 5) — until
+/// then this is the only way to reach `/arcade/snake` at all.
+const String playSnakeTemporaryLabel = 'Play Snake (temporary)';
+
 /// The Invaders card's own heading.
 const String invadersTitle = 'Invaders';
 
@@ -106,6 +111,13 @@ class ArcadeMenuScreen extends ConsumerWidget {
                   best: best,
                   onPlay: () =>
                       Navigator.of(context).pushNamed(AppRoutes.arcadeInvaders),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                BigButton(
+                  icon: Icons.videogame_asset,
+                  label: playSnakeTemporaryLabel,
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.arcadeSnake),
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 const _SectionHeading(optionsSectionLabel),

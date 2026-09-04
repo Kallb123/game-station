@@ -346,6 +346,39 @@ void main() {
       await rightFinger.up();
     });
 
+    testWidgets(
+      "a tap in the corner where Up's and Right's 72 dp squares overlap "
+      'resolves to Up, not whichever button paints on top',
+      (tester) async {
+        // The compact diamond keeps the four drawn *circles* apart but not
+        // their 72 dp bounding squares, which still overlap by design in
+        // each adjacent pair's inward corner — without a hit-test clip
+        // matching the drawn circle, a tap there would silently resolve to
+        // whichever button is later in the underlying `Stack`, dropping the
+        // turn a child actually pressed.
+        final input = await pumpDPad(tester);
+
+        // `_dPadReach` (52.92) minus half of `AppTapTargets.primary` (36) is
+        // 16.92 dp, the exact corner where the two squares' boundaries meet
+        // — on the edge itself, not reliably inside either square's
+        // hit-test region. One more dp on each axis moves inside both
+        // squares' interiors while staying inside Up's circle (about 25 dp
+        // from its centre, against a 36 dp radius) and outside Right's
+        // (about 50 dp from its centre).
+        final probe = tester.getCenter(up) + const Offset(17.92, 17.92);
+
+        final gesture = await tester.startGesture(probe);
+        await tester.pump();
+        expect(input.value.up, isTrue, reason: '$probe is inside Up\'s circle');
+        expect(
+          input.value.right,
+          isFalse,
+          reason: '$probe is outside Right\'s circle',
+        );
+        await gesture.up();
+      },
+    );
+
     testWidgets('no button intersects a 34 dp bottom safe-area inset', (
       tester,
     ) async {

@@ -31,6 +31,11 @@ abstract final class AppRoutes {
   /// copy to disagree with the stored one (`PLAN-phase-4.md` §4.10).
   static const String arcadeInvaders = '/arcade/invaders';
 
+  /// Snake (`PLAN-phase-7-snake.md` §6, PR 4). Takes no arguments, for the
+  /// same reason [arcadeInvaders] does not: the options a run starts with —
+  /// easy mode and the counting choice — come from the profile.
+  static const String arcadeSnake = '/arcade/snake';
+
   /// The drawing gallery, from phase 8.
   static const String draw = '/draw';
 
