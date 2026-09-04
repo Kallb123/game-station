@@ -412,7 +412,7 @@ Each reuses the same shell and control pad, so the incremental cost is small:
 | Game | Controls | Persisted |
 |---|---|---|
 | Brick Breaker | left / right paddle | High score, level reached |
-| Snake | four directions or swipe | High score, longest snake |
+| Snake | four directions | High score, longest snake |
 | Memory Match | tap a card | Best time per grid size |
 | Whack-a-Mole | tap a hole | High score |
 | Pong (vs AI) | left / right | Win count |
@@ -447,6 +447,7 @@ so there is no setup wall.
     "id": "p1", "name": "Ana", "avatar": "fox", "createdAt": "2026-08-11T10:00:00Z",
     "mistakeFeedback": "atCompletion",
     "arcadeEasyMode": true, "arcadeAutoFire": true, "padSide": "left",
+    "snakeCounting": "twos",
     "sudoku": {
       "solved": {
         "sudoku:9x9:easy:0": { "timeMs": 244000, "hints": 0, "mistakes": 2,
@@ -463,7 +464,10 @@ so there is no setup wall.
     "arcade": {
       "invaders": { "highScores": [{ "score": 15400, "wave": 7, "at": "...", "easy": false },
                                    { "score": 6200, "wave": 5, "easy": true }],
-                    "gamesPlayed": 22, "totalKills": 3110 }
+                    "gamesPlayed": 22, "totalKills": 3110 },
+      "snake": { "highScores": [{ "score": 380, "wave": 4, "at": "...",
+                                  "easy": false, "counting": true }],
+                 "gamesPlayed": 9, "totalKills": 38, "bestLength": 24 }
     },
     "draw": { "drawingCount": 7, "lastDrawingId": "d7", "bytesUsed": 4820112 }
   }],
@@ -501,6 +505,21 @@ optional, defaulting to `false`, `false`, `right` and `false`, so a file written
 with nothing lost and `schemaVersion` stays 1; the block above sets the three profile options to
 non-defaults for the same reason it shows `day` and `atCompletion`, and carries a second score because
 one entry cannot show a per-mode table.
+
+`snakeCounting` arrived with phase 7 (`PLAN-phase-7-snake.md` §4.8) and sits on the profile for the
+same reason: it is what this child's runs count, not a device setting. One three-valued enum —
+`off`, `ones` or `twos` — rather than two booleans, because two booleans can encode a state with no
+meaning ("counting in twos while numbers are off"), which the decoder would then have to have an
+opinion about. It defaults to `ones`, unlike every other option on this list defaulting off: counting
+is why Snake is in this app, and a child who wants plain snake turns it off in one tap. An unknown
+string decodes to the default. `HighScore.counting`, alongside `easy`, is a flag for the same reason
+`easy` is one rather than a second game id — a counting run travels further per point than a classic
+one, so the two tables stay apart, capped within one `(easy, counting)` pair. `ArcadeGameProgress`
+gained `bestLength`, `PLAN.md` §4.4's "longest snake" — a lifetime best like `totalKills`, updated from
+every run whether or not it made the top five, defaulting `0`. All three are additive and optional, so
+a file written before phase 7 decodes with nothing lost and `schemaVersion` stays 1; the block above
+sets `snakeCounting` to its non-default `twos` for the same reason it shows `day`, and the one stored
+score carries `counting: true` so the codec test can tell the field was read rather than defaulted.
 
 `draw` arrives with phase 8 and holds three numbers, not the drawings. A drawing is one file under
 `drawings/<profileId>/` (§6), because §5.2's whole point is a save file of a few kilobytes and one
@@ -607,25 +626,31 @@ game-station/
    │  │  ├─ settings/
    │  │  ├─ sudoku/                 # grid widget, keypad, controller
    │  │  ├─ arcade/
-   │  │     ├─ arcade_menu_screen.dart   # the game card, the three toggles, the top five
+   │  │     ├─ arcade_menu_screen.dart   # two game cards, each with its own options and top five
    │  │     ├─ shared/
    │  │     │  ├─ arcade_controller.dart # what GameShell drives, and the HUD it draws
    │  │     │  ├─ arcade_result.dart     # what one finished run reports to storage
+   │  │     │  ├─ fixed_step.dart        # fixedStep, maxStepsPerFrame, the accumulator —
+   │  │     │  │                         #   shared by both games since phase 7 (PLAN-phase-7-snake.md §4.7)
    │  │     │  ├─ game_rng.dart          # the arcade's seeded PRNG, clock-seeded per run
    │  │     │  ├─ game_shell.dart        # HUD, pause, quit confirmation, game-over card
-   │  │     │  ├─ on_screen_pad.dart     # LEFT / RIGHT / FIRE over raw Listeners
+   │  │     │  ├─ on_screen_pad.dart     # LEFT/RIGHT/FIRE or a four-way D-pad, over raw Listeners
    │  │     │  └─ pad_input.dart         # one value type for the pad and the keyboard
-   │  │     └─ invaders/
-   │  │        ├─ invaders_game.dart     # the accumulator and one render pass, no state
-   │  │        ├─ invaders_screen.dart   # builds the run, hands it to GameShell
-   │  │        └─ model/                 # the simulation, its tuning table, the sprites
+   │  │     ├─ invaders/
+   │  │     │  ├─ invaders_game.dart     # the accumulator and one render pass, no state
+   │  │     │  ├─ invaders_screen.dart   # builds the run, hands it to GameShell
+   │  │     │  └─ model/                 # the simulation, its tuning table, the sprites
+   │  │     └─ snake/                    # phase 7 (PLAN-phase-7-snake.md §5)
+   │  │        ├─ snake_game.dart        # the accumulator and one render pass, no state
+   │  │        ├─ snake_screen.dart      # builds the run, hands it to GameShell
+   │  │        └─ model/                 # the simulation, its tuning table, the counting sequence
    │  │  └─ draw/                   # phase 8 (PLAN-phase-8.md §5)
    │  │     ├─ model/               # Stroke, Drawing, DrawingController — no widgets
    │  │     ├─ data/                # codec, drawings/<id>/, PNG export, the two platform edges
    │  │     └─ ui/                  # canvas painter, tool row, the gallery grid
    ├─ assets/{fonts,images,audio}/  # bundled, never fetched; licensed per file
    ├─ test/                         # widget tests
-   ├─ integration_test/             # on-device smoke tests, from phases 3 and 4
+   ├─ integration_test/             # on-device smoke tests, from phases 3, 4 and 7
    └─ pubspec.yaml
 ```
 
@@ -1035,6 +1060,37 @@ frozen where its code cites it: a phase that never closes cannot hold one docume
   decade per level. It is also the phase that reshapes `shared/` around a second game, which
   `PLAN-phase-4.md` §2 and §5 deferred to exactly this point — four-way `PadInput`, a D-pad layout
   for `OnScreenPad`, and the fixed-step accumulator moved where both games share one copy.
+
+**Snake shipped through all seven pull requests; PR 7 closes it with the same hardware gap phases 3,
+4 and 5 each recorded rather than assumed shut.** No Android phone, tablet or desktop display was
+available in this or any session that built this phase, so `PLAN-phase-7-snake.md` §8's hardware
+lines — ten minutes of play with no dropped turn, whether the numerals read at arm's length, whether a
+five- or six-year-old counts to 20 unaided, the four sounds actually heard — stay open there rather
+than ticked from the automated suite that stands in for them on every commit. The tuning pass this
+pull request's second commit asks for made no change to `snake_rules.dart` for the same reason
+`PLAN-phase-4.md`'s own PR 8 gave when its device pass found nothing to move: moving numbers tuned
+only by memory would be inventing the evidence the pass exists to collect.
+`app/integration_test/snake_smoke_test.dart` exists, drives the D-pad with real (simulated) pointers,
+and analyzes clean, but this is a narrower gap than "no device" and its own line rather than folded in:
+this session's container has no GTK development headers, so `flutter build linux` cannot produce
+`minisound_ffi`'s native library, and without it even `-d flutter-tester`'s headless run fails before
+the app finishes loading — the same failure `invaders_smoke_test.dart` was confirmed to hit here too,
+so it is a gap in this container rather than a defect this pull request introduced. What *was* checked
+here: the steering the smoke test drives was run 5,000 times over `SnakeSim` directly, off the widget
+tree, with every seed reaching its target without a crash or a dropped turn; and the widget-level
+navigation the smoke test depends on (`Easy mode` and `Play Snake` sitting below the fold on a short
+window) was found failing and fixed before that check was made.
+
+**One thing this pull request added without needing a device.** On a tall window, Invaders' and
+Snake's fixed-resolution field left equal letterbox bars above or beside it, and both used to be
+exactly as black as the field itself, because neither game painted the field's own background —
+`Game.backgroundColor()` supplied both areas by default, indistinguishably. In Snake, where the run
+can wrap at that edge (`SnakeRules.easy.wrapWalls`), a child had no way to see where the board actually
+stopped. Both games now paint the field explicitly in `arcadeFieldColor` (unchanged, black) and set
+`backgroundColor()` to a distinct `arcadeLetterboxColor` (grey), so the boundary is visible on every
+window shape rather than only on one that happens to fill the frame exactly —
+`shared/arcade_controller.dart` names both constants once, for the reason a mechanism rather than a
+promise is what `AGENTS.md` asks for.
 
 ### Phase 8 — drawing board (5–7 days)
 

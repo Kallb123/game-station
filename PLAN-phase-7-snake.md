@@ -1,5 +1,16 @@
 # Phase 7 — Snake, with counting
 
+**Closed, with hardware criteria unmet and named. Kept as the record of a finished phase, not as
+current plan.** [`PLAN.md`](PLAN.md) is the source of truth for what the project is doing now; §7
+there carries the phase-7-snake outcome and everything that differed from this file, and §4.4, §5.2
+and §6 have been reconciled with what was built. The unmet criteria are every hardware line in §8
+below — no Android phone, tablet or desktop display was available in this or any session that built
+this game, the same gap phases 3, 4 and 5 each recorded rather than assumed shut — plus the
+ten-minutes-of-play tuning pass PR 7 reserved for `snake_rules.dart`, which made no change because
+there was no play on hardware to base one on. Read this file for *why* a piece of
+`app/lib/features/arcade/snake` and the shared reshape around it is shaped the way it is — the code
+cites these section numbers.
+
 The plan for `app/lib/features/arcade/snake`: the second arcade game, the first reshape of the
 shell and pad built around the first one, and a counting mode in which the things the snake eats are
 the numbers 1 to 10, then 11 to 20, then 21 to 30, one decade per level.
@@ -657,37 +668,75 @@ Commits:
 Ticked at PR 7, against a run rather than a memory of one. Anything needing hardware stays open until
 it has been done on hardware, as phases 3 and 4 did.
 
-- [ ] `tool/verify.sh` passes from a clean checkout, and the time it took is recorded here.
-- [ ] `cd app && flutter test` passes, and the number is recorded here against the 60 s budget
-      `PLAN-phase-5.md` §1 set and measured at 62 s when it closed.
-- [ ] `dart tool/check_offline.dart` reports no violations and names no new package — this phase adds
-      none.
-- [ ] `dart tool/check_determinism.dart` still passes; no engine file is touched.
-- [ ] `test/no_random_test.dart` and `test/haptics_call_site_test.dart` pass over the new files.
-- [ ] The snake equivalence test compares ten seconds of state between 60 Hz and 144 Hz frame
-      sequences, and is shown to fail against a `dt`-stepped simulation.
-- [ ] The Invaders equivalence test still passes after the accumulator moves, and is still shown to
-      fail against a `dt`-stepped simulation.
-- [ ] A widget test drives two simultaneous pointers on the D-pad and asserts both directions held.
-- [ ] A widget test slides a pointer off UP and asserts the direction is released; a second asserts a
-      pointer-cancel does too.
-- [ ] A widget test pumps `/arcade/snake` with a 34 dp bottom `viewPadding` and asserts no button
-      intersects the inset, at 360 x 640 and in landscape.
-- [ ] `layout_sweep_test.dart` covers `/arcade/snake` at four window sizes and two text scales.
-- [ ] A widget test plays a counting run to game over and asserts the stored `HighScore` carries
-      `counting`, that `bestLength` rose, and that the menu shows it on the Snake card.
-- [ ] A save written before this phase decodes with `snakeCounting`, `counting` and `bestLength` at
-      their defaults, with `schemaVersion` still 1.
-- [ ] The numerals 7, 42 and 200 draw inside their cell, asserted rather than eyeballed.
+- [x] `tool/verify.sh` passes from a clean checkout. **3m11s** in this session (`real`, from `time`) —
+      the puzzle_engine suite (goldens plus a 2000-seed fuzz) is 1m05s of it, the app suite the rest.
+- [x] `cd app && flutter test` passes. **1101 tests in 1m20s**, recorded here against the 60 s budget
+      `PLAN-phase-5.md` §1 set and measured at 62 s when it closed — over budget again, the same
+      direction of travel that entry's own number already showed, and a fact rather than a target this
+      phase moved: the suite grew by 290 tests (from 811) to cover a second game, and no phase run so
+      far has had reason to prune it back toward 60 s.
+- [x] `dart tool/check_offline.dart` reports no violations and names no new package — this phase adds
+      none. Confirmed clean in this session's run.
+- [x] `dart tool/check_determinism.dart` still passes; no engine file is touched. Confirmed clean (20
+      files) in this session's run.
+- [x] `test/no_random_test.dart` and `test/haptics_call_site_test.dart` pass over the new files. Run
+      directly in this session: 9 and 7 cases respectively, both green.
+- [x] The snake equivalence test compares ten seconds of state between 60 Hz and 144 Hz frame
+      sequences. Green in this session's `flutter test`
+      (`test/features/arcade/snake/snake_sim_equivalence_test.dart`); PR 3's own record is that it was
+      seen failing against a `dt`-stepped simulation before it was trusted (`AGENTS.md`'s rule), which
+      this pull request did not need to re-derive.
+- [x] The Invaders equivalence test still passes after the accumulator moved. Green in this session's
+      run (`test/features/arcade/invaders/invaders_sim_equivalence_test.dart`); PR 2's own record is
+      the fail-then-pass check against the moved accumulator.
+- [x] A widget test drives two simultaneous pointers on the D-pad and asserts both directions held.
+      Green (`on_screen_pad_test.dart`).
+- [x] A widget test slides a pointer off UP and asserts the direction is released; a second asserts a
+      pointer-cancel does too. Green (`on_screen_pad_test.dart`).
+- [x] A widget test pumps `/arcade/snake` with a 34 dp bottom `viewPadding` and asserts no button
+      intersects the inset, at 360 x 640 and in landscape. Green
+      (`on_screen_pad_test.dart`: "no button intersects a 34 dp bottom safe-area inset").
+- [x] `layout_sweep_test.dart` covers `/arcade/snake` at four window sizes and two text scales. Green
+      in this session's run (12 cases per size, all four sizes present in the log).
+- [x] A widget test plays a counting run to game over and asserts the stored `HighScore` carries
+      `counting`, that `bestLength` rose, and that the menu shows it on the Snake card. Green, split
+      across two files: `snake_screen_test.dart` ("a run played to game over stores a HighScore with
+      counting set and raises bestLength") plays the run, and `arcade_menu_screen_test.dart` ("a test
+      plays a snake run, returns to the menu and finds the score on the Snake card and not on the
+      Invaders one") is where the menu is read back.
+- [x] A save written before this phase decodes with `snakeCounting`, `counting` and `bestLength` at
+      their defaults, with `schemaVersion` still 1. Green (`save_codec_test.dart`).
+- [x] The numerals 7, 42 and 200 draw inside their cell, asserted rather than eyeballed. Green
+      (`snake_game_test.dart`, `numeralExtent stays inside the cell`).
 - [ ] On the Android device: ten minutes of play with no jank, no dropped turn, and no stuck
-      direction after a finger slides off a button.
+      direction after a finger slides off a button. **Not done.** No Android phone, tablet or desktop
+      display was available in this or any session that built this phase — the same gap phases 3, 4
+      and 5 each recorded rather than assumed shut. Carried into `PLAN.md` §9 unticked.
 - [ ] On the Android device: the numerals are readable at arm's length on a phone and on a tablet.
+      **Not done**, for the same reason as above.
 - [ ] On the Android device: a five- or six-year-old counts to 20 unaided with the on-screen
-      controls. This is the criterion the game exists for; nothing else stands in for it.
-- [ ] The four sounds have been listened to on a device, and `generate_motifs.py --check` passes.
-- [ ] `app/integration_test/snake_smoke_test.dart` passes on a device; `-d flutter-tester` is
-      evidence, not a substitute (`AGENTS.md`).
-- [ ] `PLAN.md` §4.4, §5.2, §6 and §7 match what was built, and this file carries its closed banner.
+      controls. This is the criterion the game exists for; nothing else stands in for it. **Not
+      done**, for the same reason as above — the criterion this phase most needed a device for is the
+      one it could least fake, and it stays open rather than inferred from the automated suite.
+- [ ] The four sounds have been listened to on a device, and `generate_motifs.py --check` passes. The
+      second half is confirmed in this session — `python3 tool/audio/generate_motifs.py --check`
+      reports all 19 motifs matching the script — but the first half needs the same device the three
+      lines above do, so the item stays open as a whole.
+- [ ] `app/integration_test/snake_smoke_test.dart` passes on a device. **Written, analyzes clean, and
+      not run on a device or even headless in this session** — narrower than "no device": this
+      session's container has no GTK development headers, so `flutter build linux` cannot produce
+      `minisound_ffi`'s native library, and without it even `-d flutter-tester` fails before the app
+      finishes loading (`ArgumentError: Failed to load dynamic library 'libminisound_ffi.so'`).
+      `integration_test/invaders_smoke_test.dart` was run the same way as a control and hit the
+      identical failure at the identical point, confirming this is a gap in the container rather than
+      something this pull request broke. Two things stood in for the run that could not happen: the
+      exact steering sequence the test drives was replayed 5,000 times directly against `SnakeSim`
+      (bypassing Flame, the widget tree and audio entirely), reaching its target and scoring on every
+      seed with no crash and no dropped turn; and the widget-level navigation the test depends on —
+      `Easy mode` and `Play Snake` sitting below the fold on a short window — was found failing on its
+      first run and fixed with `tester.ensureVisible` before that replay was trusted. `AGENTS.md` says
+      how to run this by hand on hardware, which is what settles the item for real.
+- [x] `PLAN.md` §4.4, §5.2, §6 and §7 match what was built, and this file carries its closed banner.
 
 ---
 
