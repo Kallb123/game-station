@@ -396,16 +396,22 @@ class ProgressRepository extends ChangeNotifier {
 
   /// Changes only the given arcade options on the active profile. They belong
   /// to the child playing, not to the device (`PLAN-phase-4.md` §3), the same
-  /// reasoning as [setMistakeFeedback].
-  void setArcadeOptions({bool? easyMode, bool? autoFire, PadSide? padSide}) =>
-      _replaceProfile(
-        _data.activeProfileId,
-        (profile) => profile.copyWith(
-          arcadeEasyMode: easyMode,
-          arcadeAutoFire: autoFire,
-          padSide: padSide,
-        ),
-      );
+  /// reasoning as [setMistakeFeedback]. [snakeCounting] is Snake's own option,
+  /// alongside the arcade-wide three (`PLAN-phase-7-snake.md` §4.9).
+  void setArcadeOptions({
+    bool? easyMode,
+    bool? autoFire,
+    PadSide? padSide,
+    SnakeCounting? snakeCounting,
+  }) => _replaceProfile(
+    _data.activeProfileId,
+    (profile) => profile.copyWith(
+      arcadeEasyMode: easyMode,
+      arcadeAutoFire: autoFire,
+      padSide: padSide,
+      snakeCounting: snakeCounting,
+    ),
+  );
 
   void _updateArcadeGame(
     String gameId,
