@@ -11,9 +11,10 @@
 // renderer drift into two copies of the state" risk, unchanged for the
 // second game).
 //
-// Sound and haptics are PR 6's (`PLAN-phase-7-snake.md` §4.10, §6): this PR
-// drains no `SnakeEvent`, because there is no `Motif` for one yet to drain
-// into — `SnakeGame` gains that once PR 6 adds the four motifs.
+// Sound and haptics drain `SnakeEvent` into `AppAudio` and `AppHaptics` the
+// same way `invaders_game.dart`'s `_play` does for `InvadersEvent`
+// (`PLAN-phase-7-snake.md` §4.10, §6): `crashed` and `levelCleared` also
+// buzz, the two moments in a run worth feeling.
 
 import 'dart:ui';
 
@@ -23,6 +24,9 @@ import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart' show ValueNotifier, visibleForTesting;
 import 'package:flutter/widgets.dart' show BuildContext, Widget;
 
+import '../../../core/audio/app_audio.dart';
+import '../../../core/audio/motif.dart';
+import '../../../core/haptics.dart';
 import '../shared/arcade_controller.dart';
 import '../shared/arcade_result.dart';
 import '../shared/fixed_step.dart';
@@ -76,6 +80,8 @@ class SnakeGame extends FlameGame implements ArcadeGameController {
     required this.seed,
     required this.input,
     required Color color,
+    required this.audio,
+    required this.haptics,
   }) : _sim = sim,
        _field = _SnakeField(sim: sim, color: color),
        hud = ValueNotifier(_hudOf(sim)),
@@ -103,6 +109,16 @@ class SnakeGame extends FlameGame implements ArcadeGameController {
   /// The current run, for a test that wants more than [hud] and [isOver]
   /// expose — `snake_game_test.dart` reaches `sim.debugSetBody` this way.
   SnakeSim get sim => _sim;
+
+  /// Where every [SnakeEvent] this game drains is turned into a [Motif]
+  /// (`PLAN-phase-7-snake.md` §4.10). Taken at construction like [color]: a
+  /// `FlameGame` is not built with a `BuildContext` to read a provider from.
+  final AppAudio audio;
+
+  /// Buzzes a crash and a level clear — the two moments in a Snake run worth
+  /// feeling (`PLAN-phase-7-snake.md` §4.10). Taken at construction for the
+  /// same reason [audio] is.
+  final AppHaptics haptics;
 
   /// A fresh seed for [restart] — the injected clock, the same way the first
   /// run's seed reaches this game (`PLAN-phase-4.md` §4.3), so a test can fix
@@ -193,10 +209,33 @@ class SnakeGame extends FlameGame implements ArcadeGameController {
     // Skipped when nothing stepped, the same reason `invaders_game.dart`
     // skips it: a run that is over settles at one unchanging [ArcadeHud]
     // forever, and there is no reason to keep rebuilding it every frame
-    // after that.
+    // after that. A dropped backlog drops its events with it for the same
+    // reason: the frames they belonged to were never drawn
+    // (`invaders_game.dart`'s own comment gives the same reason).
     if (steps > 0) {
+      for (final event in _sim.drainEvents()) {
+        _play(event);
+      }
       hud.value = _hudOf(_sim);
       if (_sim.isOver) isOver.value = true;
+    }
+  }
+
+  /// Turns one [SnakeEvent] into the [Motif] it names, and buzzes
+  /// [haptics] on the two events worth feeling (`PLAN-phase-7-snake.md`
+  /// §4.10).
+  void _play(SnakeEvent event) {
+    switch (event) {
+      case SnakeEvent.ate:
+        audio.play(Motif.snakeEat);
+      case SnakeEvent.notYet:
+        audio.play(Motif.snakeNotYet);
+      case SnakeEvent.crashed:
+        audio.play(Motif.snakeCrash);
+        haptics.impact();
+      case SnakeEvent.levelCleared:
+        audio.play(Motif.snakeLevelClear);
+        haptics.impact();
     }
   }
 

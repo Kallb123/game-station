@@ -12,6 +12,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/audio/motif.dart';
+import '../../../core/audio/providers.dart';
 import '../../../core/clock.dart';
 import '../../../core/haptics.dart';
 import '../../../core/storage/progress_repository.dart';
@@ -62,6 +64,12 @@ class _SnakeScreenState extends ConsumerState<SnakeScreen> {
     _repository = ref.read(progressRepositoryProvider);
     _now = ref.read(nowProvider);
     _profile = _repository.activeProfile;
+    // Loads the snake set now rather than on each motif's first play
+    // mid-run, the same reason `InvadersScreen` preloads its own set: the
+    // asset-decode cost lands here, during the screen transition, instead of
+    // audibly late on the eat, crash and level-clear sounds that introduce
+    // them.
+    ref.read(appAudioProvider).preload(Motif.snakeSet);
   }
 
   @override
@@ -84,6 +92,14 @@ class _SnakeScreenState extends ConsumerState<SnakeScreen> {
       seed: _seed,
       input: ValueNotifier(PadInput.none),
       color: palette.arcade,
+      // Read once, at construction: `appAudioProvider` hands out the same
+      // instance for the app's whole life, and that instance already watches
+      // `settings.sound` and mutes itself in place
+      // (`core/audio/providers.dart`), the same reasoning `InvadersScreen`
+      // gives for reading it once.
+      audio: ref.read(appAudioProvider),
+      // Read once, for the same reason as `audio` above.
+      haptics: ref.read(appHapticsProvider),
     );
     // Kept live rather than only set at construction, the same reason
     // `InvadersScreen` keeps it live: under `ThemeMode.system` the device can
