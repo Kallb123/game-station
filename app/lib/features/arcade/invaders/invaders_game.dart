@@ -111,6 +111,11 @@ class InvadersGame extends FlameGame implements ArcadeGameController {
       // keep it, so the keyboard mirror above this game keeps being called.
       GameWidget(game: this, autofocus: false);
 
+  // The letterbox outside the field, not the field itself — see
+  // `arcadeLetterboxColor`'s own comment for why the two need to differ.
+  @override
+  Color backgroundColor() => arcadeLetterboxColor;
+
   @override
   void pause() {
     pauseEngine();
@@ -277,8 +282,15 @@ class _InvadersField extends Component {
 
   set color(Color value) => _paint.color = value;
 
+  static final Paint _backgroundPaint = Paint()..color = arcadeFieldColor;
+
   @override
   void render(Canvas canvas) {
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, fieldWidth, fieldHeight),
+      _backgroundPaint,
+    );
+
     final aliens = sim.aliens;
     for (var row = 0; row < aliens.rows; row++) {
       final sprite = _alienSprite(row, aliens.rows);

@@ -145,6 +145,11 @@ class SnakeGame extends FlameGame implements ArcadeGameController {
       // (`invaders_game.dart`'s own `buildView` gives the same reason).
       GameWidget(game: this, autofocus: false);
 
+  // The letterbox outside the field, not the field itself — see
+  // `arcadeLetterboxColor`'s own comment for why the two need to differ.
+  @override
+  Color backgroundColor() => arcadeLetterboxColor;
+
   @override
   void pause() => pauseEngine();
 
@@ -294,8 +299,15 @@ class _SnakeField extends Component {
 
   set color(Color value) => _paint.color = value;
 
+  static final Paint _backgroundPaint = Paint()..color = arcadeFieldColor;
+
   @override
   void render(Canvas canvas) {
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, fieldWidth, fieldHeight),
+      _backgroundPaint,
+    );
+
     _drawTargets(canvas);
     _drawBody(canvas);
   }

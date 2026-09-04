@@ -40,6 +40,14 @@ InvadersGame _newGame({AppAudio audio = const SilentAudio()}) => InvadersGame(
 );
 
 void main() {
+  test('backgroundColor is the letterbox grey, not the field\'s own black '
+      '(PLAN-phase-7-snake.md §7)', () {
+    final game = _newGame();
+
+    expect(game.backgroundColor(), arcadeLetterboxColor);
+    expect(arcadeLetterboxColor, isNot(arcadeFieldColor));
+  });
+
   test('a frame worth exactly one fixed step advances the sim by one', () {
     final game = _newGame();
 
