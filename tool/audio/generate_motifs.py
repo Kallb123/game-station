@@ -506,6 +506,61 @@ def extra_life() -> list[float]:
     return at_peak(render(voices, 0.60), -8)
 
 
+# --- The snake set (`PLAN-phase-7-snake.md` §4.10) --------------------------
+
+
+def eat() -> list[float]:
+    """The next number is eaten: a short rising blip.
+
+    The sound heard most often in this game, the same role `sudoku/place.wav`
+    plays for Sudoku: bright and quick, confirming rather than congratulating,
+    because a level is ten of these (`PLAN-phase-7-snake.md` §4.10).
+    """
+    voices = [
+        Voice(0.0, 0.09, "C5", bend_to="G5", timbre=SOFT, attack=0.004, decay=0.05)
+    ]
+    return at_peak(render(voices, 0.10), -14)
+
+
+def not_yet() -> list[float]:
+    """The snake crosses a target that is not next: soft and low.
+
+    Deliberately not a buzzer — nothing went wrong (`PLAN-phase-7-snake.md`
+    §1). One muted note, low-passed, the quietest motif in this set: a decoy
+    is scenery, and the sound has to say so without a child mistaking it for
+    a mistake.
+    """
+    voices = [Voice(0.0, 0.10, "D4", timbre=MUTED, attack=0.01, decay=0.05)]
+    return at_peak(low_pass(render(voices, 0.11), 900), -22)
+
+
+def crash() -> list[float]:
+    """A life is lost: a short, soft thud, not a klaxon.
+
+    The same shape as `arcade/player_hit.wav` — filtered noise sweeping down
+    — scaled back for it: score, level and the counting position all survive
+    a crash (`PLAN-phase-7-snake.md` §4.1), so the sound should read as a
+    stumble, not a punishment.
+    """
+    burst = _noise_burst(0.28, seed=4, attack=0.004, decay=0.09)
+    return at_peak(swept_low_pass(burst, 2200, 200), -12)
+
+
+def level_clear() -> list[float]:
+    """A decade is finished: a rising bell arpeggio.
+
+    The same family as `arcade/wave_clear.wav` — the only other "a chunk of
+    the game is done" sound in the app — one note shorter, because a level
+    here is ten targets where a wave there can be dozens of aliens.
+    """
+    voices = [
+        Voice(0.00, 0.16, "E6", timbre=BELL, decay=0.13, gain=0.8),
+        Voice(0.08, 0.18, "G6", timbre=BELL, decay=0.15, gain=0.85),
+        Voice(0.16, 0.32, "C7", timbre=BELL, decay=0.24, gain=1.0),
+    ]
+    return at_peak(render(voices, 0.55), -9)
+
+
 MOTIFS = {
     "sudoku/place": place,
     "sudoku/correct": correct,
@@ -522,6 +577,10 @@ MOTIFS = {
     "arcade/ufo_hit": ufo_hit,
     "arcade/wave_clear": wave_clear,
     "arcade/extra_life": extra_life,
+    "snake/eat": eat,
+    "snake/not_yet": not_yet,
+    "snake/crash": crash,
+    "snake/level_clear": level_clear,
 }
 
 
