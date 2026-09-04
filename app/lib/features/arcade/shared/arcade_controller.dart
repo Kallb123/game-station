@@ -8,11 +8,29 @@
 // would need and this one would not is `PLAN-phase-4.md` §2's signal to
 // reshape this then, with two games in hand rather than one and a guess.
 
+import 'dart:ui' show Color;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show BuildContext, Widget;
 
 import 'arcade_result.dart';
 import 'pad_input.dart';
+
+/// The fixed-resolution field's own background, drawn explicitly by each
+/// game's field component before anything else — the same black either game
+/// drew by default when nothing painted the empty cells at all, now stated
+/// rather than incidental (`PLAN.md` §7's phase-7 closing note).
+const Color arcadeFieldColor = Color(0xFF000000);
+
+/// The letterbox area outside the field, on a window whose aspect ratio does
+/// not match [arcadeFieldColor]'s. [Game.backgroundColor] defaults to the
+/// same black the field used to leave undrawn, so the two were
+/// indistinguishable — on a tall phone in particular, where Snake wraps at
+/// the field's edge, a child could not see where that edge was. Grey against
+/// black gives the field a visible boundary on every game built on
+/// `CameraComponent.withFixedResolution`, not only Snake, so both games in
+/// the arcade take it.
+const Color arcadeLetterboxColor = Color(0xFF3A3D42);
 
 /// Score, lives and wave, as `GameShell` draws them above the field.
 ///
