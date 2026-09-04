@@ -1,5 +1,5 @@
 // `/arcade/snake` end to end (`PLAN-phase-7-snake.md` §6, PR 4): reachable
-// from the arcade menu's temporary Snake button, drawing a D-pad rather than
+// from the arcade menu's own Snake card, drawing a D-pad rather than
 // Invaders' lateral pad, and writing a finished run to the save through
 // `GameShell`.
 //
@@ -14,8 +14,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/clock.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/core/ui/big_button.dart';
 import 'package:zibo_games/features/arcade/arcade_menu_screen.dart'
-    show playSnakeTemporaryLabel;
+    show playSnakeLabel;
 import 'package:zibo_games/features/arcade/shared/on_screen_pad.dart';
 import 'package:zibo_games/features/arcade/snake/model/snake_sim.dart';
 import 'package:zibo_games/features/arcade/snake/snake_game.dart';
@@ -40,9 +41,9 @@ Future<void> _quit(WidgetTester tester) async {
   await _pumpFrames(tester, 5);
 }
 
-/// Starts a fresh app, opens `/arcade/snake` through the arcade menu's
-/// temporary button, and returns the container so a test can read what
-/// `GameShell` wrote to the repository.
+/// Starts a fresh app, opens `/arcade/snake` through the arcade menu's own
+/// Snake card, and returns the container so a test can read what `GameShell`
+/// wrote to the repository.
 Future<ProviderContainer> _openSnake(WidgetTester tester) async {
   final container = await pumpApp(
     tester,
@@ -52,7 +53,13 @@ Future<ProviderContainer> _openSnake(WidgetTester tester) async {
 
   await tester.tap(find.text('Arcade'));
   await tester.pumpAndSettle();
-  await tester.tap(find.text(playSnakeTemporaryLabel));
+  // Scrolled into view first: the Snake card sits below the Invaders card
+  // now that the menu draws one per game (`PLAN-phase-7-snake.md` §4.9), and
+  // an 800x600 test surface does not fit both without scrolling.
+  final playSnake = find.widgetWithText(BigButton, playSnakeLabel);
+  await tester.ensureVisible(playSnake);
+  await tester.pump();
+  await tester.tap(playSnake);
   return container;
 }
 

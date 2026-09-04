@@ -1,11 +1,8 @@
 // The screen `/arcade` opens: what there is to play, the child's own options
-// for it, and how they have done so far (`PLAN-phase-4.md` §4.10). It replaces
-// PR 4's `_ArcadePlaceholder`, and the temporary button that placeholder drew
-// to reach `/arcade/invaders` is deleted with it.
-//
-// One game today, so this is the first `GameCard` `PLAN.md` §4.4's later games
-// join rather than a screen built to hold seven of them already — a menu
-// shaped by seven hypothetical games fits none of them.
+// for it, and how they have done so far (`PLAN-phase-4.md` §4.10). Extended in
+// `PLAN-phase-7-snake.md` §4.9 for a second game: the card that was Invaders'
+// alone becomes `_GameCard`, given a game's name, best, options and top-five
+// table, so a second game gets the same shape rather than a second layout.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,11 +17,7 @@ import '../../core/ui/tokens.dart';
 import '../../routes.dart';
 import 'invaders/invaders_screen.dart' show invadersGameId;
 import 'shared/game_shell.dart' show noScoresYetMessage;
-
-/// A stand-in for Snake's own card, deleted the moment PR 5 gives Snake the
-/// real one `_InvadersCard` has (`PLAN-phase-7-snake.md` §6, PR 5) — until
-/// then this is the only way to reach `/arcade/snake` at all.
-const String playSnakeTemporaryLabel = 'Play Snake (temporary)';
+import 'snake/snake_screen.dart' show snakeGameId;
 
 /// The Invaders card's own heading.
 const String invadersTitle = 'Invaders';
@@ -32,33 +25,57 @@ const String invadersTitle = 'Invaders';
 /// The Invaders card's button.
 const String playInvadersLabel = 'Play Invaders';
 
-/// Shown on the Invaders card when this profile has no score in the selected
-/// mode yet — distinct from [noScoresYetMessage], which is what the table
-/// under it shows for the same reason.
+/// The Snake card's own heading.
+const String snakeTitle = 'Snake';
+
+/// The Snake card's button.
+const String playSnakeLabel = 'Play Snake';
+
+/// Shown on a card when this profile has no score in the selected mode yet —
+/// distinct from [noScoresYetMessage], which is what the table under it shows
+/// for the same reason.
 const String notPlayedYetMessage = 'Not played yet';
 
-/// The heading over the three toggles.
+/// The heading over the arcade-wide toggles.
 const String optionsSectionLabel = 'Options';
 
-/// The three toggles, each a child's own choice rather than the tablet's
-/// (`PLAN-phase-4.md` §3): fewer rows and slower aliens, the ship firing on
-/// its own, and which side LEFT and RIGHT sit on.
-const String easyModeLabel = 'Easy mode';
-const String autoFireLabel = 'Auto-fire';
-const String padSideLabel = 'Buttons on the left';
-
-/// The heading over the top-five table.
+/// The heading over a card's own top-five table.
 const String topScoresSectionLabel = 'Top scores';
 
-/// `Best 15400 · Wave 7` — what the Invaders card shows for a played mode.
-String bestScoreLabel(HighScore best) =>
-    'Best ${best.score} · Wave ${best.wave}';
+/// The two arcade-wide toggles left in the Options section once auto-fire and
+/// the counting toggles move onto their own games' cards
+/// (`PLAN-phase-7-snake.md` §4.9): fewer rows and slower aliens for the whole
+/// arcade, and which side LEFT and RIGHT sit on.
+const String easyModeLabel = 'Easy mode';
+const String padSideLabel = 'Buttons on the left';
 
-/// `1. 15400 · Wave 7` — one row of the top-five table.
-String scoreRowLabel(int rank, HighScore score) =>
-    '$rank. ${score.score} · Wave ${score.wave}';
+/// The Invaders card's own option: the ship fires on its own, so a small
+/// player only has to steer.
+const String autoFireLabel = 'Auto-fire';
 
-/// Arcade's own screen: one game to play, this child's options for it, and
+/// The Snake card's own options: whether targets carry numbers to count, and
+/// whether that count is in ones or twos (`PLAN-phase-7-snake.md` §4.3,
+/// §4.8). [countIn2sLabel] is drawn only while [numbersLabel] is selected.
+const String numbersLabel = 'Numbers';
+const String countIn2sLabel = 'Count in 2s';
+
+/// `Best 15400 · Wave 7` — what a card shows for a played mode. [roundLabel]
+/// is the word for what [HighScore.wave] counts: Invaders calls it a wave,
+/// Snake a level, matching the word `GameShell`'s HUD already uses for each
+/// (`PLAN-phase-7-snake.md` §4.7).
+String bestScoreLabel(HighScore best, {String roundLabel = 'Wave'}) =>
+    'Best ${best.score} · $roundLabel ${best.wave}';
+
+/// `Longest 24` — the Snake card's lifetime longest snake
+/// (`ArcadeGameProgress.bestLength`, `PLAN-phase-7-snake.md` §4.9). Lifetime
+/// rather than per-mode, so it does not change when a toggle does.
+String longestSnakeLabel(int length) => 'Longest $length';
+
+/// `1. 15400 · Wave 7` — one row of a top-five table.
+String scoreRowLabel(int rank, HighScore score, {String roundLabel = 'Wave'}) =>
+    '$rank. ${score.score} · $roundLabel ${score.wave}';
+
+/// Arcade's own screen: the games to play, this child's options for each, and
 /// the top five for whichever mode those options currently choose.
 class ArcadeMenuScreen extends ConsumerWidget {
   const ArcadeMenuScreen({super.key});
@@ -71,23 +88,42 @@ class ArcadeMenuScreen extends ConsumerWidget {
     // Read when a toggle is tapped rather than held from this build, so
     // nothing here keeps a repository from a scope that has since been
     // replaced (the same reasoning `settings_screen.dart`'s `update` follows).
-    void setOptions({bool? easyMode, bool? autoFire, PadSide? padSide}) => ref
+    void setOptions({
+      bool? easyMode,
+      bool? autoFire,
+      PadSide? padSide,
+      SnakeCounting? snakeCounting,
+    }) => ref
         .read(progressRepositoryProvider)
         .setArcadeOptions(
           easyMode: easyMode,
           autoFire: autoFire,
           padSide: padSide,
+          snakeCounting: snakeCounting,
         );
 
-    final scores =
+    final invadersScores =
         profile.arcade.games[invadersGameId]?.highScores
             .where((score) => score.easy == profile.arcadeEasyMode)
             .toList() ??
         const <HighScore>[];
     // The repository keeps `highScores` sorted best first within a mode
-    // (`progress_repository.dart`'s `_withHighScore`), so the card's best
-    // entry is simply the first that survived the filter above.
-    final best = scores.isEmpty ? null : scores.first;
+    // (`progress_repository.dart`'s `_withHighScore`), so a card's best entry
+    // is simply the first that survived the filter above.
+    final invadersBest = invadersScores.isEmpty ? null : invadersScores.first;
+
+    final counting = profile.snakeCounting != SnakeCounting.off;
+    final snakeProgress = profile.arcade.games[snakeGameId];
+    final snakeScores =
+        snakeProgress?.highScores
+            .where(
+              (score) =>
+                  score.easy == profile.arcadeEasyMode &&
+                  score.counting == counting,
+            )
+            .toList() ??
+        const <HighScore>[];
+    final snakeBest = snakeScores.isEmpty ? null : snakeScores.first;
 
     return ScreenScaffold(
       title: 'Arcade',
@@ -107,17 +143,63 @@ class ArcadeMenuScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _InvadersCard(
-                  best: best,
+                _GameCard(
+                  icon: Icons.rocket_launch,
+                  title: invadersTitle,
+                  bestLine: invadersBest == null
+                      ? notPlayedYetMessage
+                      : bestScoreLabel(invadersBest),
+                  playLabel: playInvadersLabel,
                   onPlay: () =>
                       Navigator.of(context).pushNamed(AppRoutes.arcadeInvaders),
+                  toggles: [
+                    BigButton(
+                      icon: Icons.bolt,
+                      label: autoFireLabel,
+                      selected: profile.arcadeAutoFire,
+                      onPressed: () =>
+                          setOptions(autoFire: !profile.arcadeAutoFire),
+                    ),
+                  ],
+                  scores: invadersScores,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                BigButton(
+                _GameCard(
                   icon: Icons.videogame_asset,
-                  label: playSnakeTemporaryLabel,
-                  onPressed: () =>
+                  title: snakeTitle,
+                  bestLine: snakeBest == null
+                      ? notPlayedYetMessage
+                      : bestScoreLabel(snakeBest, roundLabel: 'Level'),
+                  extraLine: longestSnakeLabel(snakeProgress?.bestLength ?? 0),
+                  playLabel: playSnakeLabel,
+                  onPlay: () =>
                       Navigator.of(context).pushNamed(AppRoutes.arcadeSnake),
+                  toggles: [
+                    BigButton(
+                      icon: Icons.pin,
+                      label: numbersLabel,
+                      selected: counting,
+                      onPressed: () => setOptions(
+                        snakeCounting: counting
+                            ? SnakeCounting.off
+                            : SnakeCounting.ones,
+                      ),
+                    ),
+                    if (counting)
+                      BigButton(
+                        icon: Icons.filter_2,
+                        label: countIn2sLabel,
+                        selected: profile.snakeCounting == SnakeCounting.twos,
+                        onPressed: () => setOptions(
+                          snakeCounting:
+                              profile.snakeCounting == SnakeCounting.twos
+                              ? SnakeCounting.ones
+                              : SnakeCounting.twos,
+                        ),
+                      ),
+                  ],
+                  scores: snakeScores,
+                  roundLabel: 'Level',
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 const _SectionHeading(optionsSectionLabel),
@@ -131,14 +213,6 @@ class ArcadeMenuScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 BigButton(
-                  icon: Icons.bolt,
-                  label: autoFireLabel,
-                  selected: profile.arcadeAutoFire,
-                  onPressed: () =>
-                      setOptions(autoFire: !profile.arcadeAutoFire),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                BigButton(
                   icon: Icons.swap_horiz,
                   label: padSideLabel,
                   selected: profile.padSide == PadSide.left,
@@ -148,10 +222,6 @@ class ArcadeMenuScreen extends ConsumerWidget {
                         : PadSide.left,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xl),
-                const _SectionHeading(topScoresSectionLabel),
-                const SizedBox(height: AppSpacing.md),
-                _TopScores(scores: scores),
               ],
             ),
           ),
@@ -161,19 +231,45 @@ class ArcadeMenuScreen extends ConsumerWidget {
   }
 }
 
-/// What there is to play, and how this profile has done at it in the
-/// currently selected mode.
-class _InvadersCard extends StatelessWidget {
-  const _InvadersCard({required this.best, required this.onPlay});
+/// One game: its name, its best score for the mode the toggles above it
+/// currently select, its own options, its Play button, and its own top-five
+/// table (`PLAN-phase-7-snake.md` §4.9). What was `_InvadersCard` before a
+/// second game needed the same shape.
+class _GameCard extends StatelessWidget {
+  const _GameCard({
+    required this.icon,
+    required this.title,
+    required this.bestLine,
+    this.extraLine,
+    this.toggles = const [],
+    required this.playLabel,
+    required this.onPlay,
+    required this.scores,
+    this.roundLabel = 'Wave',
+  });
 
-  final HighScore? best;
+  final IconData icon;
+  final String title;
+  final String bestLine;
+
+  /// The Snake card's lifetime longest-snake line; null on every other card.
+  final String? extraLine;
+
+  /// This game's own options, drawn under its Play button.
+  final List<Widget> toggles;
+
+  final String playLabel;
   final VoidCallback onPlay;
+  final List<HighScore> scores;
+
+  /// The word for what a score's `wave` field counts, passed on to
+  /// [scoreRowLabel] so the table reads the same word as [bestLine].
+  final String roundLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final best = this.best;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -186,12 +282,12 @@ class _InvadersCard extends StatelessWidget {
         spacing: AppSpacing.md,
         children: [
           _CardLine(
-            icon: Icons.rocket_launch,
+            icon: icon,
             color: colors.onSecondaryContainer,
             child: Semantics(
               header: true,
               child: Text(
-                invadersTitle,
+                title,
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: colors.onSecondaryContainer,
                 ),
@@ -202,17 +298,39 @@ class _InvadersCard extends StatelessWidget {
             icon: Icons.emoji_events,
             color: colors.onSecondaryContainer,
             child: Text(
-              best == null ? notPlayedYetMessage : bestScoreLabel(best),
+              bestLine,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: colors.onSecondaryContainer,
               ),
             ),
           ),
+          if (extraLine != null)
+            _CardLine(
+              icon: Icons.straighten,
+              color: colors.onSecondaryContainer,
+              child: Text(
+                extraLine!,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: colors.onSecondaryContainer,
+                ),
+              ),
+            ),
           BigButton(
             icon: Icons.play_arrow,
-            label: playInvadersLabel,
+            label: playLabel,
             onPressed: onPlay,
           ),
+          for (final toggle in toggles) toggle,
+          Semantics(
+            header: true,
+            child: Text(
+              topScoresSectionLabel,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colors.onSecondaryContainer,
+              ),
+            ),
+          ),
+          _TopScores(scores: scores, roundLabel: roundLabel),
         ],
       ),
     );
@@ -250,9 +368,10 @@ class _CardLine extends StatelessWidget {
 /// This profile's top five for the mode `scores` was already filtered to, or
 /// the empty state when it has none.
 class _TopScores extends StatelessWidget {
-  const _TopScores({required this.scores});
+  const _TopScores({required this.scores, this.roundLabel = 'Wave'});
 
   final List<HighScore> scores;
+  final String roundLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +389,10 @@ class _TopScores extends StatelessWidget {
         for (var i = 0; i < scores.length; i++)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-            child: Text(scoreRowLabel(i + 1, scores[i]), style: style),
+            child: Text(
+              scoreRowLabel(i + 1, scores[i], roundLabel: roundLabel),
+              style: style,
+            ),
           ),
       ],
     );
