@@ -23,8 +23,9 @@ import 'package:flutter/material.dart';
 
 import '../model/stroke.dart';
 
-/// Paints the sheet: the paper colour, then [baked], then [liveStrokes] in
-/// order, then [current] on top.
+/// Paints the sheet: the paper colour, then the [backdrop] photo, then — in
+/// one `saveLayer` of their own — [baked], [liveStrokes] in order and
+/// [current] on top.
 ///
 /// Painted in sheet coordinates ([sheetWidth] x [sheetHeight] from
 /// `stroke.dart`) and scaled to fill `size` — the same painter therefore
@@ -43,10 +44,12 @@ class DrawingPainter extends CustomPainter {
   });
 
   /// An imported photo, downscaled to fit the sheet (`photo_import.dart`),
-  /// or null when this drawing has none. Drawn beneath [baked] and never
-  /// folded into it — a later "remove the photo" stays a field change
-  /// rather than a re-render of pixels already mixed together
-  /// (`PLAN-phase-8.md` §4.3, §4.6).
+  /// or null when this drawing has none. Drawn over the paper and beneath the
+  /// ink layer, outside its `saveLayer`: an eraser's `BlendMode.clear` only
+  /// ever removes ink, never the photo, whether the stroke is still live or
+  /// already in [baked]. Never folded into [baked] either — a later "remove
+  /// the photo" stays a field change rather than a re-render of pixels
+  /// already mixed together (`PLAN-phase-8.md` §4.3, §4.6).
   final SheetBackdrop? backdrop;
 
   /// Every stroke below the undo horizon, folded into one image by the
@@ -62,9 +65,9 @@ class DrawingPainter extends CustomPainter {
   final Stroke? current;
 
   /// The sheet's background, painted first and outside the `saveLayer` below
-  /// so an eraser's `BlendMode.clear` reveals paper rather than punching
-  /// through to whatever sits behind this widget (`PLAN-phase-8.md` §4.2,
-  /// §7).
+  /// so an eraser's `BlendMode.clear` reveals paper (or the photo over it)
+  /// rather than punching through to whatever sits behind this widget
+  /// (`PLAN-phase-8.md` §4.2, §7).
   final Color paperColor;
 
   /// Resolves a [Stroke.colorIndex] to a paint colour. A placeholder
@@ -82,18 +85,24 @@ class DrawingPainter extends CustomPainter {
     canvas.save();
     canvas.scale(size.width / sheetWidth, size.height / sheetHeight);
 
-    // Isolated in its own layer so an eraser's `BlendMode.clear` only ever
-    // clears pixels painted inside this layer — the backdrop, the bake and
-    // the live strokes — rather than reaching through to whatever this
-    // canvas sits on top of. Without this, clearing punches straight past
-    // the paper rect painted above (it is on the canvas *outside* this
+    // The photo goes on the canvas before the layer, like the paper: it is
+    // locked (`PLAN-phase-8.md` §4.6), so an eraser must never reach it.
+    // `png_export.dart` paints in this same order, which is what keeps a
+    // drawing looking on screen as it exports.
+    if (backdrop case final backdrop?) drawBackdropImage(canvas, backdrop);
+
+    // The ink — the bake and the strokes — is isolated in its own layer so an
+    // eraser's `BlendMode.clear` only ever clears pixels painted inside this
+    // layer rather than reaching through to what is beneath it. Restoring
+    // the layer composites it over the paper and photo with a normal blend,
+    // so a cleared pixel shows them. Without the layer, clearing punches
+    // straight past the paper rect and photo (on the canvas *outside* the
     // layer) to whatever is behind the widget, which is how an eraser ends
     // up looking like it draws in black instead of revealing paper.
     canvas.saveLayer(
       const Rect.fromLTWH(0, 0, sheetWidth, sheetHeight),
       Paint(),
     );
-    if (backdrop case final backdrop?) drawBackdropImage(canvas, backdrop);
     if (baked case final image?) drawBakedImage(canvas, image);
     for (final stroke in liveStrokes) {
       paintStroke(canvas, stroke, colorOf: colorOf, widthOf: widthOf);

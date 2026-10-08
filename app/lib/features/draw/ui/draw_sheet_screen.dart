@@ -1,9 +1,9 @@
 // The sheet a drawing happens on: the canvas and the tool row together
 // (`PLAN-phase-8.md` §6, PR 3). Which pencil size, which colour and whether
-// the eraser is active live here rather than on [DrawingController] — they
-// are what the *next* stroke will be, not part of the picture already drawn,
-// the same split `SudokuSession.pencilMode` draws between a play mode and the
-// board it acts on.
+// the eraser or the colour dropper is active live here rather than on
+// [DrawingController] — they are what the *next* stroke will be, not part of
+// the picture already drawn, the same split `SudokuSession.pencilMode` draws
+// between a play mode and the board it acts on.
 //
 // Owns the one piece of state [DrawingPainter] cannot: the baked [ui.Image],
 // accumulated across frames as [DrawingController] reports a bake
@@ -32,6 +32,7 @@ import '../data/gallery_export.dart';
 import '../data/photo_import.dart';
 import '../data/png_export.dart';
 import '../data/providers.dart';
+import '../model/color_dropper.dart';
 import '../model/drawing_controller.dart';
 import '../model/palette.dart';
 import '../model/stroke.dart';
@@ -125,6 +126,12 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   int _colorIndex = 0;
   bool _isEraser = false;
 
+  /// Whether the next touch on the sheet picks a colour instead of drawing
+  /// (`PLAN-phase-8.md` §4.8). One-shot: [_pickColor] clears it, so the
+  /// colour just picked is what the next stroke draws with and its swatch is
+  /// the one showing selected. Exclusive with [_isEraser].
+  bool _isDropper = false;
+
   ui.Image? _baked;
 
   /// The decoded form of [DrawingController.backdrop], or null before it has
@@ -159,6 +166,12 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   /// stroke at a time, and this is the one place that decides which pointer
   /// gets it (`drawing_controller.dart`).
   int? _activePointer;
+
+  /// Whether [_activePointer] went down with the dropper active, and so is a
+  /// pick rather than a stroke. Fixed at pointer-down, not read from
+  /// [_isDropper] later: a second finger can change the tool mid-gesture,
+  /// and the first finger's lift must still close the stroke it opened.
+  bool _pointerPicks = false;
 
   /// The sheet-coordinate point [extendStroke] last accepted, against which
   /// [drawSampleDistance] is measured. Null whenever [_activePointer] is.
@@ -363,7 +376,7 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
               child: Listener(
                 onPointerDown: (event) => _onPointerDown(event, size),
                 onPointerMove: (event) => _onPointerMove(event, size),
-                onPointerUp: (event) => _endStroke(event.pointer),
+                onPointerUp: (event) => _onPointerUp(event, size),
                 onPointerCancel: (event) => _endStroke(event.pointer),
                 child: RepaintBoundary(
                   child: AnimatedBuilder(
@@ -400,15 +413,25 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
       sizeIndex: _sizeIndex,
       colorIndex: _colorIndex,
       isEraser: _isEraser,
+      isDropper: _isDropper,
       onSizeSelected: (index) => setState(() {
         _sizeIndex = index;
         _isEraser = false;
+        _isDropper = false;
       }),
       onColorSelected: (index) => setState(() {
         _colorIndex = index;
         _isEraser = false;
+        _isDropper = false;
       }),
-      onEraserSelected: () => setState(() => _isEraser = true),
+      onEraserSelected: () => setState(() {
+        _isEraser = true;
+        _isDropper = false;
+      }),
+      onDropperSelected: () => setState(() {
+        _isDropper = true;
+        _isEraser = false;
+      }),
       canUndo: _controller.canUndo,
       canRedo: _controller.canRedo,
       onUndo: _controller.undo,
@@ -444,6 +467,11 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   void _onPointerDown(PointerDownEvent event, Size displaySize) {
     if (_activePointer != null) return;
     _activePointer = event.pointer;
+    // The dropper tracks its pointer so a second finger is ignored the same
+    // way, but opens no stroke: nothing it does reaches the controller, so
+    // no undo entry, no notification and no autosave (`_pickColor`).
+    _pointerPicks = _isDropper;
+    if (_pointerPicks) return;
     final point = _toSheetPoint(event, displaySize);
     _lastSampled = point;
     _controller.beginStroke(
@@ -454,7 +482,7 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   }
 
   void _onPointerMove(PointerMoveEvent event, Size displaySize) {
-    if (event.pointer != _activePointer) return;
+    if (event.pointer != _activePointer || _pointerPicks) return;
     final point = _toSheetPoint(event, displaySize);
     final last = _lastSampled;
     if (last != null && (point - last).distance <= drawSampleDistance) {
@@ -464,9 +492,84 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
     _controller.extendStroke(point);
   }
 
+  /// A lift ends a stroke, or, with the dropper active, picks the colour
+  /// under the finger *where it lifted* — so a child can slide onto the exact
+  /// spot they want, as with a real dropper, and a cancelled touch
+  /// ([_endStroke] alone) picks nothing.
+  void _onPointerUp(PointerUpEvent event, Size displaySize) {
+    if (_pointerPicks && event.pointer == _activePointer) {
+      _activePointer = null;
+      _pointerPicks = false;
+      unawaited(_pickColor(_toSheetPoint(event, displaySize)));
+      return;
+    }
+    _endStroke(event.pointer);
+  }
+
+  /// Makes the colour showing at [point] the pencil's colour and returns to
+  /// the pencil (`PLAN-phase-8.md` §4.8).
+  ///
+  /// Reads the strokes, never the pixels: the topmost stroke covering
+  /// [point] answers, then the backdrop photo snapped to the nearest palette
+  /// colour, then the paper likewise ([ColorDropper], `DrawPalette
+  /// .nearestIndex`) — the paper through the same snap because it is the
+  /// theme's surface colour, white by day and near-black by night, and a
+  /// stroke can only store a palette index.
+  ///
+  /// Touches only this screen's tool state, never [_controller]: picking is
+  /// not an edit, so it adds no stroke and no undo entry and `DrawSheetRoute`
+  /// never sees a change to save.
+  Future<void> _pickColor(Offset point) async {
+    final generation = _sheetGeneration;
+    final paper = Theme.of(context).colorScheme.surface;
+    var index = ColorDropper.inkAt(_controller.strokes, point);
+    if (index == null) {
+      // The photo is the only answer that takes real async work (reading the
+      // decoded image back), so it is asked only when no ink answered.
+      final photo = await _backdropColorAt(point, paper);
+      // The child may have left the dropper, or the sheet, while the pixels
+      // were read back.
+      if (!mounted || generation != _sheetGeneration || !_isDropper) return;
+      index = DrawPalette.nearestIndex(photo ?? paper);
+    }
+    setState(() {
+      _colorIndex = index!;
+      _isDropper = false;
+      _isEraser = false;
+    });
+  }
+
+  /// The backdrop photo's colour at [point], blended over [paper] so a
+  /// transparent pixel reads as the paper it lets through, or null when this
+  /// sheet has no decoded photo there.
+  ///
+  /// Never throws: a photo disposed by **New sheet** mid-read, or an engine
+  /// that cannot hand the pixels back, falls through to the paper rather
+  /// than surfacing an error to a child who only tapped a picture.
+  Future<Color?> _backdropColorAt(Offset point, Color paper) async {
+    final backdrop = _decodedBackdrop;
+    if (backdrop == null) return null;
+    try {
+      final image = backdrop.image;
+      final rgba = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (rgba == null) return null;
+      final pixel = ColorDropper.backdropColorAt(
+        rgba: rgba,
+        pixelWidth: image.width,
+        pixelHeight: image.height,
+        sheetSize: backdrop.sheetSize,
+        point: point,
+      );
+      return pixel == null ? null : Color.alphaBlend(pixel, paper);
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _endStroke(int pointer) {
     if (pointer != _activePointer) return;
     _activePointer = null;
+    _pointerPicks = false;
     _lastSampled = null;
     _controller.endStroke();
   }

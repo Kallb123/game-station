@@ -1,6 +1,6 @@
-// The tool row: four pencil sizes, eighteen colours, the eraser, undo, redo
-// and New sheet — every control a child chooses a pencil, a colour or an
-// action from (`PLAN-phase-8.md` §4.7, §6 PR 3).
+// The tool row: four pencil sizes, eighteen colours, the eraser, the colour
+// dropper, undo, redo and New sheet — every control a child chooses a pencil,
+// a colour or an action from (`PLAN-phase-8.md` §4.7, §4.8, §6 PR 3).
 //
 // Three groups — sizes, colours and actions — each its own `Wrap` rather than
 // a fixed `Row`, and every `Wrap` horizontal whichever [ToolRowLayout] is in
@@ -12,20 +12,23 @@
 // lines.
 //
 // The order is the same either way — the four sizes, then undo, redo, the
-// eraser and New sheet, then the colours — and what [ToolRowLayout] changes
-// is the width the groups are given. As a band below the sheet (portrait) it
-// is the window's width; as a rail beside it (landscape) it is
-// [ToolRow.railWidthFor] the window, six swatches wide where the window can
-// spare it, so the eighteen colours fill the rail in three rows of six rather
-// than running down it one control at a time (`palette.dart`: twelve
-// paint-box colours and six skin tones, so the tones are the third row).
+// eraser, the dropper and New sheet, then the colours — and what
+// [ToolRowLayout] changes is the width the groups are given. As a band below
+// the sheet (portrait) it is the window's width; as a rail beside it
+// (landscape) it is [ToolRow.railWidthFor] the window, six swatches wide where
+// the window can spare it, so the eighteen colours fill the rail in three rows
+// of six rather than running down it one control at a time (`palette.dart`:
+// twelve paint-box colours and six skin tones, so the tones are the third
+// row).
 //
 // The colours come last because they are the group that folds onto lines of
 // its own, and so the only one that can be left below the fold on a window
 // too short for all three: both layouts scroll rather than shrink a control
 // (`draw_sheet_screen.dart`), and a colour is the one thing here worth
 // scrolling for. The eraser sits with the actions rather than at the end of
-// the swatches for the same reason — it is reached for mid-drawing.
+// the swatches for the same reason — it is reached for mid-drawing — and the
+// dropper sits beside it because it is the other tool a child swaps to and
+// from mid-drawing.
 //
 // Selection is never colour alone (`PLAN.md` §7's accessibility rule,
 // `PLAN-phase-8.md` §1): every selectable control here gains a 3 dp
@@ -64,16 +67,19 @@ enum ToolRowLayout {
   rail,
 }
 
-/// The four pencil sizes, the eighteen colours, the eraser, undo, redo and New
-/// sheet, laid out for [DrawSheetScreen] (`draw_sheet_screen.dart`).
+/// The four pencil sizes, the eighteen colours, the eraser, the colour dropper,
+/// undo, redo and New sheet, laid out for [DrawSheetScreen]
+/// (`draw_sheet_screen.dart`).
 class ToolRow extends StatelessWidget {
   const ToolRow({
     required this.sizeIndex,
     required this.colorIndex,
     required this.isEraser,
+    required this.isDropper,
     required this.onSizeSelected,
     required this.onColorSelected,
     required this.onEraserSelected,
+    required this.onDropperSelected,
     required this.canUndo,
     required this.canRedo,
     required this.onUndo,
@@ -89,16 +95,24 @@ class ToolRow extends StatelessWidget {
   /// than resetting to thin.
   final int sizeIndex;
 
-  /// The colour a new stroke will use, ignored while [isEraser].
+  /// The colour a new stroke will use, ignored while [isEraser] or
+  /// [isDropper].
   final int colorIndex;
 
   /// Whether the eraser, rather than [colorIndex]'s pencil, is the active
   /// tool.
   final bool isEraser;
 
+  /// Whether the colour dropper is the active tool: the next tap on the
+  /// sheet picks a colour rather than drawing (`PLAN-phase-8.md` §4.8).
+  /// Never true together with [isEraser]; if a caller says both, both buttons
+  /// show selected rather than one being quietly preferred.
+  final bool isDropper;
+
   final ValueChanged<int> onSizeSelected;
   final ValueChanged<int> onColorSelected;
   final VoidCallback onEraserSelected;
+  final VoidCallback onDropperSelected;
 
   /// Whether [onUndo] and [onRedo] do anything right now. `false` disables
   /// the button rather than hiding it, and reports that to the semantics
@@ -131,11 +145,16 @@ class ToolRow extends StatelessWidget {
   static const double railWidth = AppTapTargets.min * 6 + AppSpacing.sm * 5;
 
   /// The width a rail falls back to when [railWidth] would take more than
-  /// half the window: undo and redo at their primary floor, the eraser and
-  /// New sheet at the ordinary one, and the three gaps between the four —
-  /// the narrowest the action line fits on, and four colours to a row.
+  /// half the window: undo and redo at their primary floor, the eraser, the
+  /// dropper and New sheet at the ordinary one, and the four gaps between the
+  /// five — the narrowest the action line fits on, and five colours to a row.
+  ///
+  /// It was 280 dp, four colours to a row, while the line held four
+  /// controls; the dropper took 64 dp of it. Keeping 280 would have put New
+  /// sheet alone on a second line of every narrow rail, so the rail grew to
+  /// keep the actions together and the swatches now fold five to a row.
   static const double narrowRailWidth =
-      AppTapTargets.primary * 2 + AppTapTargets.min * 2 + AppSpacing.sm * 3;
+      AppTapTargets.primary * 2 + AppTapTargets.min * 3 + AppSpacing.sm * 4;
 
   /// How wide to draw the rail where the sheet and it have [available]
   /// logical pixels to share (`draw_sheet_screen.dart`'s `_landscapeLayout`).
@@ -143,9 +162,9 @@ class ToolRow extends StatelessWidget {
   /// Never more than half of it — the rail's groups fold onto more lines when
   /// they are given less, and the sheet has nothing to fold — and one of the
   /// two widths above wherever that leaves a choice, so the colours land in
-  /// rows of six or of four rather than in a ragged grid of whatever number
+  /// rows of six or of five rather than in a ragged grid of whatever number
   /// happens to fit. Eighteen divides evenly into the wide rail's rows of
-  /// six; at the narrow width the last row carries the two left over, which
+  /// six; at the narrow width the last row carries the three left over, which
   /// is the price of the six skin tones and cheaper than a row length that
   /// changes with every window.
   static double railWidthFor(double available) {
@@ -154,6 +173,7 @@ class ToolRow extends StatelessWidget {
   }
 
   static const Key eraserKey = ValueKey('ToolRow.eraser');
+  static const Key dropperKey = ValueKey('ToolRow.dropper');
   static const Key undoKey = ValueKey('ToolRow.undo');
   static const Key redoKey = ValueKey('ToolRow.redo');
   static const Key newSheetKey = ValueKey('ToolRow.newSheet');
@@ -180,7 +200,7 @@ class ToolRow extends StatelessWidget {
         _SizeDot(
           key: sizeKey(i),
           index: i,
-          selected: !isEraser && sizeIndex == i,
+          selected: !isEraser && !isDropper && sizeIndex == i,
           onTap: () => onSizeSelected(i),
         ),
     ]);
@@ -189,7 +209,7 @@ class ToolRow extends StatelessWidget {
         _ColorSwatch(
           key: colorKey(i),
           index: i,
-          selected: !isEraser && colorIndex == i,
+          selected: !isEraser && !isDropper && colorIndex == i,
           onTap: () => onColorSelected(i),
         ),
     ];
@@ -197,6 +217,11 @@ class ToolRow extends StatelessWidget {
       key: eraserKey,
       selected: isEraser,
       onTap: onEraserSelected,
+    );
+    final dropper = _DropperButton(
+      key: dropperKey,
+      selected: isDropper,
+      onTap: onDropperSelected,
     );
     // Undo and redo as a single [Row], not two separate children of the
     // group's `Wrap` — a `Wrap` only ever breaks *between* children, so this
@@ -241,11 +266,11 @@ class ToolRow extends StatelessWidget {
       // can be left with a line below the fold when the window is too short
       // for all three (`draw_sheet_screen.dart`'s `_portraitLayout`, the
       // rail's own scroll view). Undo and redo are tapped in a hurry and the
-      // eraser is tapped mid-drawing: none of the three is a control to make
-      // a child scroll for.
+      // eraser and dropper are tapped mid-drawing: none of the four is a
+      // control to make a child scroll for.
       children: [
         sizes,
-        _group([undoRedo, eraser, newSheet]),
+        _group([undoRedo, eraser, dropper, newSheet]),
         _group(colors),
       ],
     );
@@ -415,6 +440,55 @@ class _EraserButton extends StatelessWidget {
             ),
           ),
           child: _EraserGlyph(
+            size: selected ? AppIconSizes.large : AppIconSizes.standard,
+            color: colors.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The colour dropper. Styled exactly like [_EraserButton] — a ring plus a
+/// size change, for the same reason — around [Icons.colorize], Material's
+/// eyedropper, which unlike the eraser has a stock glyph that reads as the
+/// tool it is.
+class _DropperButton extends StatelessWidget {
+  const _DropperButton({
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label: 'Colour dropper',
+      button: true,
+      selected: selected,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: AppTapTargets.min,
+          height: AppTapTargets.min,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              width: selected ? AppBorders.selected : AppBorders.hairline,
+              color: selected ? colors.primary : colors.outlineVariant,
+            ),
+          ),
+          child: Icon(
+            Icons.colorize,
             size: selected ? AppIconSizes.large : AppIconSizes.standard,
             color: colors.onSurface,
           ),

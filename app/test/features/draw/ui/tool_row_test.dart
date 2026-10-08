@@ -19,6 +19,7 @@ void main() {
     int sizeIndex = 0,
     int colorIndex = 0,
     bool isEraser = false,
+    bool isDropper = false,
     bool canUndo = false,
     bool canRedo = false,
     VoidCallback? onUndo,
@@ -27,6 +28,7 @@ void main() {
     ValueChanged<int>? onSizeSelected,
     ValueChanged<int>? onColorSelected,
     VoidCallback? onEraserSelected,
+    VoidCallback? onDropperSelected,
     ToolRowLayout layout = ToolRowLayout.band,
     double? width,
     double textScale = 1,
@@ -40,9 +42,11 @@ void main() {
             sizeIndex: sizeIndex,
             colorIndex: colorIndex,
             isEraser: isEraser,
+            isDropper: isDropper,
             onSizeSelected: onSizeSelected ?? (_) {},
             onColorSelected: onColorSelected ?? (_) {},
             onEraserSelected: onEraserSelected ?? () {},
+            onDropperSelected: onDropperSelected ?? () {},
             canUndo: canUndo,
             canRedo: canRedo,
             onUndo: onUndo ?? () {},
@@ -106,6 +110,14 @@ void main() {
       greaterThanOrEqualTo(AppTapTargets.min),
     );
     expect(
+      tester.getSize(find.byKey(ToolRow.dropperKey)).width,
+      greaterThanOrEqualTo(AppTapTargets.min),
+    );
+    expect(
+      tester.getSize(find.byKey(ToolRow.dropperKey)).height,
+      greaterThanOrEqualTo(AppTapTargets.min),
+    );
+    expect(
       tester.getSize(find.byKey(ToolRow.newSheetKey)).width,
       greaterThanOrEqualTo(AppTapTargets.min),
     );
@@ -155,6 +167,40 @@ void main() {
     expect(borderWidthOf(tester, ToolRow.colorKey(0)), AppBorders.hairline);
   });
 
+  testWidgets('the dropper carries the same ring when active, and nothing '
+      'else reads as selected', (tester) async {
+    await pumpRow(tester);
+    expect(borderWidthOf(tester, ToolRow.dropperKey), AppBorders.hairline);
+    // The pencil is the default tool, so its size and colour are selected.
+    expect(borderWidthOf(tester, ToolRow.sizeKey(0)), AppBorders.selected);
+    expect(borderWidthOf(tester, ToolRow.colorKey(0)), AppBorders.selected);
+
+    await pumpRow(tester, isDropper: true);
+    expect(borderWidthOf(tester, ToolRow.dropperKey), AppBorders.selected);
+    expect(borderWidthOf(tester, ToolRow.eraserKey), AppBorders.hairline);
+    expect(borderWidthOf(tester, ToolRow.sizeKey(0)), AppBorders.hairline);
+    expect(borderWidthOf(tester, ToolRow.colorKey(0)), AppBorders.hairline);
+  });
+
+  testWidgets('the dropper\'s glyph grows when selected, on top of the ring', (
+    tester,
+  ) async {
+    double glyphSize() => tester
+        .widget<Icon>(
+          find.descendant(
+            of: find.byKey(ToolRow.dropperKey),
+            matching: find.byIcon(Icons.colorize),
+          ),
+        )
+        .size!;
+
+    await pumpRow(tester);
+    final unselected = glyphSize();
+
+    await pumpRow(tester, isDropper: true);
+    expect(glyphSize(), greaterThan(unselected));
+  });
+
   testWidgets('a size dot grows when selected, on top of the border', (
     tester,
   ) async {
@@ -200,9 +246,38 @@ void main() {
       tester.getSemantics(find.byKey(ToolRow.eraserKey)),
       isSemantics(label: 'Eraser', isButton: true),
     );
+    expect(
+      tester.getSemantics(find.byKey(ToolRow.dropperKey)),
+      isSemantics(label: 'Colour dropper', isButton: true),
+    );
     expect(find.byTooltip('Undo'), findsOneWidget);
     expect(find.byTooltip('Redo'), findsOneWidget);
     expect(find.byTooltip('New sheet'), findsOneWidget);
+  });
+
+  testWidgets('the dropper reports selected to the semantics tree, not only to '
+      'the eye', (tester) async {
+    await pumpRow(tester);
+    expect(
+      tester.getSemantics(find.byKey(ToolRow.dropperKey)),
+      isSemantics(
+        label: 'Colour dropper',
+        isButton: true,
+        hasSelectedState: true,
+        isSelected: false,
+      ),
+    );
+
+    await pumpRow(tester, isDropper: true);
+    expect(
+      tester.getSemantics(find.byKey(ToolRow.dropperKey)),
+      isSemantics(
+        label: 'Colour dropper',
+        isButton: true,
+        hasSelectedState: true,
+        isSelected: true,
+      ),
+    );
   });
 
   testWidgets(
@@ -225,11 +300,13 @@ void main() {
   );
 
   testWidgets(
-    'tapping a size, a colour, the eraser and the action buttons calls back',
+    'tapping a size, a colour, the eraser, the dropper and the action buttons '
+    'calls back',
     (tester) async {
       int? tappedSize;
       int? tappedColor;
       var erased = false;
+      var dropped = false;
       var undone = false;
       var redone = false;
       var newSheet = false;
@@ -241,6 +318,7 @@ void main() {
         onSizeSelected: (i) => tappedSize = i,
         onColorSelected: (i) => tappedColor = i,
         onEraserSelected: () => erased = true,
+        onDropperSelected: () => dropped = true,
         onUndo: () => undone = true,
         onRedo: () => redone = true,
         onNewSheet: () => newSheet = true,
@@ -249,6 +327,7 @@ void main() {
       await tester.tap(find.byKey(ToolRow.sizeKey(2)));
       await tester.tap(find.byKey(ToolRow.colorKey(5)));
       await tester.tap(find.byKey(ToolRow.eraserKey));
+      await tester.tap(find.byKey(ToolRow.dropperKey));
       await tester.tap(find.byKey(ToolRow.undoKey));
       await tester.tap(find.byKey(ToolRow.redoKey));
       await tester.tap(find.byKey(ToolRow.newSheetKey));
@@ -256,6 +335,7 @@ void main() {
       expect(tappedSize, 2);
       expect(tappedColor, 5);
       expect(erased, isTrue);
+      expect(dropped, isTrue);
       expect(undone, isTrue);
       expect(redone, isTrue);
       expect(newSheet, isTrue);
@@ -306,7 +386,7 @@ void main() {
   ];
 
   group('the rail', () {
-    testWidgets('puts the four sizes on one line and the four actions on the '
+    testWidgets('puts the four sizes on one line and the five actions on the '
         'next', (tester) async {
       await pumpRow(tester, layout: ToolRowLayout.rail, canUndo: true);
 
@@ -320,6 +400,7 @@ void main() {
         ToolRow.undoKey,
         ToolRow.redoKey,
         ToolRow.eraserKey,
+        ToolRow.dropperKey,
         ToolRow.newSheetKey,
       ]);
       expect(actions.toSet(), hasLength(1), reason: 'actions: $actions');
@@ -344,7 +425,7 @@ void main() {
       );
     });
 
-    testWidgets('at its narrow width, four to a row with the actions still on '
+    testWidgets('at its narrow width, five to a row with the actions still on '
         'one line', (tester) async {
       await pumpRow(
         tester,
@@ -353,16 +434,17 @@ void main() {
         canUndo: true,
       );
 
-      // Eighteen does not divide by four: the last row carries the two that
+      // Eighteen does not divide by five: the last row carries the three that
       // are left, which is what the narrow rail costs (`tool_row.dart`'s
       // `railWidthFor`).
       final rows = rowsOf(tester, colorKeys);
-      expect(rows.values.toList(), [4, 4, 4, 4, 2], reason: 'rows: $rows');
+      expect(rows.values.toList(), [5, 5, 5, 3], reason: 'rows: $rows');
 
       final actions = lineCentres(tester, [
         ToolRow.undoKey,
         ToolRow.redoKey,
         ToolRow.eraserKey,
+        ToolRow.dropperKey,
         ToolRow.newSheetKey,
       ]);
       expect(actions.toSet(), hasLength(1), reason: 'actions: $actions');
@@ -393,13 +475,14 @@ void main() {
 
     await pumpRow(tester);
 
-    // Undo, redo, the eraser and New sheet share one line, above every
+    // Undo, redo, the eraser, the dropper and New sheet share one line, above every
     // swatch: a short window folds the colours, never these
     // (`draw_sheet_screen.dart`'s `_portraitLayout`).
     final actions = lineCentres(tester, [
       ToolRow.undoKey,
       ToolRow.redoKey,
       ToolRow.eraserKey,
+      ToolRow.dropperKey,
       ToolRow.newSheetKey,
     ]);
     expect(actions.toSet(), hasLength(1), reason: 'actions: $actions');

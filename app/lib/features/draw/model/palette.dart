@@ -77,6 +77,36 @@ abstract final class DrawPalette {
   /// The spoken name for `index`, for the swatch's own [Semantics] label and
   /// for anywhere else a colour needs to be said rather than shown.
   static String nameAt(int index) => names[index];
+
+  /// The index of the swatch that looks most like [color] — what the colour
+  /// dropper (`color_dropper.dart`) turns a pixel of a photo, or the sheet's
+  /// own paper, into, because a stroke can only store an index
+  /// (`stroke.dart`).
+  ///
+  /// Distance is the "redmean" weighting of RGB: close to how the eye
+  /// separates colours at the cost of three multiplications, where plain RGB
+  /// distance calls a mid-grey nearer to Teal than to Black or White. Ties go
+  /// to the lower index, so the answer never depends on anything but
+  /// [colors]'s order. [color]'s alpha is ignored; a caller with a
+  /// translucent colour blends it first.
+  static int nearestIndex(Color color) {
+    var best = 0;
+    var bestDistance = double.infinity;
+    for (var i = 0; i < colors.length; i++) {
+      final candidate = colors[i];
+      final redMean = (color.r + candidate.r) / 2;
+      final dr = color.r - candidate.r;
+      final dg = color.g - candidate.g;
+      final db = color.b - candidate.b;
+      final distance =
+          (2 + redMean) * dr * dr + 4 * dg * dg + (3 - redMean) * db * db;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = i;
+      }
+    }
+    return best;
+  }
 }
 
 /// The four pencil sizes a child can draw with.
