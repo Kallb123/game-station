@@ -546,12 +546,6 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   /// Never throws: a photo disposed by **New sheet** mid-read, or an engine
   /// that cannot hand the pixels back, falls through to the paper rather
   /// than surfacing an error to a child who only tapped a picture.
-  ///
-  /// Known difference from the screen: a live eraser stroke
-  /// ([DrawingPainter]'s `saveLayer`) also clears the photo beneath it on
-  /// screen until the stroke is baked, whereas a baked one and the export
-  /// ([exportDrawingToPng]) leave it. The dropper follows the export and the
-  /// plan's "locked" backdrop (`PLAN-phase-8.md` §4.6), and reports the photo.
   Future<Color?> _backdropColorAt(Offset point, Color paper) async {
     final backdrop = _decodedBackdrop;
     if (backdrop == null) return null;

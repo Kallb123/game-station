@@ -234,9 +234,14 @@ both intended: memory and paint cost are constant however long a child draws, an
 exactly 50 strokes and then stops with the button greyed. A child cannot undo away an afternoon by
 holding a button, and the button that has stopped working says so rather than doing nothing.
 
-The backdrop, if any, is drawn beneath the baked image and is never part of it — an imported photo
+The painter's order is the paper, then the backdrop, then one `saveLayer` holding the baked image, the
+live strokes and the stroke under the finger. The backdrop is deliberately outside that layer: an eraser
+paints with `BlendMode.clear`, which clears whatever the layer holds, so a photo inside it would be
+erased by any eraser stroke not yet baked. The photo is locked (§4.6), and the eraser removes ink only.
+The export draws in the same order. The backdrop is never part of the baked image — an imported photo
 stays separable from the strokes over it, so a later "remove the photo" is a field change rather than
-a re-render of pixels that have already been mixed.
+a re-render of pixels that have already been mixed — and the bake is composited onto a transparent
+canvas, so an erased pixel in it is transparent and lets the photo through.
 
 No image golden tests. `matchesGoldenFile` output differs between Skia and Impeller and between
 platforms, so a golden here fails on somebody's machine for a reason that is not the code. The painter
@@ -484,10 +489,6 @@ notifies, and so never marks the drawing dirty or starts an autosave.
 **Limits, stated rather than hidden.**
 - A backdrop that has not finished decoding is not sampled; the paper answers. The window is the
   fraction of a second after a photo is added or a drawing opened.
-- On screen, an eraser stroke still among the last fifty clears the photo beneath it until it is baked
-  (`DrawingPainter`'s single `saveLayer`), where a baked one and the export leave the photo (§4.3,
-  §4.6's "locked"). The dropper follows the export: an eraser shows the photo through. The
-  inconsistency is in the painter, not the dropper, and is left for a fix of its own.
 - A photo pixel snaps to the nearest of eighteen colours, which is a hue family and not a match.
   That is the palette's limit, not a fault in the sampling.
 
@@ -632,6 +633,7 @@ below is ticked or has its unticked lines explained.
 | `gal` is one maintainer's package | Low | Reached only through `GalleryExport`, so replacing it is a `MediaStore` insert and a `PHPhotoLibrary` request in one file. It adds no transitive package, so there is no graph to unpick |
 | The bake makes an undo silently stop working at 50 | Medium | The button greys, which is a visible answer rather than a dead tap. Asserted in PR 3's test that it reports itself disabled to the semantics tree as well as to the eye |
 | Erase with `BlendMode.clear` punches through to the screen | Medium | The paper colour is painted under the strokes layer, not as a stroke (§4.2), and the recording-canvas test asserts that order. It is the kind of bug that only shows on a dark theme, which is why it is an ordering assertion and not a look |
+| An eraser stroke erases the locked photo | Medium | The backdrop is drawn outside the ink layer on screen and in the export alike (§4.3). It was once inside the screen's layer, so a stroke among the last fifty cleared the photo until it was baked; the recording-canvas test now asserts the photo is drawn before `saveLayer`, and a pixel test renders a live eraser stroke over a photo |
 | A 12 MP backdrop blows the disk budget | Medium | Downscaled on the way in (§4.6), and the budget is checked before the write. One test imports a 4000 x 3000 image and asserts what lands on disk |
 | Three `Expanded` home cards overflow a small phone in landscape | Low | The home screen already scrolls when content does not fit; PR 4's test pumps it at 200% text scale in both orientations |
 | A child taps New sheet and loses the drawing | Low | New sheet files the drawing in the gallery; nothing is destroyed, so there is nothing to confirm (§1) |

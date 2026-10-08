@@ -15,14 +15,15 @@
 // from how the sheet already showed it.
 //
 // Strokes are painted inside a `saveLayer`, not directly onto the paper rect —
-// the same reason `drawing_painter.dart`'s own `paint` isolates its backdrop,
-// bake and live strokes in one: nothing sits behind a `PictureRecorder`, so
-// without the layer an eraser stroke's `BlendMode.clear` would clear a
-// genuine hole in the PNG — transparent, not paper-coloured — the moment a
-// drawing used it. Inside the layer, `clear` only ever erases ink this same
-// export already painted; restoring the layer composites it back over the
-// paper rect underneath with a normal blend, so a transparent stroke pixel
-// leaves the paper showing rather than erasing it too.
+// the same layering `drawing_painter.dart`'s own `paint` uses, with the paper
+// and the backdrop outside the layer and the ink inside it: nothing sits
+// behind a `PictureRecorder`, so without the layer an eraser stroke's
+// `BlendMode.clear` would clear a genuine hole in the PNG — transparent, not
+// paper-coloured — the moment a drawing used it. Inside the layer, `clear`
+// only ever erases ink this same export already painted; restoring the layer
+// composites it back over the paper and photo underneath with a normal blend,
+// so a transparent stroke pixel leaves them showing rather than erasing them
+// too.
 
 import 'dart:typed_data';
 import 'dart:ui' as ui;

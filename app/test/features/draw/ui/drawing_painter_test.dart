@@ -4,7 +4,11 @@
 // machine for a reason that is not the code (`PLAN-phase-8.md` §4.3). This is
 // PR 2's own done-criterion list: at most 51 strokes plus one image on a
 // 500-stroke drawing, a tap painting a circle, and no repaint on a rebuild
-// that changed nothing.
+// that changed nothing. It also pins the layering: the paper and the backdrop
+// photo are drawn outside the `saveLayer` that holds the ink, so an eraser's
+// `BlendMode.clear` can never remove the photo (`PLAN-phase-8.md` §4.3), and
+// one pixel-level test renders a live eraser stroke over a photo to check
+// what that ordering looks like.
 
 import 'dart:async';
 import 'dart:typed_data';
@@ -48,6 +52,38 @@ Future<SheetBackdrop> _backdrop({
   image: await _tinyImage(width: width, height: height),
   sheetSize: sheetSize ?? Size(width.toDouble(), height.toDouble()),
 );
+
+/// A 4 x 4 image of one colour.
+Future<ui.Image> _solidImage(Color color) {
+  final completer = Completer<ui.Image>();
+  final pixels = Uint8List(4 * 4 * 4);
+  for (var i = 0; i < pixels.length; i += 4) {
+    pixels[i] = (color.r * 255).round();
+    pixels[i + 1] = (color.g * 255).round();
+    pixels[i + 2] = (color.b * 255).round();
+    pixels[i + 3] = 255;
+  }
+  ui.decodeImageFromPixels(
+    pixels,
+    4,
+    4,
+    ui.PixelFormat.rgba8888,
+    completer.complete,
+  );
+  return completer.future;
+}
+
+/// Renders [painter] at [size] through a real recorder, as the widget would.
+Future<ui.Image> _render(DrawingPainter painter, Size size) async {
+  final recorder = ui.PictureRecorder();
+  painter.paint(Canvas(recorder), size);
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(size.width.round(), size.height.round());
+  } finally {
+    picture.dispose();
+  }
+}
 
 Stroke _tap(double x) =>
     Stroke(colorIndex: 0, sizeIndex: 0, points: [Offset(x, 0)]);
@@ -194,6 +230,121 @@ void main() {
         .toList();
     expect(imageIndices, hasLength(2), reason: 'the backdrop, then the bake');
     expect(imageIndices[0], lessThan(imageIndices[1]));
+  });
+
+  test('the backdrop is drawn outside the strokes layer, so an eraser cannot '
+      'clear it', () async {
+    final backdrop = await _backdrop();
+    final baked = await _tinyImage();
+    final eraser = Stroke(
+      colorIndex: Stroke.eraserColorIndex,
+      sizeIndex: 0,
+      points: const [Offset(0, 0), Offset(10, 0)],
+    );
+    final canvas = TestRecordingCanvas();
+
+    _painter(
+      backdrop: backdrop,
+      baked: baked,
+      liveStrokes: [_drag(0)],
+      current: eraser,
+    ).paint(canvas, const Size(1600, 1200));
+
+    final names = canvas.invocations
+        .map((call) => call.invocation.memberName)
+        .toList();
+    final layerIndex = names.indexOf(#saveLayer);
+    final restoreIndex = names.lastIndexOf(#restore);
+    expect(layerIndex, greaterThanOrEqualTo(0));
+
+    final imageIndices = [
+      for (var i = 0; i < names.length; i++)
+        if (names[i] == #drawImageRect) i,
+    ];
+    expect(imageIndices, hasLength(2), reason: 'the backdrop, then the bake');
+    expect(
+      imageIndices[0],
+      lessThan(layerIndex),
+      reason: 'the backdrop precedes the layer a clear is confined to',
+    );
+    expect(
+      imageIndices[1],
+      inExclusiveRange(layerIndex, restoreIndex),
+      reason: 'the bake is inside the layer',
+    );
+
+    final strokeIndices = [
+      for (var i = 0; i < names.length; i++)
+        if (names[i] == #drawPath) i,
+    ];
+    expect(strokeIndices, hasLength(2), reason: 'a live stroke and the eraser');
+    for (final index in strokeIndices) {
+      expect(index, inExclusiveRange(layerIndex, restoreIndex));
+    }
+
+    // The paper is on the canvas before either, as it always was.
+    expect(names.indexOf(#drawRect), lessThan(imageIndices[0]));
+  });
+
+  testWidgets('a live eraser stroke shows the photo, not the paper', (
+    tester,
+  ) async {
+    // Pixel-level, because the ordering test above says where the photo is
+    // drawn and this says what that looks like. The scale is 1/10 of the
+    // sheet, so a 160 x 120 image holds the whole 1600 x 1200 sheet.
+    const paper = Color(0xFFFFFFFF);
+    const photo = Color(0xFFD02020);
+    const ink = Color(0xFF3A66C4);
+    final pixels = await tester.runAsync(() async {
+      final photoImage = await _solidImage(photo);
+      final image = await _render(
+        DrawingPainter(
+          baked: null,
+          // 800 x 600 sheet units, centred: pixels 40..120 across and
+          // 30..90 down in the 160 x 120 render.
+          backdrop: SheetBackdrop(
+            image: photoImage,
+            sheetSize: const Size(800, 600),
+          ),
+          liveStrokes: [
+            const Stroke(
+              colorIndex: 0,
+              sizeIndex: 0,
+              points: [Offset(800, 600)],
+            ),
+            const Stroke(
+              colorIndex: Stroke.eraserColorIndex,
+              sizeIndex: 1,
+              points: [Offset(800, 600)],
+            ),
+          ],
+          current: null,
+          paperColor: paper,
+          colorOf: (_) => ink,
+          // Ink radius 40 px, eraser radius 20 px.
+          widthOf: (sizeIndex) => sizeIndex == 0 ? 800 : 400,
+        ),
+        const Size(160, 120),
+      );
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      image.dispose();
+      photoImage.dispose();
+      return bytes!;
+    });
+
+    Color at(int x, int y) {
+      final i = (y * 160 + x) * 4;
+      return Color.fromARGB(
+        pixels!.getUint8(i + 3),
+        pixels.getUint8(i),
+        pixels.getUint8(i + 1),
+        pixels.getUint8(i + 2),
+      );
+    }
+
+    expect(at(80, 60), photo, reason: 'erased: the photo, not the paper');
+    expect(at(110, 60), ink, reason: 'beside the eraser the ink is intact');
+    expect(at(2, 2), paper, reason: 'outside the photo, the paper');
   });
 
   test('no backdrop draws no extra image', () {
