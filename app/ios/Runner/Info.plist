@@ -36,6 +36,17 @@
 	<string>Save your drawings to Photos when you choose to export one.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Save your drawings to Photos when you choose to export one.</string>
+	<!-- Together these make the app's Documents folder appear in the Files app
+	     under On My iPhone > Zibo Games, which is where FolderTransferFiles
+	     (features/transfer/data/transfer_files.dart) writes a players file and
+	     lists the ones to load: a parent copies a file out to move players to
+	     another device, or drops one in to load it. The second key lets Files
+	     hand the app a file in place rather than as a copy
+	     (PLAN-transfer.md §3.3). -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
