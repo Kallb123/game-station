@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 
 import '../storage/save_data.dart';
+import 'theme.dart';
 import 'tokens.dart';
 
 /// The glyph shown for [avatar].
@@ -58,3 +59,32 @@ String avatarLabel(AvatarId avatar) => switch (avatar) {
   AvatarId.panda => 'Panda',
   AvatarId.rabbit => 'Rabbit',
 };
+
+/// Recolours [child] as [avatar], the way the home screen recolours its two
+/// cards.
+///
+/// The scheme is derived from the swatch rather than applied as a background
+/// colour, so the label and the icon get a foreground from the same tonal
+/// palette (`theme.dart`). Shared by the profile picker and the players-file
+/// screens, so a player is the same colour wherever they are listed.
+class AvatarTheme extends StatelessWidget {
+  const AvatarTheme({required this.avatar, required this.child, super.key});
+
+  final AvatarId avatar;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Theme(
+      data: theme.copyWith(
+        colorScheme: AppTheme.roleScheme(
+          avatarColor(avatar, theme.brightness),
+          theme.brightness,
+        ),
+      ),
+      child: child,
+    );
+  }
+}

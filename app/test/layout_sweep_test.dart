@@ -70,6 +70,10 @@ Map<String, Object?> _sweepRoutes(PuzzleId puzzleId) => {
   AppRoutes.arcadeSnake: null,
   AppRoutes.draw: null,
   AppRoutes.drawSheet: const DrawSheetArgs(),
+  // Reads nothing from the platform on build, so it needs no fake files here
+  // (`transfer_screen.dart`); the confirmation page's own 200% check lives in
+  // `transfer_screen_test.dart`.
+  AppRoutes.transfer: null,
 };
 
 /// Leaves the game the way a child would, so the repository's debounced

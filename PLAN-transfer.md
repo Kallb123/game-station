@@ -1,5 +1,7 @@
 # Moving players between devices
 
+**Built: all three parts of §5 are in. The device checks in §7 are not yet run.**
+
 [`PLAN.md`](PLAN.md) §5.3 has always promised it: "Export and import the save as a file — the share
 sheet on mobile, a file picker on desktop. That is how a family moves to a new tablet without an
 account or a server." This plan is that feature: a parent writes one player, or every player, to a

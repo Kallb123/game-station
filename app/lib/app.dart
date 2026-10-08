@@ -18,6 +18,7 @@ import 'features/profiles/profile_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/sudoku/ui/sudoku_menu_screen.dart';
 import 'features/sudoku/ui/sudoku_play_screen.dart';
+import 'features/transfer/ui/transfer_screen.dart';
 import 'routes.dart';
 
 /// The application root.
@@ -205,6 +206,7 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.arcadeSnake => (context) => const SnakeScreen(),
   AppRoutes.draw => (context) => const DrawGalleryScreen(),
   AppRoutes.drawSheet => _drawSheetScreen(settings.arguments),
+  AppRoutes.transfer => (context) => const TransferScreen(),
   _ => null,
 };
 
