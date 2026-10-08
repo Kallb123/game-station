@@ -1111,6 +1111,10 @@ CI cannot run and another ends in a device pass.
   cannot be designed out of a paint box — the swatches *are* the content — so what §7's phase-5 rule
   buys here is that every swatch carries a spoken name and that *selection* is signalled by the ring
   and a size change rather than by colour. No control needs a word of text.
+- A colour dropper beside the eraser: one tap on the sheet picks the colour showing there — the stroke
+  under the finger, else the backdrop photo or the paper snapped to the nearest of the eighteen, since
+  a stroke stores a palette index — and returns to the pencil. It edits nothing, so it adds no undo
+  entry and starts no save (`PLAN-phase-8.md` §4.8).
 - Undo and redo at 72 dp, `AppTapTargets.primary`, greyed rather than hidden when their stack is
   empty. The undo horizon is 50 strokes: older strokes are baked into a cached `ui.Image`, which
   bounds the paint cost and what a repeated tap can undo away in one direction.

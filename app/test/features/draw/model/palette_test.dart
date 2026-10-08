@@ -3,6 +3,7 @@
 // index means has to outlive every later change to it — which is what makes
 // appending the skin tones safe and moving anything above them not.
 
+import 'package:flutter/painting.dart' show Color;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/features/draw/model/palette.dart';
 
@@ -67,5 +68,35 @@ void main() {
   test('no two swatches share a colour or a name', () {
     expect(DrawPalette.colors.toSet(), hasLength(DrawPalette.colors.length));
     expect(DrawPalette.names.toSet(), hasLength(DrawPalette.names.length));
+  });
+
+  group('nearestIndex', () {
+    test('every swatch is its own nearest', () {
+      for (var i = 0; i < DrawPalette.colors.length; i++) {
+        expect(
+          DrawPalette.nearestIndex(DrawPalette.colorAt(i)),
+          i,
+          reason: DrawPalette.nameAt(i),
+        );
+      }
+    });
+
+    test('snaps to the closest swatch, not to the first or the exact one', () {
+      // A shade off Red, a shade off Blue, and the near-white and near-black
+      // surfaces the day and night themes paint the sheet with.
+      expect(DrawPalette.nearestIndex(const Color(0xFFEE4A47)), 0);
+      expect(DrawPalette.nearestIndex(const Color(0xFF2F3C9E)), 6);
+      expect(DrawPalette.nearestIndex(const Color(0xFFFEF7FF)), 11);
+      expect(DrawPalette.nearestIndex(const Color(0xFF141218)), 10);
+    });
+
+    test('a near-black and a near-white stay black and white, not a hue', () {
+      expect(DrawPalette.nearestIndex(const Color(0xFF1A1A1A)), 10);
+      expect(DrawPalette.nearestIndex(const Color(0xFFF2F2F2)), 11);
+    });
+
+    test('ignores alpha: the caller blends before asking', () {
+      expect(DrawPalette.nearestIndex(const Color(0x00E53935)), 0);
+    });
   });
 }

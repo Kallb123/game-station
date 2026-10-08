@@ -16,6 +16,7 @@ import 'package:zibo_games/core/ui/theme.dart';
 import 'package:zibo_games/core/ui/tokens.dart';
 import 'package:zibo_games/features/draw/model/drawing_controller.dart';
 import 'package:zibo_games/features/draw/model/palette.dart';
+import 'package:zibo_games/features/draw/model/stroke.dart';
 import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
 import 'package:zibo_games/features/draw/ui/drawing_painter.dart';
 import 'package:zibo_games/features/draw/ui/tool_row.dart';
@@ -586,6 +587,324 @@ void main() {
         lessThanOrEqualTo(400),
       );
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('the colour dropper', () {
+    Offset sheetPoint(Rect canvas, double x, double y) =>
+        canvas.topLeft +
+        Offset(x * canvas.width / sheetWidth, y * canvas.height / sheetHeight);
+
+    ToolRow row(WidgetTester tester) =>
+        tester.widget<ToolRow>(find.byType(ToolRow));
+
+    /// A thick red stroke across the middle of the sheet.
+    DrawingController redLineController() => DrawingController(
+      strokes: const [
+        Stroke(
+          colorIndex: 0,
+          sizeIndex: 2,
+          points: [Offset(400, 600), Offset(1200, 600)],
+        ),
+      ],
+    );
+
+    testWidgets('a tap on a stroke picks its colour, draws nothing and returns '
+        'to the pencil', (tester) async {
+      final controller = redLineController();
+      var notified = 0;
+      controller.addListener(() => notified++);
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      // Start on a colour that is not the stroke's, so a pick is visible.
+      await tester.tap(find.byKey(ToolRow.colorKey(5)));
+      await tester.pump();
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      expect(row(tester).isDropper, isTrue);
+
+      await tester.tapAt(sheetPoint(canvas, 800, 600));
+      await tester.pump();
+
+      expect(row(tester).colorIndex, 0);
+      expect(row(tester).isDropper, isFalse);
+      expect(row(tester).isEraser, isFalse);
+      // The newly picked swatch is the selected one, by ring and not by
+      // colour alone.
+      expect(
+        tester.getSemantics(find.byKey(ToolRow.colorKey(0))),
+        isSemantics(
+          label: 'Red',
+          isButton: true,
+          hasSelectedState: true,
+          isSelected: true,
+        ),
+      );
+
+      // Not an edit: no stroke, no undo entry, and the controller was never
+      // told anything, so nothing is marked dirty for an autosave.
+      expect(controller.strokes, hasLength(1));
+      expect(controller.canUndo, isTrue);
+      controller.undo();
+      expect(controller.strokes, isEmpty);
+      expect(controller.canUndo, isFalse);
+      expect(notified, 1, reason: 'only the undo above notified');
+    });
+
+    testWidgets('the next stroke draws in the colour picked', (tester) async {
+      final controller = redLineController();
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      await tester.tap(find.byKey(ToolRow.colorKey(5)));
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 800, 600));
+      await tester.pump();
+
+      await tester.tapAt(sheetPoint(canvas, 800, 100));
+      await tester.pump();
+
+      expect(controller.strokes, hasLength(2));
+      expect(controller.strokes.last.colorIndex, 0);
+      expect(controller.strokes.last.isEraser, isFalse);
+    });
+
+    testWidgets('is one-shot: a second tap draws rather than picks', (
+      tester,
+    ) async {
+      final controller = redLineController();
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 800, 600));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 800, 900));
+      await tester.pump();
+
+      expect(controller.strokes, hasLength(2));
+    });
+
+    testWidgets('a drag draws nothing, and picks where the finger lifts', (
+      tester,
+    ) async {
+      final controller = redLineController();
+      var notified = 0;
+      controller.addListener(() => notified++);
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      await tester.tap(find.byKey(ToolRow.colorKey(5)));
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+
+      // Starts on bare sheet and slides onto the red line.
+      final gesture = await tester.startGesture(sheetPoint(canvas, 100, 100));
+      for (var i = 1; i <= 10; i++) {
+        await gesture.moveTo(sheetPoint(canvas, 100 + i * 70, 100 + i * 50));
+        await tester.pump();
+      }
+      expect(controller.current, isNull);
+      await gesture.up();
+      await tester.pump();
+
+      expect(controller.strokes, hasLength(1));
+      expect(notified, 0);
+      expect(row(tester).colorIndex, 0);
+      expect(row(tester).isDropper, isFalse);
+    });
+
+    testWidgets('a cancelled touch picks nothing and keeps the dropper', (
+      tester,
+    ) async {
+      final controller = redLineController();
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      await tester.tap(find.byKey(ToolRow.colorKey(5)));
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+
+      final gesture = await tester.startGesture(sheetPoint(canvas, 800, 600));
+      await gesture.cancel();
+      await tester.pump();
+
+      expect(row(tester).colorIndex, 5);
+      expect(row(tester).isDropper, isTrue);
+      expect(controller.strokes, hasLength(1));
+    });
+
+    testWidgets('a second finger is ignored while the first is down', (
+      tester,
+    ) async {
+      final controller = redLineController();
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      await tester.tap(find.byKey(ToolRow.colorKey(5)));
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+
+      final first = await tester.startGesture(sheetPoint(canvas, 800, 600));
+      final second = await tester.startGesture(sheetPoint(canvas, 800, 900));
+      await second.up();
+      await tester.pump();
+      // The second finger's lift did not pick; the first is still deciding.
+      expect(row(tester).isDropper, isTrue);
+      await first.up();
+      await tester.pump();
+
+      expect(row(tester).colorIndex, 0);
+      expect(controller.strokes, hasLength(1));
+    });
+
+    testWidgets('a stroke begun before the dropper was chosen is still closed '
+        'by its own lift', (tester) async {
+      final controller = DrawingController();
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      // A second finger chooses the dropper while the first is mid-stroke.
+      final drawing = await tester.startGesture(sheetPoint(canvas, 100, 100));
+      await drawing.moveTo(sheetPoint(canvas, 300, 300));
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await drawing.up();
+      await tester.pump();
+
+      // The lift ended the stroke rather than being taken for a pick.
+      expect(controller.current, isNull);
+      expect(controller.strokes, hasLength(1));
+      expect(row(tester).isDropper, isTrue);
+    });
+
+    testWidgets('bare sheet picks the palette colour nearest the paper', (
+      tester,
+    ) async {
+      final controller = DrawingController();
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 800, 600));
+      await tester.pump();
+
+      // The day theme's surface is near-white, so White — computed from the
+      // theme rather than restated, like `_paperColorOf` elsewhere.
+      expect(
+        row(tester).colorIndex,
+        DrawPalette.nearestIndex(_paperColorOf(tester)),
+      );
+      expect(row(tester).colorIndex, 11);
+      expect(controller.strokes, isEmpty);
+    });
+
+    testWidgets('an eraser stroke over ink picks the paper, not the ink', (
+      tester,
+    ) async {
+      final controller = redLineController()
+        ..addStroke(
+          const Stroke(
+            colorIndex: Stroke.eraserColorIndex,
+            sizeIndex: 2,
+            points: [Offset(800, 600)],
+          ),
+        );
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 800, 600));
+      await tester.pump();
+
+      expect(row(tester).colorIndex, 11);
+
+      // Beside the eraser the red line is still there.
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 500, 600));
+      await tester.pump();
+      expect(row(tester).colorIndex, 0);
+    });
+
+    testWidgets('leaves the eraser behind when it picks', (tester) async {
+      final controller = redLineController();
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+
+      await tester.tap(find.byKey(ToolRow.eraserKey));
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      expect(row(tester).isEraser, isFalse);
+
+      await tester.tapAt(sheetPoint(canvas, 800, 600));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 800, 900));
+      await tester.pump();
+
+      expect(controller.strokes.last.isEraser, isFalse);
+    });
+
+    testWidgets('choosing a size, a colour or the eraser leaves the dropper', (
+      tester,
+    ) async {
+      final controller = DrawingController();
+      await _pumpAndFindCanvas(tester, controller);
+
+      for (final key in [
+        ToolRow.sizeKey(1),
+        ToolRow.colorKey(3),
+        ToolRow.eraserKey,
+      ]) {
+        await tester.tap(find.byKey(ToolRow.dropperKey));
+        await tester.pump();
+        expect(row(tester).isDropper, isTrue);
+        await tester.tap(find.byKey(key));
+        await tester.pump();
+        expect(row(tester).isDropper, isFalse, reason: '$key');
+      }
+    });
+
+    testWidgets('over a photo, a bare point picks the nearest palette colour '
+        'of the photo, and a point beside the photo picks the paper', (
+      tester,
+    ) async {
+      final backdrop = await tester.runAsync(_tinyPng);
+      final controller = DrawingController(backdrop: backdrop);
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+      await _settleRealAsync(tester);
+
+      // The photo is 10 x 10 sheet units, centred at (800, 600).
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 800, 600));
+      await _settleRealAsync(tester);
+
+      final photoIndex = DrawPalette.nearestIndex(const Color(0xFF336699));
+      expect(row(tester).colorIndex, photoIndex);
+      expect(photoIndex, isNot(11));
+      expect(row(tester).isDropper, isFalse);
+      expect(controller.strokes, isEmpty);
+
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 100, 100));
+      await _settleRealAsync(tester);
+      expect(row(tester).colorIndex, 11);
+    });
+
+    testWidgets('ink over a photo wins over the photo', (tester) async {
+      final backdrop = await tester.runAsync(_tinyPng);
+      final controller = DrawingController(
+        backdrop: backdrop,
+        strokes: const [
+          Stroke(colorIndex: 2, sizeIndex: 3, points: [Offset(800, 600)]),
+        ],
+      );
+      final canvas = await _pumpAndFindCanvas(tester, controller);
+      await _settleRealAsync(tester);
+
+      await tester.tap(find.byKey(ToolRow.dropperKey));
+      await tester.pump();
+      await tester.tapAt(sheetPoint(canvas, 800, 600));
+      await tester.pump();
+
+      expect(row(tester).colorIndex, 2);
     });
   });
 }

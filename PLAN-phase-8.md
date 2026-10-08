@@ -381,8 +381,8 @@ Three, all `ScreenScaffold`:
   band to the side the profile's `padSide` already names, which is a setting the child has set once
   for the arcade and should not have to set twice.
 
-The tool row: four pencil dots at their actual widths, eighteen colour swatches, an eraser, undo,
-redo, and a **New sheet** button. No labels; `Semantics` on every one of them.
+The tool row: four pencil dots at their actual widths, eighteen colour swatches, an eraser, a colour
+dropper (§4.8), undo, redo, and a **New sheet** button. No labels; `Semantics` on every one of them.
 
 **The last six swatches are skin tones** — a light-to-deep ramp, added after PR 6 because a paint box
 whose only answer for a person is Brown answers badly. Six rather than five or eight so that they
@@ -406,8 +406,8 @@ column overflowed. It leaves the sheet no smaller than twelve colours did — 23
 squeeze the sheet to 128 dp. The landscape rail pays the same way: three rows of six overhang a
 400 dp-tall window by 52 dp where two rows fitted exactly.
 
-**The band takes the rail's order, and its eraser with it**: sizes, then undo, redo, the eraser and
-**New sheet**, then the colours. The band used to end on the actions with the eraser among the
+**The band takes the rail's order, and its eraser with it**: sizes, then undo, redo, the eraser, the
+dropper and **New sheet**, then the colours. The band used to end on the actions with the eraser among the
 swatches, which was fine while everything fitted and wrong the moment something had to fall below a
 fold — the first thing lost was undo and redo, which are tapped in a hurry, and then the eraser,
 which is reached for mid-drawing. The colours are the only group that folds onto lines of its own, so
@@ -422,15 +422,16 @@ and §9 carries it.
 column it first shipped as put all twenty controls in single file, which is taller than any landscape
 window: everything below the pencil dots had to be scrolled to. The panel keeps the same three
 groups and the same order of them, each on its own line or lines: the four sizes, then undo, redo,
-the eraser and **New sheet**, then the eighteen colours in equal rows of six. Eighteen colours divide
+the eraser, the dropper and **New sheet**, then the eighteen colours in equal rows of six. Eighteen colours divide
 evenly into those rows where nineteen controls would not, which is why the eraser sits with the
 actions — in the band as well, since the skin tones landed. The panel is as wide as six swatches where the window can spare
-that much and as wide as the action line where it cannot — never more than half of what it and the
+that much and as wide as the action line where it cannot (five controls since the dropper, so
+344 dp and five swatches to a row, the last row of three — the line used to be 280 dp and four to a row,
+and keeping that width would have dropped **New sheet** onto a line of its own) — never more than half of what it and the
 sheet share, so the sheet always keeps its own half — and every group folds onto more lines when it is given less, so a
 window narrower than either still lays out rather than overflowing. Six to a row is also what keeps
-the panel close to fitting a 400 dp-tall phone: the colours take three rows there where four to a row
-would need five, and the rail's scroll view carries the 52 dp left over rather than the 180 dp the
-narrow width would leave (`tool_row.dart`, `draw_sheet_screen.dart`). A widget test holds that
+the panel close to fitting a 400 dp-tall phone: the colours take three rows there where the narrow
+width needs four, and the rail's scroll view carries the 52 dp left over rather than a whole extra row (`tool_row.dart`, `draw_sheet_screen.dart`). A widget test holds that
 overhang under one row, so what is below the fold is always a row whose top edge is already
 visible.
 
@@ -445,6 +446,51 @@ action appears as soon as the route mounts. Export carries no gate of its own be
 import, nothing here is a parental control, so there is nothing to check besides whether the platform
 has somewhere to save to at all (`§4.6`).
 
+### 4.8 The colour dropper
+
+A button in the tool row's action group, beside the eraser: while it is active, a touch on the sheet
+picks the colour showing under it as the pencil's colour instead of drawing.
+
+**The answer is a palette index, so the dropper reads the strokes, not the pixels.** A stroke stores
+an index into the eighteen colours (§4.1), so a colour that is not one of them could not be drawn
+with. Reading the rendered picture back would also return an anti-aliased edge pixel where a child
+meant the stroke, need an engine to test, and cost a full-sheet read-back per tap. Three layers answer,
+topmost first:
+
+1. **The strokes**, walked from the last drawn down (`ColorDropper.inkAt`, `model/color_dropper.dart`).
+   The first stroke that covers the point decides. Covering is what `paintStroke` renders: every point
+   within half the pencil width of the stroke's smoothed path (§4.2 — the quadratic segments, not the
+   polyline through the samples, which cuts a corner the curve does not), round caps included, and a
+   one-point stroke is a dot. The edge is inclusive. An eraser that covers the point is the first
+   stroke found, and the answer is "no ink" even where a pencil lies beneath it, because that is what
+   the eraser did to it; an eraser that does not cover the point is never consulted.
+2. **The backdrop photo**, when there is one and the point is on it. The sheet screen reads the decoded
+   image's pixels back once, for this tap, maps the point to the pixel under it
+   (`ColorDropper.backdropColorAt`, the same centred placement `drawBackdropImage` uses), blends it
+   over the paper if it is translucent, and snaps it to the nearest swatch (`DrawPalette.nearestIndex`,
+   redmean-weighted RGB distance, ties to the lower index).
+3. **The bare paper**, snapped the same way. The paper is the theme's `surface`, near-white by day and
+   near-black by night, so a night-theme child picks Black from an empty sheet and a day-theme child
+   White — what they are looking at.
+
+**Tool state.** The dropper is a mode like the eraser, exclusive with it: choosing a size, a colour or
+the eraser leaves it. It is **one-shot**: the touch is resolved when the finger lifts, at the place
+it lifted, so a child can slide onto the exact spot; the colour becomes the pencil's, the tool returns
+to the pencil, and the swatch just picked is the one showing selected. A cancelled touch picks nothing
+and the dropper stays on. A drag never draws, and a second finger is ignored as it is while drawing.
+The dropper reaches nothing in `DrawingController`, so it adds no stroke and no undo entry, never
+notifies, and so never marks the drawing dirty or starts an autosave.
+
+**Limits, stated rather than hidden.**
+- A backdrop that has not finished decoding is not sampled; the paper answers. The window is the
+  fraction of a second after a photo is added or a drawing opened.
+- On screen, an eraser stroke still among the last fifty clears the photo beneath it until it is baked
+  (`DrawingPainter`'s single `saveLayer`), where a baked one and the export leave the photo (§4.3,
+  §4.6's "locked"). The dropper follows the export: an eraser shows the photo through. The
+  inconsistency is in the painter, not the dropper, and is left for a fix of its own.
+- A photo pixel snaps to the nearest of eighteen colours, which is a hue family and not a match.
+  That is the palette's limit, not a fault in the sampling.
+
 ---
 
 ## 5. Repository layout
@@ -454,6 +500,7 @@ app/lib/features/draw/
 ├─ model/
 │  ├─ stroke.dart                # Stroke, Drawing, sheetSize
 │  ├─ palette.dart               # the eighteen colours and their spoken names, the four widths
+│  ├─ color_dropper.dart         # which palette colour is under a point (§4.8)
 │  └─ drawing_controller.dart    # strokes, redo stack, the horizon and the bake trigger
 ├─ data/
 │  ├─ drawing_codec.dart         # Drawing <-> JSON, rounding as §4.1
@@ -465,7 +512,7 @@ app/lib/features/draw/
    ├─ draw_gallery_screen.dart
    ├─ draw_sheet_screen.dart
    ├─ drawing_painter.dart
-   └─ tool_row.dart              # sizes, palette, eraser, undo, redo, new sheet
+   └─ tool_row.dart              # sizes, palette, eraser, dropper, undo, redo, new sheet
 app/android/app/src/main/kotlin/…/PhotoPickerPlugin.kt
 app/ios/Runner/PhotoPicker.swift
 ```
@@ -508,6 +555,8 @@ on a rebuild that changed nothing.
 Four sizes, twelve colours, the eraser, undo and redo with greyed states, **New sheet**. The six
 skin tones (§4.7) were appended to the palette after PR 6, which is why they are described there
 rather than here.
+
+The colour dropper (§4.8) was added to this row after PR 6.
 
 **Done when:** every control's hit rect is at least 56 dp and undo and redo are at least 72 dp;
 selection is asserted by border width, not colour; every control has a `Semantics` label; undo is
