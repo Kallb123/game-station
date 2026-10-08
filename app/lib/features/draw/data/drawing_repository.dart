@@ -35,6 +35,13 @@ class DrawingRepository {
   Directory _profileDir(String profileId) =>
       Directory('${root.path}/drawings/$profileId');
 
+  /// Where an import builds a profile's incoming drawings before swapping them
+  /// in. A sibling of [_profileDir] rather than a child, so nothing that lists
+  /// or sums the live folder ([listDecodable], [readAllRaw], [profileBytes])
+  /// can see a half-written import.
+  Directory _stagingDir(String profileId) =>
+      Directory('${root.path}/drawings/$profileId.incoming');
+
   File _drawingFile(String profileId, String drawingId) =>
       File('${_profileDir(profileId).path}/$drawingId.json');
 
@@ -134,5 +141,103 @@ class DrawingRepository {
       }
     }
     return drawings;
+  }
+
+  /// Removes [profileId]'s drawings folder and everything in it. Does nothing
+  /// if there is none.
+  ///
+  /// Used by a players-file import before it writes the incoming drawings, so
+  /// a folder left behind by a deleted profile cannot leak into a new profile
+  /// that reuses its `p<n>` id (`PLAN-transfer.md` §3.2) —
+  /// `ProgressRepository.deleteProfile` leaves the files on disk.
+  Future<void> deleteAllFor(String profileId) async {
+    final dir = _profileDir(profileId);
+    if (dir.existsSync()) {
+      await dir.delete(recursive: true);
+    }
+  }
+
+  /// Every `.json` file in [profileId]'s folder as drawing id to the raw file
+  /// text, without decoding it.
+  ///
+  /// For export, which nests each drawing in the players file as-is
+  /// (`PLAN-transfer.md` §3.1): decoding and re-encoding would cost a copy of
+  /// every picture and could only lose fields. A file that cannot be read is
+  /// left out, the way [listDecodable] leaves out one that cannot be decoded.
+  /// A `.tmp` sibling of an interrupted write does not end in `.json`, so it
+  /// never appears.
+  Future<Map<String, String>> readAllRaw(String profileId) async {
+    final dir = _profileDir(profileId);
+    if (!dir.existsSync()) return const {};
+
+    const extension = '.json';
+    final raw = <String, String>{};
+    for (final entity in dir.listSync()) {
+      if (entity is! File || !entity.path.endsWith(extension)) continue;
+      final name = entity.uri.pathSegments.last;
+      try {
+        raw[name.substring(0, name.length - extension.length)] = await entity
+            .readAsString();
+      } on FileSystemException {
+        continue;
+      } on FormatException {
+        continue; // Not valid UTF-8.
+      }
+    }
+    return raw;
+  }
+
+  /// Writes [contents] as drawing [drawingId] of [profileId], creating the
+  /// folder. The caller has already checked that it decodes; this does not.
+  Future<void> writeRaw(
+    String profileId,
+    String drawingId,
+    String contents,
+  ) async {
+    final dir = _profileDir(profileId);
+    if (!dir.existsSync()) {
+      await dir.create(recursive: true);
+    }
+    await writeFileAtomically(_drawingFile(profileId, drawingId), contents);
+  }
+
+  /// Starts staging an import for [profileId]: an empty
+  /// `drawings/<profileId>.incoming/`, clearing whatever an earlier attempt
+  /// that crashed left there (`PLAN-transfer.md` §3.2).
+  Future<void> startStaging(String profileId) async {
+    await discardStaged(profileId);
+    await _stagingDir(profileId).create(recursive: true);
+  }
+
+  /// Writes one incoming drawing into [profileId]'s staging folder. The live
+  /// folder is untouched.
+  Future<void> writeRawStaged(
+    String profileId,
+    String drawingId,
+    String contents,
+  ) => writeFileAtomically(
+    File('${_stagingDir(profileId).path}/$drawingId.json'),
+    contents,
+  );
+
+  /// Replaces [profileId]'s live folder with its staging folder: the live one
+  /// is deleted and the staged one renamed into its place. A rename inside one
+  /// directory is the cheap, atomic step, so the window in which the profile
+  /// has no drawings is as short as the platform allows, and every write that
+  /// could fail has already happened by now.
+  Future<void> commitStaged(String profileId) async {
+    final live = _profileDir(profileId);
+    if (live.existsSync()) {
+      await live.delete(recursive: true);
+    }
+    await _stagingDir(profileId).rename(live.path);
+  }
+
+  /// Removes [profileId]'s staging folder. Does nothing if there is none.
+  Future<void> discardStaged(String profileId) async {
+    final staging = _stagingDir(profileId);
+    if (staging.existsSync()) {
+      await staging.delete(recursive: true);
+    }
   }
 }

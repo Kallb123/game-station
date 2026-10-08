@@ -673,6 +673,40 @@ void main() {
       expect(json, isNot(contains('lastDayIndex')));
     });
   });
+
+  // The players file nests a save without going through text
+  // (`PLAN-transfer.md` §4), so the map-level pair has to be the same codec,
+  // not a second one that agrees today.
+  group('the map-level pair', () {
+    test('saveFromJson reads what saveToJson writes', () {
+      final original = fullSave();
+
+      expect(saveFromJson(saveToJson(original)), original);
+    });
+
+    test('encodeSave is exactly the JSON of saveToJson', () {
+      expect(encodeSave(fullSave()), jsonEncode(saveToJson(fullSave())));
+    });
+
+    test('saveFromJson validates like decodeSave', () {
+      expect(
+        () => saveFromJson('a string'),
+        throwsA(isA<SaveFormatException>()),
+      );
+      expect(() => saveFromJson(null), throwsA(isA<SaveFormatException>()));
+      expect(
+        () => saveFromJson({'schemaVersion': currentSchemaVersion + 1}),
+        throwsA(isA<UnsupportedSaveVersion>()),
+      );
+      expect(
+        () => saveFromJson({
+          'schemaVersion': currentSchemaVersion,
+          'profiles': <Object?>[],
+        }),
+        throwsA(isA<SaveFormatException>()),
+      );
+    });
+  });
 }
 
 /// Replaces the single occurrence of [from] in [source] with [to].
