@@ -90,13 +90,17 @@ as newer, matching `UnsupportedSaveVersion`.
   fox avatar, every option at its default, no progress). It is removed only when the import adds at
   least one profile, so the save never empties, and the active profile then becomes the first
   imported one.
-- **Drawings land before the save changes.** For each imported profile the target
-  `drawings/<localId>/` folder is emptied and the file's drawings written into it, then `bytesUsed`
-  is recomputed from disk and `lastDrawingId` cleared if it named a drawing that did not decode. Only
-  then is the save mutated, in one `_apply`, and flushed. A failure part-way leaves a folder the save
-  does not yet point at, never a save pointing at missing pictures. Emptying the folder first also
-  clears orphans: `deleteProfile` leaves a profile's drawings on disk, and a new `p<n>` can reuse a
-  deleted one's id.
+- **Drawings land before the save changes.** Every imported profile's drawings are written to a
+  staging folder beside its live one. Only when all of them are written is each live
+  `drawings/<localId>/` replaced by its staging folder, `bytesUsed` recomputed from disk, and
+  `lastDrawingId` cleared if it named a drawing that did not decode. Then the save is mutated, in one
+  `_apply`, and flushed. A failed write discards the staging folders and leaves both the save and a
+  replaced profile's existing drawings as they were. Replacing the live folder wholesale also clears
+  orphans: `deleteProfile` leaves a profile's drawings on disk, and a new `p<n>` can reuse a deleted
+  one's id.
+- **A drawing is written only if it decodes**, and only under a key that is a plain drawing id equal
+  to the drawing's own `id`. The text written is the file's own JSON rather than a re-encoding, so a
+  field a newer build added survives the trip.
 
 ### 3.3 The platform edge
 
@@ -140,8 +144,12 @@ app/android/app/src/main/kotlin/net/nawt/zibo_games/TransferPlugin.kt
 
 `core/storage/save_codec.dart` gains `saveToJson`/`saveFromJson` over the decoded map, so the transfer
 codec nests a save without encoding it to text and parsing it back. `ProgressRepository` gains
-`importProfiles`, the one mutation §3.2 describes. `DrawingRepository` gains `deleteAllFor` and a raw
-read of every drawing's JSON for export.
+`planProfileImport` and `applyProfileImport`: a pure read that fixes each incoming profile's local id,
+then the one mutation §3.2 describes. Two steps rather than one `importProfiles`, because the drawings
+have to be written under the final local ids before the save changes, and those ids are the
+repository's to allocate. `applyProfileImport` refuses a plan made against a different list of
+profiles. `DrawingRepository` gains a raw read of every drawing's JSON for export, and the staged
+writes §3.2 swaps into place.
 
 ## 5. Phases
 
