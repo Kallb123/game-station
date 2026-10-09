@@ -187,4 +187,151 @@ void main() {
       );
     });
   });
+
+  // The three calls a players-file transfer needs (`PLAN-transfer.md` §4).
+  group('for transfer', () {
+    test(
+      'deleteAllFor removes the folder and leaves other profiles alone',
+      () async {
+        await repository.save('p1', _drawing('d1'));
+        await repository.save('p2', _drawing('d1'));
+
+        await repository.deleteAllFor('p1');
+
+        expect(Directory('${root.path}/drawings/p1').existsSync(), isFalse);
+        expect(await repository.load('p2', 'd1'), isNotNull);
+        expect(repository.profileBytes('p1'), 0);
+      },
+    );
+
+    test('deleteAllFor does nothing when there is no folder', () async {
+      await repository.deleteAllFor('nobody');
+    });
+
+    test('readAllRaw returns each file\'s text by drawing id', () async {
+      await repository.save('p1', _drawing('d1'));
+      await repository.save('p1', _drawing('d2'));
+
+      final raw = await repository.readAllRaw('p1');
+
+      expect(raw.keys.toSet(), {'d1', 'd2'});
+      expect(raw['d1'], encodeDrawing(_drawing('d1')));
+    });
+
+    test('readAllRaw is empty for a profile with no folder', () async {
+      expect(await repository.readAllRaw('nobody'), isEmpty);
+    });
+
+    test('readAllRaw leaves out .tmp files and unreadable ones', () async {
+      await repository.save('p1', _drawing('d1'));
+      File('${root.path}/drawings/p1/d2.json.tmp').writeAsStringSync('{');
+      File('${root.path}/drawings/p1/d3.json').writeAsBytesSync([0xff, 0xfe]);
+      File('${root.path}/drawings/p1/notes.txt').writeAsStringSync('hi');
+      Directory('${root.path}/drawings/p1/d4.json').createSync();
+
+      expect((await repository.readAllRaw('p1')).keys, ['d1']);
+    });
+
+    test('readAllRaw returns text that is not a drawing, undecoded', () async {
+      await repository.writeRaw('p1', 'd1', 'not json');
+
+      expect(await repository.readAllRaw('p1'), {'d1': 'not json'});
+    });
+
+    test('writeRaw creates the folder and writes atomically', () async {
+      final text = encodeDrawing(_drawing('d1'));
+
+      await repository.writeRaw('p1', 'd1', text);
+
+      expect(await repository.load('p1', 'd1'), _drawing('d1'));
+      expect(
+        File('${root.path}/drawings/p1/d1.json.tmp').existsSync(),
+        isFalse,
+      );
+    });
+
+    test('writeRaw replaces what was there', () async {
+      await repository.writeRaw('p1', 'd1', 'old');
+      await repository.writeRaw('p1', 'd1', 'new');
+
+      expect(await repository.readAllRaw('p1'), {'d1': 'new'});
+    });
+  });
+
+  // Staging: an import builds a profile's drawings beside the live folder and
+  // swaps them in only once every write has succeeded (`PLAN-transfer.md` §3.2).
+  group('staging', () {
+    test('staged files are invisible to every live read', () async {
+      await repository.save('p1', _drawing('d1'));
+      final bytes = repository.profileBytes('p1');
+
+      await repository.startStaging('p1');
+      await repository.writeRawStaged(
+        'p1',
+        'd2',
+        encodeDrawing(_drawing('d2')),
+      );
+
+      expect((await repository.readAllRaw('p1')).keys, ['d1']);
+      expect((await repository.listDecodable('p1')).map((d) => d.id), ['d1']);
+      expect(repository.profileBytes('p1'), bytes);
+    });
+
+    test('commit replaces the live folder with the staged one', () async {
+      await repository.save('p1', _drawing('old'));
+      await repository.startStaging('p1');
+      await repository.writeRawStaged(
+        'p1',
+        'd2',
+        encodeDrawing(_drawing('d2')),
+      );
+
+      await repository.commitStaged('p1');
+
+      expect((await repository.readAllRaw('p1')).keys, ['d2']);
+      expect(
+        Directory('${root.path}/drawings/p1.incoming').existsSync(),
+        isFalse,
+      );
+    });
+
+    test(
+      'committing an empty staging folder leaves an empty profile',
+      () async {
+        await repository.save('p1', _drawing('old'));
+        await repository.startStaging('p1');
+
+        await repository.commitStaged('p1');
+
+        expect(await repository.readAllRaw('p1'), isEmpty);
+        expect(repository.profileBytes('p1'), 0);
+      },
+    );
+
+    test('discard removes only the staging folder', () async {
+      await repository.save('p1', _drawing('d1'));
+      await repository.startStaging('p1');
+      await repository.writeRawStaged('p1', 'd2', 'x');
+
+      await repository.discardStaged('p1');
+      await repository.discardStaged('p1'); // Twice is fine.
+
+      expect(
+        Directory('${root.path}/drawings/p1.incoming').existsSync(),
+        isFalse,
+      );
+      expect((await repository.readAllRaw('p1')).keys, ['d1']);
+    });
+
+    test('startStaging clears what a crashed attempt left', () async {
+      File('${root.path}/drawings/p1.incoming/stale.json')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('{}');
+
+      await repository.startStaging('p1');
+      await repository.commitStaged('p1');
+
+      expect(await repository.readAllRaw('p1'), isEmpty);
+    });
+  });
 }

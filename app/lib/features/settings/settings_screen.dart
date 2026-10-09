@@ -9,6 +9,7 @@ import '../../core/ui/big_button.dart';
 import '../../core/ui/layout.dart';
 import '../../core/ui/screen_scaffold.dart';
 import '../../core/ui/tokens.dart';
+import '../../routes.dart';
 
 /// The heading over the three theme choices.
 const String themeSectionLabel = 'Colours';
@@ -63,6 +64,9 @@ const String showTimerLabel = 'Show the timer';
 const String reduceMotionLabel = 'Less moving about';
 const String allowPhotoImportLabel = 'Add a photo to draw on';
 
+/// The row that opens the players-file screen (`PLAN-transfer.md` §3.4).
+const String movePlayersLabel = 'Move players';
+
 /// How each [HapticsLevel] reads on the slider and in its own live label.
 ///
 /// Public because the tests name the same strings the screen does.
@@ -92,6 +96,10 @@ const Map<HapticsLevel, String> hapticsLevelLabels = {
 /// describing a preference of theirs (`PLAN-phase-8.md` §1, §3): off by
 /// default, so importing a photo stays invisible until a grown-up finds this
 /// switch and turns it on.
+///
+/// Last of all, above the build footer, is **Move players**: not a setting but
+/// a door to the screen that saves players to a file and loads them from one
+/// (`PLAN-transfer.md` §3.4). It sits here because it is the grown-up's errand.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -164,6 +172,16 @@ class SettingsScreen extends ConsumerWidget {
               onChosen: (value) => ref
                   .read(progressRepositoryProvider)
                   .setMistakeFeedback(profile.id, value),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            // Here, with the grown-up's controls, rather than on the player
+            // picker a child opens to start playing: moving a family to a new
+            // tablet is a parent's errand (`PLAN-transfer.md` §3.4).
+            BigButton(
+              icon: Icons.swap_horiz,
+              label: movePlayersLabel,
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.transfer),
             ),
             const SizedBox(height: AppSpacing.xxl),
             const _BuildFooter(),

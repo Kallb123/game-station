@@ -43,4 +43,8 @@ abstract final class AppRoutes {
   /// which drawing to resume — or none, for a blank sheet
   /// (`PLAN-phase-8.md` §6, PR 4).
   static const String drawSheet = '/draw/sheet';
+
+  /// Moving players to or from a file, reached from the settings screen
+  /// (`PLAN-transfer.md` §3.4).
+  static const String transfer = '/transfer';
 }

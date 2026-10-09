@@ -8,7 +8,6 @@ import '../../core/ui/avatars.dart';
 import '../../core/ui/big_button.dart';
 import '../../core/ui/layout.dart';
 import '../../core/ui/screen_scaffold.dart';
-import '../../core/ui/theme.dart';
 import '../../core/ui/tokens.dart';
 
 /// The label on the control that makes a new profile, here rather than at each
@@ -83,7 +82,7 @@ class _ProfileRow extends ConsumerWidget {
     return Row(
       children: [
         Expanded(
-          child: _AvatarTheme(
+          child: AvatarTheme(
             avatar: profile.avatar,
             child: BigButton(
               icon: avatarIcon(profile.avatar),
@@ -189,34 +188,6 @@ AvatarId _unusedAvatar(List<Profile> profiles) {
     (avatar) => !taken.contains(avatar),
     orElse: () => AvatarId.values.first,
   );
-}
-
-/// Recolours [child] as [avatar], the way the home screen recolours its two
-/// cards.
-///
-/// The scheme is derived from the swatch rather than applied as a background
-/// colour, so the label and the icon get a foreground from the same tonal
-/// palette (`theme.dart`).
-class _AvatarTheme extends StatelessWidget {
-  const _AvatarTheme({required this.avatar, required this.child});
-
-  final AvatarId avatar;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Theme(
-      data: theme.copyWith(
-        colorScheme: AppTheme.roleScheme(
-          avatarColor(avatar, theme.brightness),
-          theme.brightness,
-        ),
-      ),
-      child: child,
-    );
-  }
 }
 
 // --- the editor -------------------------------------------------------------
@@ -372,7 +343,7 @@ class _AvatarChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _AvatarTheme(
+    return AvatarTheme(
       avatar: avatar,
       child: Builder(
         builder: (context) {

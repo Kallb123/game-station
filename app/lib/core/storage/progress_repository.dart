@@ -42,6 +42,86 @@ const int puzzleCacheCap = 30;
 /// game, per mode (`PLAN.md` §4.3, `PLAN-phase-4.md` §4.9).
 const int arcadeHighScoreCap = 5;
 
+/// One incoming profile and where an import will put it
+/// (`PLAN-transfer.md` §3.2).
+@immutable
+class ProfileImportEntry {
+  const ProfileImportEntry({
+    required this.incoming,
+    required this.localId,
+    required this.replaces,
+  });
+
+  /// The profile as the file holds it. Its own id is the *file's* id and is
+  /// never used on this device; [localId] is.
+  final Profile incoming;
+
+  /// The id the profile will have here: the matched local profile's, or a
+  /// fresh `p<n>`.
+  final String localId;
+
+  /// Whether [localId] names a profile already on this device, which the
+  /// import overwrites, rather than a new one.
+  final bool replaces;
+
+  /// The profile as it will be stored: the file's contents under [localId].
+  Profile get result => Profile(
+    id: localId,
+    name: incoming.name,
+    avatar: incoming.avatar,
+    createdAt: incoming.createdAt,
+    sudoku: incoming.sudoku,
+    arcade: incoming.arcade,
+    draw: incoming.draw,
+    mistakeFeedback: incoming.mistakeFeedback,
+    arcadeEasyMode: incoming.arcadeEasyMode,
+    arcadeAutoFire: incoming.arcadeAutoFire,
+    padSide: incoming.padSide,
+    snakeCounting: incoming.snakeCounting,
+  );
+}
+
+/// What [ProgressRepository.planProfileImport] decided, to be handed back to
+/// [ProgressRepository.applyProfileImport] once the drawings are on disk.
+///
+/// Two steps rather than one call because the drawings have to be written
+/// under their final local ids *before* the save changes, and the number
+/// recorded in `DrawProgress.bytesUsed` is only known afterwards
+/// (`PLAN-transfer.md` §3.2). The plan carries a snapshot of what it was
+/// computed from so that applying it to a repository that has moved on is a
+/// [StateError] rather than a silent collision of ids.
+@immutable
+class ProfileImportPlan {
+  const ProfileImportPlan._(this.entries, this.droppedStarter, this._localIds);
+
+  /// One per incoming profile, in file order.
+  final List<ProfileImportEntry> entries;
+
+  /// The untouched starter profile this import removes, or null.
+  final Profile? droppedStarter;
+
+  /// The ids on this device when the plan was made.
+  final List<String> _localIds;
+
+  /// This plan with [localId]'s stored draw counters replaced by [draw].
+  ProfileImportPlan withDraw(String localId, DrawProgress draw) =>
+      ProfileImportPlan._(
+        [
+          for (final entry in entries)
+            if (entry.localId == localId)
+              ProfileImportEntry(
+                incoming: entry.incoming.copyWith(draw: draw),
+                localId: entry.localId,
+                replaces: entry.replaces,
+              )
+            else
+              entry,
+        ],
+        droppedStarter,
+        _localIds,
+      );
+}
+
 /// Holds the save in memory and writes it back on a debounce.
 class ProgressRepository extends ChangeNotifier {
   ProgressRepository(
@@ -501,6 +581,117 @@ class ProgressRepository extends ChangeNotifier {
         _data.activeProfileId,
         (profile) => profile.copyWith(draw: update(profile.draw)),
       );
+
+  // --- importing players ---------------------------------------------------
+
+  /// Decides, without changing anything, where each of [incoming] would go
+  /// (`PLAN-transfer.md` §3.2).
+  ///
+  /// A profile whose `createdAt` equals a local one's replaces it under the
+  /// local id: ids are per-device counters, but `createdAt` is a UTC instant
+  /// written once, so it identifies the child across devices. Anything else is
+  /// added under the next free `p<n>`, counting ids this plan has already
+  /// handed out. A local profile is matched at most once, so two incoming
+  /// profiles with one `createdAt` yield a replacement and an addition rather
+  /// than the second silently overwriting the first.
+  ProfileImportPlan planProfileImport(List<Profile> incoming) {
+    final claimed = <String>{};
+    var nextNumber = _nextProfileNumber();
+    final entries = <ProfileImportEntry>[];
+
+    for (final profile in incoming) {
+      Profile? match;
+      for (final local in _data.profiles) {
+        if (local.createdAt == profile.createdAt &&
+            !claimed.contains(local.id)) {
+          match = local;
+          break;
+        }
+      }
+      if (match != null) claimed.add(match.id);
+      entries.add(
+        ProfileImportEntry(
+          incoming: profile,
+          localId: match?.id ?? 'p${nextNumber++}',
+          replaces: match != null,
+        ),
+      );
+    }
+
+    // Dropped only when something is added, so the save cannot empty, and not
+    // when the import is about to overwrite it anyway.
+    Profile? starter;
+    if (entries.any((entry) => !entry.replaces)) {
+      for (final local in _data.profiles) {
+        if (_isUntouchedStarter(local) && !claimed.contains(local.id)) {
+          starter = local;
+          break;
+        }
+      }
+    }
+
+    return ProfileImportPlan._(entries, starter, [
+      for (final profile in _data.profiles) profile.id,
+    ]);
+  }
+
+  /// Carries out [plan] in one mutation: replaced profiles take the file's
+  /// contents under their local id, new ones are appended in file order, the
+  /// untouched starter goes, and [settings] replaces the device settings when
+  /// given.
+  ///
+  /// The active profile is left alone unless it was the starter, in which case
+  /// the first imported one takes over.
+  ///
+  /// Throws [StateError], changing nothing, when the profiles on this device
+  /// are no longer the ones [plan] was made against.
+  void applyProfileImport(ProfileImportPlan plan, {AppSettings? settings}) {
+    final currentIds = [for (final profile in _data.profiles) profile.id];
+    final starter = plan.droppedStarter;
+    final stale =
+        !listEquals(currentIds, plan._localIds) ||
+        (starter != null &&
+            _data.profiles.firstWhere((profile) => profile.id == starter.id) !=
+                starter);
+    if (stale) {
+      throw StateError('the profiles changed since this import was planned');
+    }
+
+    final replacements = {
+      for (final entry in plan.entries)
+        if (entry.replaces) entry.localId: entry.result,
+    };
+    final profiles = [
+      for (final profile in _data.profiles)
+        if (profile.id != starter?.id) replacements[profile.id] ?? profile,
+      for (final entry in plan.entries)
+        if (!entry.replaces) entry.result,
+    ];
+
+    _apply(
+      _data.copyWith(
+        profiles: profiles,
+        settings: settings,
+        activeProfileId: _data.activeProfileId == starter?.id
+            ? plan.entries.first.localId
+            : _data.activeProfileId,
+      ),
+    );
+  }
+
+  /// Whether [profile] is what a fresh install creates and nobody has touched:
+  /// equal to a new `Player n` fox with every other field at its default.
+  bool _isUntouchedStarter(Profile profile) {
+    final number = _numberOf(profile);
+    if (number == 0) return false;
+    return profile ==
+        Profile(
+          id: profile.id,
+          name: 'Player $number',
+          avatar: AvatarId.fox,
+          createdAt: profile.createdAt,
+        );
+  }
 
   // --- writing ---------------------------------------------------------------
 

@@ -574,8 +574,10 @@ board representation can change without changing the save format; §4.4 there is
   bad; a boot loop is worse.
 - Drawings live outside `save.json`, one file each under `drawings/<profileId>/`, written through the
   same tmp-then-rename helper (§2). `save.json` keeps only the counts — see §5.2's `draw`.
-- Export and import the save as a file — the share sheet on mobile, a file picker on desktop. That is
-  how a family moves to a new tablet without an account or a server.
+- Export and import players as a file. That is how a family moves to a new tablet without an account
+  or a server. [`PLAN-transfer.md`](PLAN-transfer.md) is the design: one player or everyone, every
+  stat, the drawings and the device settings, written through Android's own save dialog and a folder
+  on iOS and desktop rather than a share sheet.
 - No cloud sync, by design.
 
 ---

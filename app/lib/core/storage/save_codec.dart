@@ -102,8 +102,21 @@ SaveData decodeSave(String json) {
   } on FormatException catch (error) {
     throw SaveFormatException('not valid JSON (${error.message})');
   }
-  return _readSave(migrate(_map(parsed, '')));
+  return saveFromJson(parsed);
 }
+
+/// Reads an already-parsed save document: [raw] is what `jsonDecode` returned,
+/// or what [saveToJson] built.
+///
+/// This is the single path [decodeSave] goes through, and it is public so a
+/// file that nests a save inside a larger document — the players file of
+/// `PLAN-transfer.md` §3.1 — gets the same migration and the same validation
+/// without encoding the nested value to text and parsing it back. A migration
+/// step added to [migrationSteps] therefore migrates those files too.
+///
+/// Throws what [decodeSave] throws, and a [raw] that is not an object is a
+/// [SaveFormatException].
+SaveData saveFromJson(Object? raw) => _readSave(migrate(_map(raw, '')));
 
 /// Renders [data] as the text to write to `save.json`.
 ///
@@ -112,7 +125,12 @@ SaveData decodeSave(String json) {
 /// order the app happened to insert things in. That makes two saves with the
 /// same content compare equal as bytes, and makes a hand-diff of the file
 /// during development readable.
-String encodeSave(SaveData data) => jsonEncode(_writeSave(data));
+String encodeSave(SaveData data) => jsonEncode(saveToJson(data));
+
+/// [data] as a JSON-ready map: what [encodeSave] serialises, for a caller that
+/// nests a save inside another document (see [saveFromJson]). Same sorted
+/// keys, so the same bytes follow from the same content.
+Map<String, Object?> saveToJson(SaveData data) => _writeSave(data);
 
 /// Brings [raw] up to [currentSchemaVersion] by applying [steps] in order.
 ///
