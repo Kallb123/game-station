@@ -7,8 +7,9 @@ this design that the rest of the app has to agree with. Written ahead of its tur
 answer changes the phase's shape.
 
 The plan for `app/lib/features/draw`: a sheet a child draws on with a finger, four pencil sizes,
-an eraser, undo and redo, a palette of named colours behind one button (§4.7 — it began as eighteen
-swatches in the tool row and is now a 256-colour grid and six skin tones in a popup), and a
+an eraser, undo and redo, named colours — the twelve paint-box colours as swatches in the tool row
+and a 256-colour grid with six skin tones in a popup behind one button (§4.7 explains how it got
+there from eighteen swatches in the row) — and a
 round trip to the device photo library. Where this
 file and `PLAN.md` disagree, the reason is stated here and the closing pull request updates `PLAN.md`.
 
@@ -40,7 +41,7 @@ allowed to take. §3 is mostly about that.
 | A phone and a tablet draw the same picture | A fixed 1600 x 1200 virtual sheet, scaled to the widget — the same rule as `PLAN.md` §4.1's 224 x 256 field. A stroke is stored in sheet coordinates, so a drawing started on a phone opens undistorted on a tablet and exports at the same size from both |
 | Undo and redo cannot cost a frame | Strokes are data (§4.1). Undo moves the last `Stroke` to the redo stack; nothing is re-rasterised. A snapshot-per-move canvas would be megabytes per undo step, which is what `PLAN.md` §3.7 already capped the Sudoku undo stack to avoid in the save |
 | A 500-stroke drawing paints inside one 60 Hz frame | Strokes below the 50-stroke undo horizon are baked into a cached `ui.Image` (§4.3), so the painter walks at most 51 strokes plus the live one however long a child draws. Asserted by a test counting the strokes the painter touches, not by watching a device — a bound nobody measures is a bound that drifts |
-| No control signals its state by colour alone | `PLAN.md` §7's phase-5 accessibility rule, arriving here already met rather than retrofitted. Selection is a 3 dp `AppBorders.selected` ring plus a size change, never a colour change. The palette itself is the exception that proves the rule: a paint box's swatches *are* colour, and no arrangement of them, eighteen or 262, is safe under every deficiency — so each carries a spoken name, and a widget test asserts every swatch has a `Semantics` label. Selection in the popup is the same kind of signal, a ring, not a colour change. Choosing a colour is the one place in the app where a child needs to see one |
+| No control signals its state by colour alone | `PLAN.md` §7's phase-5 accessibility rule, arriving here already met rather than retrofitted. Selection is a 3 dp `AppBorders.selected` ring plus a size change, never a colour change. The palette itself is the exception that proves the rule: a paint box's swatches *are* colour, and no arrangement of them, eighteen or 274, is safe under every deficiency — so each carries a spoken name, and a widget test asserts every swatch has a `Semantics` label. Selection is the same kind of signal in the row and in the popup, a ring, not a colour change. Choosing a colour is the one place in the app where a child needs to see one |
 | Tap targets: 56 dp for every tool, 72 dp for undo and redo — and one stated exception, the popup's colour squares (§4.7) | `AppTapTargets.min` and `.primary` (`core/ui/tokens.dart`). Undo and redo get the primary size for the reason FIRE did in phase 4 — they are tapped repeatedly and in a hurry. Asserted per control in a widget test, as phase 3's keypad and phase 4's pad are; the squares are asserted at a side of at least 14 dp instead, so that small cannot drift to unusable |
 | Nothing a child made is lost by a mis-tap | There is no clear button. **New sheet** files the current drawing in the in-app gallery and opens a blank one, so the destructive action does not exist rather than being guarded by a dialog a six-year-old will tap through |
 | No ambient randomness in `lib/` | `PLAN-phase-1.md` §1, enforced by `app/test/no_random_test.dart`. Drawing ids are `"d1"`, `"d2"`, … from a counter, like profile ids. Nothing here needs a random number, and the existing scanner already fails the build if someone reaches for one |
@@ -65,7 +66,7 @@ Each of these was considered and dropped, because a drawing app is where scope g
 | Editing an imported photo's pixels | The backdrop is locked. Crop, rotate and filter are a photo editor, and a photo editor is a different app |
 | Sharing to another app, or printing | `PLAN.md` §1's no-network constraint does not forbid a share sheet, but a share sheet is how a child's drawing leaves the device, and "nothing leaves the device" is the promise the project is built on. The photo library is the handover point; what a parent does from there is the parent's |
 | Animation, GIF, video | `gal` can save video. Nothing here produces one |
-| A continuous colour wheel, or free RGB | A continuous picker is a poor control for a small hand and cannot be given a spoken name. A closed grid of named colours can. It was eighteen and is now 256 plus six skin tones, because the player asked for a much wider choice and a grid of tints and shades gives that without giving up names or a finite set an index can store (§4.7). The colour *dropper* is not rejected: §4.8 is it |
+| A continuous colour wheel, or free RGB | A continuous picker is a poor control for a small hand and cannot be given a spoken name. A closed grid of named colours can. It was eighteen and is now twelve paint-box colours in the row plus 256 and six skin tones in a popup, because the player asked for a much wider choice and a grid of tints and shades gives that without giving up names or a finite set an index can store (§4.7). The colour *dropper* is not rejected: §4.8 is it |
 | Unbounded undo | §4.3's horizon is 50. An undo stack that reaches the first stroke of the afternoon holds every point of it in memory |
 | Drawings in the save file, or synced anywhere | `PLAN.md` §5.2 and §5.3. No cloud, by design, and a picture is not a few kilobytes |
 
@@ -388,12 +389,17 @@ Three, all `ScreenScaffold`:
   for the arcade and should not have to set twice.
 
 The tool row: four pencil dots at their actual widths, a palette button, an eraser, a colour
-dropper (§4.8), undo, redo, and a **New sheet** button. No labels; `Semantics` on every one of them.
+dropper (§4.8), undo, redo, a **New sheet** button, and the twelve paint-box colours as swatches.
+No labels; `Semantics` on every one of them.
 
-**The colours are a popup, not a row.** The first design was eighteen swatches in the row. The player
-then asked for "a popup colour palette with a much larger variety — not complete RGB freedom, but
-something like a wide 256 colour palette that spans the colour spectrum with tints and shades", behind
-a single button, made of small squares with the chosen one given a border. The palette is now:
+**The colours are in two places: twelve in the row, the rest in a popup.** The first design was
+eighteen swatches in the row. The player then asked for "a popup colour palette with a much larger
+variety — not complete RGB freedom, but something like a wide 256 colour palette that spans the colour
+spectrum with tints and shades", behind a single button, made of small squares with the chosen one
+given a border. The first answer to that moved every colour into the popup. The player's next request
+was "I want to keep the existing colours accessible directly, not hidden behind the menu", so the
+twelve familiar paint-box colours came back to the row, and the skin tones, which are what made the row
+eighteen long, went into the popup with the grid. The palette is:
 
 - **Indices 0-17 are unchanged**: the twelve paint-box colours (0-11) and the six skin tones (12-17).
   A stroke stores an index (§4.1), so nothing is reordered or removed and every drawing already saved
@@ -402,24 +408,36 @@ a single button, made of small squares with the chosen one given a border. The p
   columns 1-15 are fifteen hues, and rows run from pale tint (top) through the pure hue (row 8) to deep
   shade (bottom). Lightness stops short of white and black on the hue columns so that a column's ends
   stay that hue; the grey column is where a child finds white and black.
-- **What is offered is 256 + 6 = 262, not 274.** The paint-box colours 0-11 stay renderable but are
-  not shown, since the grid has a near-equivalent of each; the skin tones stay because a hue grid at
-  any lightness cannot produce them. `DrawPalette.pickerIndices` is that list.
+- **Every colour is offered, in exactly one place.** Indices 0-11 are `DrawPalette.rowIndices`, the
+  tool row's swatches. The grid and the skin tones, 262 colours, are `DrawPalette.pickerIndices`, the
+  popup's contents. Because the two never overlap, the row can ring a swatch and the popup can ring a
+  square without either claiming the other's colour.
 - **Every colour still has a unique spoken name** ('Vivid red', 'Dark blue 2', 'Light grey 3'), so the
   palette stays a set of *named* swatches and not a continuous picker: the rejected alternative in §2
   is a wheel or free RGB, and this is neither.
+- **A new drawing starts on Red** (index 0), the paint box's first colour and the one it always opened
+  on, so a fresh sheet begins on a swatch that is visible and ringed in the row.
 
-**The palette button** is a 56 dp round control in the tool row, with the eraser and the dropper. It
-draws the colour in use as a dot with a small palette glyph, carries the same 3 dp ring and growth when
-the pencil is the active tool, and says "Colours" with the colour's name as its value. One tap opens the
-popup (`palette_popup.dart`).
+**The twelve swatches** are the row's last group, styled as they were before the popup: 56 dp round
+targets with a hairline edge and a 34 dp dot that grows by 8 dp and gains the 3 dp ring when chosen.
+A swatch is ringed when the pencil is the active tool and its colour is the current one.
+
+**The palette button** is a 56 dp round control among the tools, with the eraser and the dropper, and
+says "More colours". It is ringed when the pencil is the active tool and the current colour came from
+the popup — a grid square or a skin tone — and then it also draws that colour as a dot with a small
+palette glyph in the corner, and carries the colour's name as its semantics value. Only one control in
+the row is ever ringed: a row colour rings its swatch and leaves the button alone, a popup colour rings
+the button and leaves every swatch alone. While a row colour is current the button shows the palette
+glyph by itself, with no dot and no value: a dot would be a thirteenth swatch of the colour the row
+already shows ringed, and a neutral grey or rainbow dot would claim a colour nobody chose, so the glyph
+says only "more colours", which is all it knows. One tap opens the popup (`palette_popup.dart`).
 
 **The popup** is a centred compact `Dialog`: the grid, a gap, one row of the six skin tones, and a
 56 dp close button — beside the grid in a window wider than tall, beneath it otherwise; the barrier and
 the back gesture dismiss too. A centred dialog rather than an anchored popover because the button sits
 somewhere different in the band and in the rail, and a popover that must stay on screen beside a rail
 on a short landscape phone has no good place to be. Tapping a square returns its index and closes; the
-tool row hands it to the `onColorSelected` path every colour took, so it selects the pencil and leaves
+tool row hands it to the `onColorSelected` path every colour takes, so it selects the pencil and leaves
 the eraser and the dropper.
 
 *Sizing.* A square's side is the tighter of the width and the height it is given — over 16 columns, or
@@ -432,35 +450,64 @@ square's tappable cell includes half the gap on every side, so a finger between 
 and a thin ring in the surface colour just inside its edge, because no single colour reads on all 262
 squares — the inner line separates the outer ring from a dark square, the outer ring is what shows on
 a pale one. The ring is the grid's last positioned child, so it paints over its neighbours and moving
-the selection shifts nothing. A current colour the picker does not offer — one of 0-11, which the
-dropper can produce by reading an old drawing's stroke — is ringed at its nearest offered square
-(`DrawPalette.nearestIndex`), so a child can see where in the grid they are; the button still carries
-the colour's own name.
+the selection shifts nothing. **When the current colour is a paint-box colour the popup rings nothing.**
+The row already rings it, and ringing the grid's nearest square as well would tell a child that two
+different colours are chosen. An earlier version did ring the nearest square, when the paint-box
+colours were not in the row to be ringed; it has no job now.
 
 **The squares are a deliberate exception to the 56 dp floor.** `AGENTS.md` and `PLAN.md` §4.2 ask for
 large targets for a child, and 262 of them at 56 dp is not a palette anyone could see at once. The
 player asked for small squares. The exception is bounded: it covers only this grid, the cells have no
 dead space between them, a wrong pick is visible in the button and the ring and costs one more tap, and
-every other control — the close button included — keeps the floor. No tap-target sweep covers the
-popup, so nothing was weakened to allow it. Whether a six-year-old can hit a 15 dp square is PR 7's
-device pass to answer, and §9 carries it.
+every other control — the close button and the twelve swatches included — keeps the floor. No tap-target
+sweep covers the popup, so nothing was weakened to allow it. Whether a six-year-old can hit a 15 dp
+square is PR 7's device pass to answer, and §9 carries it.
 
-**The row without the colours** is three groups, each on its own line or lines: the four sizes; then
-the tools — palette button, eraser and dropper, the three a child swaps between mid-drawing; then
-undo, redo and **New sheet**. The order is the same in the band and the rail, and the rail is as wide as
-the four sizes (248 dp) or half the window, whichever is less. Six controls on one line would fold into
-a lone **New sheet** on the next in a 360 dp portrait band, which is why the tools and the actions are
-separate lines. The whole row is about 208 dp tall where the eighteen-swatch one was 336 dp or more, so
-the band no longer scrolls on a 360 x 640 phone and the rail fits a 400 dp window; the scroll views
-stay as the guard they were written to be, not as something a child meets.
+**The row** is four groups, each on its own line or lines: the four sizes; then the tools — palette
+button, eraser and dropper, the three a child swaps between mid-drawing; then undo, redo and **New
+sheet**; then the twelve colours. The order is the same in the band and the rail, and the two differ
+only in the width their groups are given. The tools and the actions are separate lines because six
+controls on one line need 408 dp and fold into a lone **New sheet** on the next in anything narrower.
+The colours are last for the reason they were last before: they are the only group that folds onto
+lines of its own, so when a window is too short for everything it is the colours' last line that falls
+below the fold and not undo, redo or a tool. Both layouts scroll rather than shrink a control or squeeze
+the sheet, and the colours are what a child scrolls for.
+
+*Twelve colours go in even lines.* Six to a line where the space holds six swatches (376 dp), four
+otherwise, and never five and five and two. A portrait band on a 360 dp phone is 312 dp wide once the
+screen's padding is taken, which holds five swatches and not six, so the colour group is held to four
+swatches' width there and folds into three lines of four. The landscape rail is as wide as six swatches
+(376 dp) where half the window can spare it, which is a window of 752 dp or more, and as wide as four
+(248 dp, which is also the four pencil sizes) otherwise; twelve divides by both.
+
+*What that costs, measured:*
+
+| Window | Layout | Colours | Overhang |
+|---|---|---|---|
+| 360 x 640 portrait | band 312 dp wide, 404 dp tall | 4 + 4 + 4 | 72 dp: the last line (Pink, Brown, Black, White) is below the fold |
+| 412 x 915 portrait | band 364 dp | 4 + 4 + 4 | none |
+| 768 x 1024 portrait | band | 6 + 6 | none |
+| 640 x 360 landscape | rail 248 dp, 404 dp tall in a 242 dp viewport | 4 + 4 + 4 | 162 dp: the colours are below the fold |
+| 800 x 400 landscape | rail 376 dp, 340 dp tall | 6 + 6 | 58 dp: the second line is below the fold |
+| 1280 x 800 landscape | rail 376 dp | 6 + 6 | none |
+
+A 640 x 360 phone cannot do better with 56 dp controls: the sizes, the tools and the actions are 208 dp with their gaps
+and a line of colours another 56, and the sheet needs the rest. The alternatives all cost something the
+player has not asked to give up — a rail wide enough for six to a line takes the width the sheet needs,
+and the sheet is already 323 x 242 there. So on the shortest landscape phones the colours are one
+scroll away rather than visible at rest, which is the honest price of keeping both the twelve and the
+popup, and §9 asks PR 7 whether a child finds them. A widget test holds every swatch reachable by
+scrolling in each of the windows above.
 
 **History, for the code comments that cite this section.** The eighteen-swatch row had the six skin
 tones as its last swatches, added after PR 6 because a paint box whose only answer for a person is
 Brown answers badly; six so that they filled a line of a rail six swatches wide, and appended rather
 than sorted in because an index is stored. The row then outgrew short phones: the portrait band took a
 scroll view and the sheet a floor of a third of the window (`_minSheetShare`), and the landscape rail
-overhung a 400 dp window by a row. Moving the colours into a popup removed that whole class of problem,
-which is the other reason for it.
+overhung a 400 dp window by a row. Moving every colour into a popup removed that whole class of problem
+but hid the colours a child already knew, so twelve of them came back to the row. The skin tones stayed
+in the popup, because with them the row is eighteen swatches again, and the scroll views, which the
+popup had left as a guard, are met again on a short phone.
 
 **The sheet's header also carries a Save-picture action and, once §1's `allowPhotoImport` says yes,
 an Add-a-photo one** — added at PR 6 rather than named here originally. Neither PR 5 nor this section
@@ -494,17 +541,19 @@ topmost first:
 2. **The backdrop photo**, when there is one and the point is on it. The sheet screen reads the decoded
    image's pixels back once, for this tap, maps the point to the pixel under it
    (`ColorDropper.backdropColorAt`, the same centred placement `drawBackdropImage` uses), blends it
-   over the paper if it is translucent, and snaps it to the nearest offered swatch (`DrawPalette.nearestIndex`,
-   redmean-weighted RGB distance, ties to the lower index; the paint-box colours 0-11 are not
-   candidates, so the answer is always one the popup can ring).
+   over the paper if it is translucent, and snaps it to the nearest swatch (`DrawPalette.nearestIndex`,
+   redmean-weighted RGB distance, ties to the lower index; every colour is a candidate, so the answer
+   is always one the row or the popup can ring). The grid's pure white and pure black equal White and
+   Black, and a tie goes to the lower index, so those two come back as the row's swatches.
 3. **The bare paper**, snapped the same way. The paper is the theme's `surface`, near-white by day and
-   near-black by night, so a night-theme child picks a dark grey from an empty sheet and a day-theme child
-   the grid's white — what they are looking at.
+   near-black by night, so a night-theme child picks one of the grid's darkest greys from an empty sheet
+   and a day-theme child White — what they are looking at.
 
 **Tool state.** The dropper is a mode like the eraser, exclusive with it: choosing a size, a colour or
 the eraser leaves it. It is **one-shot**: the touch is resolved when the finger lifts, at the place
 it lifted, so a child can slide onto the exact spot; the colour becomes the pencil's, the tool returns
-to the pencil, and the palette button is the one showing selected, with the colour just picked. A cancelled touch picks nothing
+to the pencil, and the swatch or the palette button for the colour just picked is the one showing
+selected. A cancelled touch picks nothing
 and the dropper stays on. A drag never draws, and a second finger is ignored as it is while drawing.
 The dropper reaches nothing in `DrawingController`, so it adds no stroke and no undo entry, never
 notifies, and so never marks the drawing dirty or starts an autosave.
@@ -512,10 +561,10 @@ notifies, and so never marks the drawing dirty or starts an autosave.
 **Limits, stated rather than hidden.**
 - A backdrop that has not finished decoding is not sampled; the paper answers. The window is the
   fraction of a second after a photo is added or a drawing opened.
-- A photo pixel snaps to the nearest of 262 colours, which is close but not a match.
+- A photo pixel snaps to the nearest of 274 colours, which is close but not a match.
   That is the palette's limit, not a fault in the sampling.
-- A stroke drawn in a paint-box colour (0-11) is picked as that index, which the popup does not offer;
-  the button shows it and the popup rings the nearest square (§4.7).
+- A stroke drawn in a paint-box colour (0-11) is picked as that index: its swatch in the row is ringed,
+  and the popup, which has no square for it, rings nothing (§4.7).
 
 ---
 
@@ -525,7 +574,7 @@ notifies, and so never marks the drawing dirty or starts an autosave.
 app/lib/features/draw/
 ├─ model/
 │  ├─ stroke.dart                # Stroke, Drawing, sheetSize
-│  ├─ palette.dart               # the 274 colours and their names, the 262 offered, the four widths
+│  ├─ palette.dart               # the 274 colours and their names, which are in the row and which in the popup, the four widths
 │  ├─ color_dropper.dart         # which palette colour is under a point (§4.8)
 │  └─ drawing_controller.dart    # strokes, redo stack, the horizon and the bake trigger
 ├─ data/
@@ -538,7 +587,7 @@ app/lib/features/draw/
    ├─ draw_gallery_screen.dart
    ├─ draw_sheet_screen.dart
    ├─ drawing_painter.dart
-   ├─ tool_row.dart              # sizes, palette button, eraser, dropper, undo, redo, new sheet
+   ├─ tool_row.dart              # sizes, palette button, eraser, dropper, undo, redo, new sheet, the twelve colours
    └─ palette_popup.dart         # the 16 x 16 grid and skin tones, in a dialog (§4.7)
 app/android/app/src/main/kotlin/…/PhotoPickerPlugin.kt
 app/ios/Runner/PhotoPicker.swift
@@ -709,6 +758,7 @@ than ticked.
 |---|---|
 | Is the system photo picker legible to a six-year-old, or does an adult have to drive the import? | PR 7's pass. If an adult has to drive it, that is an argument for leaving `allowPhotoImport` off by default, which is where it already is |
 | Can a small hand hit a 15-17 dp colour square, and does a child find the palette button? | PR 7, and the sharpest question the popup raises: the squares are below the 56 dp floor on purpose (§4.7). Watch whether a child's first tap lands on the square they aimed at, and whether reopening the popup for a second colour is a chore. If it is, the fallback is larger squares at fewer colours, which is the grid's constants in `palette.dart` and `PalettePopup.maxSide` and nothing else |
+| Does a child on a short phone find the twelve colours below the fold? | PR 7. On a 360 x 640 phone the last line of the row is below the fold of the band and on a 640 x 360 one all three are (§4.7), reached by scrolling. Watch whether a child who wants Black or White scrolls for it or gives up. If they give up, the options are a taller band, which takes from the sheet, or moving **New sheet** to the header to free a line, which is a change to what the row holds and not to how it folds |
 | Is 64 MB per profile the right budget, and 50 the right undo horizon? | Both are guesses with a stated basis, not measurements. A tablet with several profiles and a few weeks of drawings answers the first; a child holding undo answers the second |
 | Should the iOS floor move from 13 to 14 so `PHPickerViewController` is always there? | Phase 6, when iOS is built at all. iOS 13 devices are the ones that would lose the app, against a feature the rest gain |
 | Should `allowPhotoImport` default to true after all? | The user's call, not a technical one. It is stated as an assumption in §1 rather than settled: default false means the feature is invisible until a parent finds it in settings, which is the safe direction and also the one that gets a bug report saying import is missing |

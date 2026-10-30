@@ -2,7 +2,8 @@
 // from pale tint down to deep shade — and the six skin tones in a row beneath
 // it (`PLAN-phase-8.md` §4.7). Opened by the tool row's one palette button
 // (`tool_row.dart`) so that two hundred and sixty-two colours cost a child one
-// 56 dp control rather than a screen of them.
+// 56 dp control rather than a screen of them. The twelve paint-box colours are
+// not in it: they are swatches in the row itself, one tap away.
 //
 // **The squares are far below the 56 dp tap-target floor, on purpose.**
 // `AGENTS.md` asks for large touch targets and `PLAN.md` §4.2 sets the floor,
@@ -37,9 +38,9 @@ import '../model/palette.dart';
 /// index the child chose, or null if the popup was dismissed — by a tap on
 /// the barrier, the close button or the system back gesture.
 ///
-/// [selectedIndex] is the colour in use now, so its square can be ringed. See
-/// [PalettePopup.highlightIndexFor] for what a colour with no square of its
-/// own is shown as.
+/// [selectedIndex] is the colour in use now, so its square can be ringed. A
+/// colour with no square here — a paint-box colour, which is a swatch in the
+/// tool row — rings nothing (see [PalettePopup.selectedIndex]).
 Future<int?> showPalettePopup(BuildContext context, {int? selectedIndex}) =>
     showDialog<int>(
       context: context,
@@ -61,6 +62,12 @@ class PalettePopup extends StatelessWidget {
   });
 
   /// The colour in use, if any: [DrawPalette.colors] index.
+  ///
+  /// Its square is ringed if it has one. A paint-box colour (0-11) has none:
+  /// the tool row rings its swatch (`tool_row.dart`), and ringing the nearest
+  /// grid square here as well would tell a child that two different colours
+  /// are chosen. So the popup opens unringed then, which is also true — none
+  /// of what it offers is the colour in use.
   final int? selectedIndex;
 
   /// Called with the palette index of the square tapped.
@@ -85,30 +92,10 @@ class PalettePopup extends StatelessWidget {
   static const Key closeKey = ValueKey('PalettePopup.close');
 
   /// The ring that marks the selected square. Absent when [selectedIndex] has
-  /// no square to mark.
+  /// no square to mark, as it is for a paint-box colour.
   static const Key highlightKey = ValueKey('PalettePopup.highlight');
 
   static Key squareKey(int index) => ValueKey('PalettePopup.square.$index');
-
-  /// The square to ring for [index]: itself when the picker offers it, else
-  /// the offered square nearest in colour, else none.
-  ///
-  /// A paint-box colour (0-11) is not offered but can be the current colour:
-  /// the dropper reads an old drawing's stroke as the index it was saved with
-  /// (`draw_sheet_screen.dart`'s `_pickColor`). Ringing nothing would leave a
-  /// child with no idea where in the grid they are, and the nearest square is
-  /// the answer [DrawPalette.nearestIndex] already gives for every other
-  /// source of a colour that is not a palette entry. The ring says "about
-  /// here" and not "exactly this"; the button on the tool row and the
-  /// semantics value still carry the colour's own name.
-  static int? highlightIndexFor(int? index) {
-    if (index == null || index < 0 || index >= DrawPalette.colors.length) {
-      return null;
-    }
-    return DrawPalette.isOffered(index)
-        ? index
-        : DrawPalette.nearestIndex(DrawPalette.colorAt(index));
-  }
 
   /// The side of a square, in dp, for a grid given [width] and [height] to
   /// fill: whichever of the two is the tighter, capped at [maxSide].
@@ -125,8 +112,6 @@ class PalettePopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highlighted = highlightIndexFor(selectedIndex);
-
     return Dialog(
       insetPadding: const EdgeInsets.all(AppSpacing.lg),
       child: LayoutBuilder(
@@ -150,7 +135,7 @@ class PalettePopup extends StatelessWidget {
 
           final grid = _Grid(
             side: side,
-            selectedIndex: highlighted,
+            selectedIndex: selectedIndex,
             onSelected: onSelected,
           );
           final close = IconButton(

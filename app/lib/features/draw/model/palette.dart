@@ -7,6 +7,11 @@
 // content (`PLAN-phase-8.md` §1) — so every swatch carries a spoken name
 // here, and the picker signals which one is chosen with a border and a size
 // change rather than with colour alone.
+//
+// Where each colour is offered is also decided here: the twelve paint-box
+// colours are swatches in the tool row ([DrawPalette.rowIndices]), and the
+// grid and the skin tones are in the popup behind its palette button
+// ([DrawPalette.pickerIndices]) — `PLAN-phase-8.md` §4.7 gives the reasoning.
 
 import 'package:flutter/painting.dart' show Color, HSLColor;
 
@@ -30,11 +35,13 @@ import 'package:flutter/painting.dart' show Color, HSLColor;
 ///   from pale tint (row 0) to deep shade (the last row). Laid out row by row,
 ///   so [gridIndex] is the only arithmetic a caller needs.
 ///
-/// What the picker *offers* is narrower than what exists: [pickerIndices].
-/// The paint-box colours 0-11 stay renderable but are no longer offered, since
-/// the grid holds a near-equivalent of each; the skin tones stay offered
-/// because drawing a person is what a child needs them for and a hue grid at
-/// any lightness cannot produce them.
+/// Every colour is offered, in one of two places. The twelve paint-box colours
+/// are [rowIndices], swatches in the tool row, because they are the colours a
+/// child already knows and wants one tap away rather than behind a menu. The
+/// grid and the six skin tones are [pickerIndices], the popup's contents: the
+/// grid is too many squares for a row, and the skin tones go with it to keep
+/// the row short — a hue grid at any lightness cannot produce them, so they
+/// are in the popup rather than dropped.
 abstract final class DrawPalette {
   /// The index of grid cell (0, 0) — the first index after the skin tones.
   static const int gridStart = 18;
@@ -45,16 +52,21 @@ abstract final class DrawPalette {
   /// How many colours the grid holds.
   static const int gridSize = gridColumns * gridRows;
 
+  /// How many paint-box colours there are: indices 0 to this, exclusive. They
+  /// are the tool row's swatches ([rowIndices]).
+  static const int rowCount = 12;
+
   /// The first skin-tone index; the skin tones run up to [gridStart].
-  static const int _skinStart = 12;
+  static const int _skinStart = rowCount;
 
   /// The grid row whose lightness is exactly 0.5, where every hue is at its
   /// purest — the row a "just red" lives in.
   static const int _pureRow = 8;
 
-  /// The index a new drawing starts with: the grid's pure red, the colour a
-  /// child reaches for first, and the one the paint box always opened on.
-  static const int defaultIndex = gridStart + _pureRow * gridColumns + 1;
+  /// The index a new drawing starts with: Red, the paint box's first colour
+  /// and the one it has always opened on. A swatch in the tool row, so a
+  /// fresh sheet starts on a colour the child can see ringed there.
+  static const int defaultIndex = 0;
 
   // The twelve paint-box colours and six skin tones the first release
   // shipped. Private: callers read the combined [colors], and an index into
@@ -261,22 +273,35 @@ abstract final class DrawPalette {
     return (index - gridStart) % gridColumns;
   }
 
-  /// The indices the picker offers, in the order it shows them: the grid's
+  /// The paint-box colours the tool row shows as swatches, in the order it
+  /// shows them: 0-11, Red to White.
+  static final List<int> rowIndices = List.unmodifiable(<int>[
+    for (var i = 0; i < rowCount; i++) i,
+  ]);
+
+  /// The indices the popup offers, in the order it shows them: the grid's
   /// [gridSize] colours row by row, then the six skin tones.
   ///
-  /// A subset of [colors] on purpose. The paint-box colours 0-11 are not
-  /// offered because the grid has a near-equivalent of each, and the skin
-  /// tones are, because it does not. Strokes already drawn in a paint-box
-  /// colour still render — nothing here is about what [colorAt] accepts.
+  /// With [rowIndices] this is every colour there is: a colour is in the row
+  /// or in the popup, never both and never neither, which is what lets the
+  /// tool row ring a swatch and the popup ring a square without either
+  /// claiming the other's colour (`tool_row.dart`).
   static final List<int> pickerIndices = List.unmodifiable(<int>[
     for (var i = gridStart; i < gridStart + gridSize; i++) i,
     for (var i = _skinStart; i < gridStart; i++) i,
   ]);
 
-  /// Whether the picker offers `index`, so a caller can tell a colour it can
-  /// highlight from one that exists only for old drawings.
-  static bool isOffered(int index) =>
+  /// Whether `index` is one of the tool row's swatches ([rowIndices]).
+  static bool isRowIndex(int index) => index >= 0 && index < rowCount;
+
+  /// Whether `index` is one of the popup's squares ([pickerIndices]): a skin
+  /// tone or a grid colour.
+  static bool isPickerIndex(int index) =>
       isGridIndex(index) || (index >= _skinStart && index < gridStart);
+
+  /// Whether a child can choose `index` from somewhere on screen: in the row
+  /// or in the popup. True of every index of [colors].
+  static bool isOffered(int index) => isRowIndex(index) || isPickerIndex(index);
 
   /// The paint colour for [Stroke.colorIndex] `index`. Never called for an
   /// eraser stroke ([Stroke.isEraser]).
@@ -286,21 +311,23 @@ abstract final class DrawPalette {
   /// for anywhere else a colour needs to be said rather than shown.
   static String nameAt(int index) => names[index];
 
-  /// The index of the offered swatch ([pickerIndices]) that looks most like
-  /// [color] — what the colour dropper (`color_dropper.dart`) turns a pixel of
-  /// a photo, or the sheet's own paper, into, because a stroke can only store
-  /// an index (`stroke.dart`).
+  /// The index of the colour in [colors] that looks most like [color] — what
+  /// the colour dropper (`color_dropper.dart`) turns a pixel of a photo, or
+  /// the sheet's own paper, into, because a stroke can only store an index
+  /// (`stroke.dart`).
   ///
-  /// Only offered indices are candidates, never the paint-box colours 0-11:
-  /// the answer becomes the current colour, and a current colour the picker
-  /// has no swatch for could not be shown as chosen.
+  /// Every offered index is a candidate, the paint-box colours among them: the
+  /// answer becomes the current colour, and each one has a place to show as
+  /// chosen, a row swatch or a popup square.
   ///
   /// Distance is the "redmean" weighting of RGB: close to how the eye
   /// separates colours at the cost of three multiplications, where plain RGB
   /// distance calls a mid-grey nearer to Teal than to Black or White. Ties go
   /// to the lower index, so the answer never depends on anything but
-  /// [colors]'s order. [color]'s alpha is ignored; a caller with a
-  /// translucent colour blends it first.
+  /// [colors]'s order. That settles the colours the grid repeats: its pure
+  /// white and pure black equal White (11) and Black (10), and the answer is
+  /// the row swatch. [color]'s alpha is ignored; a caller with a translucent
+  /// colour blends it first.
   static int nearestIndex(Color color) {
     var best = -1;
     var bestDistance = double.infinity;
@@ -320,12 +347,14 @@ abstract final class DrawPalette {
     return best;
   }
 
-  /// The offered indices in ascending order — [pickerIndices] lists the skin
-  /// tones last, which would hand a tie between a skin tone and a grid colour
-  /// to the grid's higher index and break [nearestIndex]'s lower-wins rule.
-  static final List<int> _nearestCandidates = List.unmodifiable(
-    pickerIndices.toList()..sort(),
-  );
+  /// The offered indices in ascending order, so the first of two equally near
+  /// colours wins whatever order [rowIndices] and [pickerIndices] list them in
+  /// (the popup lists the skin tones after the grid, which would hand a tie
+  /// between a skin tone and a grid colour to the grid's higher index).
+  static final List<int> _nearestCandidates = List.unmodifiable(<int>[
+    for (var i = 0; i < colors.length; i++)
+      if (isOffered(i)) i,
+  ]);
 }
 
 /// The four pencil sizes a child can draw with.

@@ -3,6 +3,9 @@
 // nothing else is, a tap picks and closes, and the whole thing fits a phone
 // in either orientation without scrolling.
 //
+// The twelve paint-box colours are not in the popup: they are swatches in the
+// tool row (`tool_row.dart`), and the popup rings nothing for one of them.
+//
 // The squares are deliberately below the 56 dp tap-target floor — a small
 // square palette is what the player asked for (`palette_popup.dart`'s file
 // header) — so no test here asserts the floor against them. They assert the
@@ -83,8 +86,8 @@ void main() {
         reason: DrawPalette.nameAt(index),
       );
     }
-    // Exactly those: 0-11 stay renderable for old drawings but are not
-    // offered (`DrawPalette.pickerIndices`).
+    // Exactly those: 0-11 are the tool row's swatches, not the popup's
+    // (`DrawPalette.rowIndices`).
     for (var index = 0; index < 12; index++) {
       expect(find.byKey(PalettePopup.squareKey(index)), findsNothing);
     }
@@ -124,7 +127,8 @@ void main() {
   });
 
   testWidgets('every square has a spoken name and is a button', (tester) async {
-    await openPopup(tester, selectedIndex: DrawPalette.defaultIndex);
+    final selected = DrawPalette.gridIndex(8, 1);
+    await openPopup(tester, selectedIndex: selected);
 
     for (final index in DrawPalette.pickerIndices) {
       expect(
@@ -133,7 +137,7 @@ void main() {
           label: DrawPalette.nameAt(index),
           isButton: true,
           hasSelectedState: true,
-          isSelected: index == DrawPalette.defaultIndex,
+          isSelected: index == selected,
         ),
         reason: 'square $index',
       );
@@ -233,36 +237,40 @@ void main() {
       expect(find.byKey(PalettePopup.highlightKey), findsNothing);
     });
 
-    testWidgets('rings the nearest offered square for a paint-box colour the '
-        'grid does not hold', (tester) async {
-      // Index 0 is the first release's Red, which is no longer offered and
-      // can still be the colour in use after the dropper reads an old stroke.
-      expect(DrawPalette.isOffered(0), isFalse);
-      final nearest = DrawPalette.nearestIndex(DrawPalette.colorAt(0));
-      expect(PalettePopup.highlightIndexFor(0), nearest);
+    testWidgets('rings nothing for a paint-box colour, which is the tool '
+        'row\'s to ring', (tester) async {
+      // Ringing the grid square nearest to Red would claim that a different
+      // colour is chosen while the row rings Red itself.
+      for (final index in DrawPalette.rowIndices) {
+        await openPopup(tester, selectedIndex: index);
 
-      await openPopup(tester, selectedIndex: 0);
-
-      expect(
-        tester.getCenter(find.byKey(PalettePopup.highlightKey)),
-        tester.getCenter(find.byKey(PalettePopup.squareKey(nearest))),
-      );
-      expect(
-        tester.getSemantics(find.byKey(PalettePopup.squareKey(nearest))),
-        isSemantics(
-          label: DrawPalette.nameAt(nearest),
-          isButton: true,
-          hasSelectedState: true,
-          isSelected: true,
-        ),
-      );
+        expect(
+          find.byKey(PalettePopup.highlightKey),
+          findsNothing,
+          reason: DrawPalette.nameAt(index),
+        );
+        for (final square in DrawPalette.pickerIndices) {
+          expect(
+            tester.getSemantics(find.byKey(PalettePopup.squareKey(square))),
+            isSemantics(
+              label: DrawPalette.nameAt(square),
+              isButton: true,
+              hasSelectedState: true,
+              isSelected: false,
+            ),
+            reason: '${DrawPalette.nameAt(index)}: square $square',
+          );
+        }
+        await tester.tap(find.byKey(PalettePopup.closeKey));
+        await tester.pumpAndSettle();
+      }
     });
 
-    test('is none for an index outside the palette', () {
-      expect(PalettePopup.highlightIndexFor(null), isNull);
-      expect(PalettePopup.highlightIndexFor(-1), isNull);
-      expect(PalettePopup.highlightIndexFor(DrawPalette.colors.length), isNull);
-      expect(PalettePopup.highlightIndexFor(200), 200);
+    testWidgets('rings nothing for an index outside the palette', (
+      tester,
+    ) async {
+      await openPopup(tester, selectedIndex: DrawPalette.colors.length);
+      expect(find.byKey(PalettePopup.highlightKey), findsNothing);
     });
   });
 
@@ -384,7 +392,7 @@ void main() {
 
           // Small, but not unusably so: the phones are the tightest windows
           // the app supports.
-          final side = sideOf(tester, DrawPalette.defaultIndex);
+          final side = sideOf(tester, DrawPalette.gridStart);
           expect(side, greaterThanOrEqualTo(14));
           expect(side, lessThanOrEqualTo(PalettePopup.maxSide));
         });

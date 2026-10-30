@@ -42,8 +42,8 @@ void main() {
   });
 
   test('indices 0-17 keep the colours and names drawings were saved with', () {
-    // Pinned by value as well as name: the grid replaced the paint box in the
-    // picker, but a drawing saved in Brown must still reopen brown.
+    // Pinned by value as well as name: a drawing saved in Brown must still
+    // reopen brown, whatever is added after it.
     for (var i = 0; i < _legacy.length; i++) {
       expect(DrawPalette.nameAt(i), _legacy[i].$1, reason: 'name of $i');
       expect(
@@ -182,8 +182,15 @@ void main() {
     });
   });
 
-  group('pickerIndices', () {
-    test('are the grid then the skin tones, each once, all in range', () {
+  group('rowIndices and pickerIndices', () {
+    test('rowIndices are the twelve paint-box colours, in order', () {
+      expect(DrawPalette.rowCount, 12);
+      expect(DrawPalette.rowIndices, [for (var i = 0; i < 12; i++) i]);
+      expect(DrawPalette.nameAt(DrawPalette.rowIndices.first), 'Red');
+      expect(DrawPalette.nameAt(DrawPalette.rowIndices.last), 'White');
+    });
+
+    test('pickerIndices are the grid then the skin tones, each once', () {
       final offered = DrawPalette.pickerIndices;
 
       expect(offered, hasLength(262));
@@ -196,45 +203,80 @@ void main() {
       }
     });
 
-    test('leave out the paint-box colours but still render them', () {
-      for (var i = 0; i < 12; i++) {
-        expect(DrawPalette.pickerIndices, isNot(contains(i)));
-        expect(DrawPalette.isOffered(i), isFalse);
-        expect(DrawPalette.colorAt(i), isA<Color>());
+    test('every colour is in the row or the popup, never both', () {
+      final row = DrawPalette.rowIndices.toSet();
+      final popup = DrawPalette.pickerIndices.toSet();
+
+      expect(row.intersection(popup), isEmpty);
+      expect(row.union(popup), hasLength(DrawPalette.colors.length));
+      for (var i = 0; i < DrawPalette.colors.length; i++) {
+        expect(DrawPalette.isRowIndex(i), row.contains(i), reason: '$i');
+        expect(DrawPalette.isPickerIndex(i), popup.contains(i), reason: '$i');
+        expect(DrawPalette.isOffered(i), isTrue, reason: '$i');
       }
+    });
+
+    test('the skin tones are in the popup, not the row', () {
       for (var i = 12; i < 18; i++) {
+        expect(DrawPalette.rowIndices, isNot(contains(i)));
         expect(DrawPalette.pickerIndices, contains(i));
-        expect(DrawPalette.isOffered(i), isTrue);
+      }
+    });
+
+    test('nothing outside the palette is offered', () {
+      for (final index in [-1, DrawPalette.colors.length, 1000]) {
+        expect(DrawPalette.isRowIndex(index), isFalse, reason: '$index');
+        expect(DrawPalette.isPickerIndex(index), isFalse, reason: '$index');
+        expect(DrawPalette.isOffered(index), isFalse, reason: '$index');
       }
     });
   });
 
-  test('the default is an offered, pure red', () {
-    final color = DrawPalette.colorAt(DrawPalette.defaultIndex);
-
-    expect(DrawPalette.pickerIndices, contains(DrawPalette.defaultIndex));
-    expect(DrawPalette.nameAt(DrawPalette.defaultIndex), 'Vivid red');
-    expect(color, const Color(0xFFFF0000));
+  test('the default is Red, the first swatch in the tool row', () {
+    expect(DrawPalette.defaultIndex, 0);
+    expect(DrawPalette.rowIndices, contains(DrawPalette.defaultIndex));
+    expect(DrawPalette.nameAt(DrawPalette.defaultIndex), 'Red');
   });
 
   group('nearestIndex', () {
-    test('every offered swatch is its own nearest', () {
-      for (final i in DrawPalette.pickerIndices) {
+    test('every colour is its own nearest, except the grid\'s repeats', () {
+      // The grid's pure white and pure black equal White (11) and Black (10),
+      // and a tie goes to the lower index; every other colour is unique.
+      final grey = {
+        DrawPalette.gridIndex(0, 0): 11,
+        DrawPalette.gridIndex(15, 0): 10,
+      };
+      for (var i = 0; i < DrawPalette.colors.length; i++) {
         expect(
           DrawPalette.nearestIndex(DrawPalette.colorAt(i)),
-          i,
+          grey[i] ?? i,
           reason: DrawPalette.nameAt(i),
         );
       }
     });
 
+    test('answers a row swatch for an exact paint-box colour', () {
+      for (final i in DrawPalette.rowIndices) {
+        expect(DrawPalette.nearestIndex(DrawPalette.colorAt(i)), i);
+      }
+    });
+
+    test('black and white tie with the grid and go to the row swatch', () {
+      expect(
+        DrawPalette.colorAt(DrawPalette.gridIndex(0, 0)),
+        const Color(0xFFFFFFFF),
+      );
+      expect(
+        DrawPalette.colorAt(DrawPalette.gridIndex(15, 0)),
+        const Color(0xFF000000),
+      );
+
+      expect(DrawPalette.nearestIndex(const Color(0xFF000000)), 10);
+      expect(DrawPalette.nearestIndex(const Color(0xFFFFFFFF)), 11);
+    });
+
     test('only ever answers an offered index', () {
       final samples = <Color>[
-        // The paint-box colours: each has a near-equivalent in the grid, and
-        // must be answered with that rather than with itself.
-        for (var i = 0; i < 12; i++) DrawPalette.colorAt(i),
-        const Color(0xFF000000),
-        const Color(0xFFFFFFFF),
         const Color(0xFF808080),
         const Color(0xFF7F7F7F),
         // A sweep over the cube, coarse enough to be quick and off the grid's
@@ -251,56 +293,36 @@ void main() {
           isTrue,
           reason: '$color -> $index',
         );
-        expect(DrawPalette.pickerIndices, contains(index));
       }
     });
 
-    test('a paint-box colour lands on a grid colour of the same family', () {
-      // Red, Sky and Yellow are not in the grid exactly, but must not jump
-      // hue family: the dropper is how a child matches a colour they drew with.
-      for (final (legacyIndex, hue) in [(0, 0.0), (5, 200.0), (2, 50.0)]) {
-        final nearest = DrawPalette.colorAt(
-          DrawPalette.nearestIndex(DrawPalette.colorAt(legacyIndex)),
-        );
-        final got = HSLColor.fromColor(nearest).hue;
-
-        expect(
-          (got - hue).abs() < 20 || (got - hue).abs() > 340,
-          isTrue,
-          reason: '${DrawPalette.nameAt(legacyIndex)} became hue $got',
-        );
-      }
+    test('a colour just off a paint-box colour still lands on it', () {
+      // The dropper's photo samples are never exact; the row swatch the child
+      // already knows should win over a grid colour that is merely close.
+      expect(DrawPalette.nearestIndex(const Color(0xFFE23A36)), 0);
+      expect(DrawPalette.nearestIndex(const Color(0xFF3A47AC)), 6);
     });
 
-    test('black and white map to the grid\'s black and white', () {
-      expect(
-        DrawPalette.nearestIndex(const Color(0xFF000000)),
-        DrawPalette.gridIndex(15, 0),
-      );
-      expect(
-        DrawPalette.nearestIndex(const Color(0xFFFFFFFF)),
-        DrawPalette.gridIndex(0, 0),
-      );
-    });
-
-    test('near-black and near-white stay in the grey column, not a hue', () {
+    test('near-black and near-white stay in the greys, not a hue', () {
       // The near-white and near-black surfaces the day and night themes paint
-      // the sheet with, and a plain mid-grey.
-      for (final (color, rows) in [
-        (const Color(0xFF141218), (13, 15)),
-        (const Color(0xFF1A1A1A), (13, 15)),
-        (const Color(0xFFF2F2F2), (0, 1)),
-        (const Color(0xFFFEF7FF), (0, 1)),
-        (const Color(0xFF808080), (6, 9)),
+      // the sheet with, and a plain mid-grey: the answer is Black, White or a
+      // grey from the grid's column 0, never a tinted colour.
+      for (final color in const [
+        Color(0xFF141218),
+        Color(0xFF1A1A1A),
+        Color(0xFFF2F2F2),
+        Color(0xFFFEF7FF),
+        Color(0xFF808080),
       ]) {
         final index = DrawPalette.nearestIndex(color);
 
-        expect(DrawPalette.isGridIndex(index), isTrue, reason: '$color');
-        expect(DrawPalette.gridColumnOf(index), 0, reason: '$color');
         expect(
-          DrawPalette.gridRowOf(index),
-          inInclusiveRange(rows.$1, rows.$2),
-          reason: '$color',
+          index == 10 ||
+              index == 11 ||
+              (DrawPalette.isGridIndex(index) &&
+                  DrawPalette.gridColumnOf(index) == 0),
+          isTrue,
+          reason: '$color -> ${DrawPalette.nameAt(index)}',
         );
       }
     });
@@ -312,10 +334,7 @@ void main() {
     });
 
     test('ignores alpha: the caller blends before asking', () {
-      expect(
-        DrawPalette.nearestIndex(const Color(0x00FF0000)),
-        DrawPalette.defaultIndex,
-      );
+      expect(DrawPalette.nearestIndex(const Color(0x00E53935)), 0);
     });
   });
 }

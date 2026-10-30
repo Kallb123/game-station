@@ -137,18 +137,37 @@ Color _pixelAt(ByteData rgba, int width, {required int x, required int y}) {
 Color _paperColorOf(WidgetTester tester) =>
     Theme.of(tester.element(_canvasFinder)).colorScheme.surface;
 
-/// Chooses palette colour `index` the way a child does: the palette button,
-/// then its square in the popup, which closes on the choice.
+/// Chooses palette colour `index` the way a child does: a paint-box colour is
+/// its swatch in the row, and any other is the palette button and then its
+/// square in the popup, which closes on the choice.
 Future<void> _chooseColor(WidgetTester tester, int index) async {
+  if (DrawPalette.isRowIndex(index)) {
+    await tester.tap(find.byKey(ToolRow.colorKey(index)));
+    await tester.pump();
+    return;
+  }
   await tester.tap(find.byKey(ToolRow.paletteKey));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(PalettePopup.squareKey(index)));
   await tester.pumpAndSettle();
 }
 
-/// What the dropper makes of the day theme's near-white paper: the grid's
-/// pure white.
-final int _paperIndex = DrawPalette.gridIndex(0, 0);
+/// The width of the selection ring around the control under [key]: its
+/// outermost [Container]'s border, [AppBorders.selected] when chosen and
+/// [AppBorders.hairline] when not.
+double _ringOf(WidgetTester tester, Key key) {
+  final container = tester.widget<Container>(
+    find
+        .descendant(of: find.byKey(key), matching: find.byType(Container))
+        .first,
+  );
+  return (container.decoration! as BoxDecoration).border!.top.width;
+}
+
+/// What the dropper makes of the day theme's near-white paper: White, the row
+/// swatch, which wins the tie with the grid's pure white
+/// (`DrawPalette.nearestIndex`).
+const int _paperIndex = 11;
 
 /// A grid colour that is neither the screen's default nor any colour a test
 /// below expects a pick to produce, so a change to it is visible.
@@ -272,6 +291,64 @@ void main() {
     await tester.pump();
 
     expect(controller.strokes.single.colorIndex, DrawPalette.defaultIndex);
+    expect(DrawPalette.defaultIndex, 0);
+  });
+
+  testWidgets('a new sheet starts on Red, ringed in the row, with the palette '
+      'button unringed', (tester) async {
+    await _pumpAndFindCanvas(tester, DrawingController());
+
+    expect(_ringOf(tester, ToolRow.colorKey(0)), AppBorders.selected);
+    expect(_ringOf(tester, ToolRow.paletteKey), AppBorders.hairline);
+  });
+
+  testWidgets('a swatch in the row is one tap to a colour: it draws with it '
+      'and rings it', (tester) async {
+    final controller = DrawingController();
+    final canvas = await _pumpAndFindCanvas(tester, controller);
+
+    await tester.tap(find.byKey(ToolRow.colorKey(6)));
+    await tester.pump();
+    await tester.tapAt(canvas.center);
+    await tester.pump();
+
+    expect(find.byType(PalettePopup), findsNothing);
+    expect(controller.strokes.single.colorIndex, 6);
+    expect(
+      tester.getSemantics(find.byKey(ToolRow.colorKey(6))),
+      isSemantics(
+        label: 'Blue',
+        isButton: true,
+        hasSelectedState: true,
+        isSelected: true,
+      ),
+    );
+  });
+
+  testWidgets('the ring follows the colour between the row and the popup', (
+    tester,
+  ) async {
+    await _pumpAndFindCanvas(tester, DrawingController());
+
+    bool swatchSelected(int i) =>
+        _ringOf(tester, ToolRow.colorKey(i)) == AppBorders.selected;
+    bool paletteSelected() =>
+        _ringOf(tester, ToolRow.paletteKey) == AppBorders.selected;
+
+    await _chooseColor(tester, _otherColor);
+    expect(paletteSelected(), isTrue);
+    expect([
+      for (final i in DrawPalette.rowIndices) swatchSelected(i),
+    ], everyElement(isFalse));
+
+    await _chooseColor(tester, 9);
+    expect(paletteSelected(), isFalse);
+    expect(swatchSelected(9), isTrue);
+
+    // A skin tone is a popup colour like any grid square.
+    await _chooseColor(tester, 13);
+    expect(paletteSelected(), isTrue);
+    expect(swatchSelected(9), isFalse);
   });
 
   testWidgets('dismissing the popup without a choice keeps the colour and the '
@@ -521,9 +598,8 @@ void main() {
   });
 
   group('in portrait', () {
-    testWidgets('a short phone fits every control without scrolling and '
-        'leaves the sheet its share', (tester) async {
-      tester.view.physicalSize = const Size(360, 640);
+    Future<void> pumpPortrait(WidgetTester tester, Size size) async {
+      tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -532,16 +608,45 @@ void main() {
         MaterialApp(home: DrawSheetScreen(controller: DrawingController())),
       );
       await tester.pumpAndSettle();
+    }
 
-      // The colours are one button now, not four rows of swatches, so the
-      // band is three lines and nothing is out of view.
+    /// How many swatches sit on each line of the colours, top to bottom.
+    List<int> colorRows(WidgetTester tester) {
+      final rows = <double, int>{};
+      for (final i in DrawPalette.rowIndices) {
+        final y = tester.getCenter(find.byKey(ToolRow.colorKey(i))).dy;
+        rows[y.roundToDouble()] = (rows[y.roundToDouble()] ?? 0) + 1;
+      }
+      return rows.values.toList();
+    }
+
+    testWidgets('a short phone keeps the sizes, tools and actions in view, '
+        'and scrolls the last row of colours into reach', (tester) async {
+      await pumpPortrait(tester, const Size(360, 640));
+
+      // Twelve swatches at four to a line are three lines, and the band's
+      // share of a 640 dp window holds the three lines above them and two of
+      // these: the last line of colours is below the fold, and the band's own
+      // scroll view is what reaches it. A short phone cannot do better — the
+      // swatches are 56 dp tall and the sheet is guaranteed its third of the
+      // window (`_minSheetShare`).
       final band = tester.state<ScrollableState>(find.byType(Scrollable));
-      expect(band.position.maxScrollExtent, 0);
+      expect(colorRows(tester), [4, 4, 4]);
+      expect(band.position.maxScrollExtent, greaterThan(0));
+      expect(
+        band.position.maxScrollExtent,
+        lessThanOrEqualTo(AppTapTargets.min + 2 * AppSpacing.md),
+        reason: 'more than the last line of colours is out of view',
+      );
       for (final key in [
         ToolRow.sizeKey(3),
         ToolRow.paletteKey,
         ToolRow.dropperKey,
+        ToolRow.undoKey,
+        ToolRow.redoKey,
         ToolRow.newSheetKey,
+        ToolRow.colorKey(0),
+        ToolRow.colorKey(7),
       ]) {
         expect(
           tester.getBottomLeft(find.byKey(key)).dy,
@@ -549,6 +654,16 @@ void main() {
           reason: '$key',
         );
       }
+
+      // Every colour is reachable: scrolling the band brings White, the
+      // last, into the window.
+      await tester.ensureVisible(find.byKey(ToolRow.colorKey(11)));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getBottomLeft(find.byKey(ToolRow.colorKey(11))).dy,
+        lessThanOrEqualTo(640),
+      );
+      expect(band.position.pixels, greaterThan(0));
 
       // 160 dp is what a third of this window comes to once the header and
       // the padding have taken theirs (`_minSheetShare`).
@@ -559,12 +674,40 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('a tall phone fits every control, colours included, without '
+        'scrolling', (tester) async {
+      await pumpPortrait(tester, const Size(412, 915));
+
+      final band = tester.state<ScrollableState>(find.byType(Scrollable));
+      expect(band.position.maxScrollExtent, 0);
+      expect(colorRows(tester), [4, 4, 4]);
+      expect(
+        tester.getBottomLeft(find.byKey(ToolRow.colorKey(11))).dy,
+        lessThanOrEqualTo(915),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a tablet gets the colours in two rows of six', (tester) async {
+      await pumpPortrait(tester, const Size(768, 1024));
+
+      final band = tester.state<ScrollableState>(find.byType(Scrollable));
+      expect(band.position.maxScrollExtent, 0);
+      expect(colorRows(tester), [6, 6]);
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('in landscape', () {
-    /// Pumps the sheet in a landscape window with its rail on [side].
-    Future<void> pumpLandscape(WidgetTester tester, PadSide side) async {
-      tester.view.physicalSize = const Size(800, 400);
+    /// Pumps the sheet in a landscape window of [size] with its rail on
+    /// [side].
+    Future<void> pumpLandscape(
+      WidgetTester tester,
+      PadSide side, {
+      Size size = const Size(800, 400),
+    }) async {
+      tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -592,21 +735,95 @@ void main() {
       );
     });
 
-    testWidgets('a phone-sized window fits every control without scrolling', (
+    testWidgets('an 800 x 400 window gets the six-wide rail, with the tools '
+        'and actions in view and the colours in two rows of six', (
       tester,
     ) async {
       await pumpLandscape(tester, PadSide.right);
 
       final rail = tester.state<ScrollableState>(find.byType(Scrollable));
-      expect(rail.position.maxScrollExtent, 0);
       expect(tester.getSize(find.byType(ToolRow)).width, ToolRow.railWidth);
-      for (final key in [ToolRow.paletteKey, ToolRow.newSheetKey]) {
+      for (final key in [
+        ToolRow.paletteKey,
+        ToolRow.undoKey,
+        ToolRow.newSheetKey,
+      ]) {
         expect(
           tester.getBottomLeft(find.byKey(key)).dy,
           lessThanOrEqualTo(400),
           reason: '$key',
         );
       }
+      // Rows of six, the second of which is below the fold of a window this
+      // short; the rail's scroll view reaches it.
+      expect(
+        tester.getCenter(find.byKey(ToolRow.colorKey(0))).dy,
+        tester.getCenter(find.byKey(ToolRow.colorKey(5))).dy,
+      );
+      expect(
+        tester.getCenter(find.byKey(ToolRow.colorKey(6))).dy,
+        greaterThan(tester.getCenter(find.byKey(ToolRow.colorKey(5))).dy),
+      );
+      await tester.ensureVisible(find.byKey(ToolRow.colorKey(11)));
+      await tester.pumpAndSettle();
+      expect(rail.position.pixels, greaterThan(0));
+      expect(
+        tester.getBottomLeft(find.byKey(ToolRow.colorKey(11))).dy,
+        lessThanOrEqualTo(400),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a 640 x 360 phone gets the four-wide rail, colours in three '
+        'rows of four reached by scrolling the rail', (tester) async {
+      await pumpLandscape(tester, PadSide.right, size: const Size(640, 360));
+
+      final rail = tester.state<ScrollableState>(find.byType(Scrollable));
+      expect(
+        tester.getSize(find.byType(ToolRow)).width,
+        ToolRow.narrowRailWidth,
+      );
+      // Three rows of tools and actions and three of colours are taller than
+      // the rail's 242 dp, so the colours are below the fold at rest.
+      expect(rail.position.maxScrollExtent, greaterThan(0));
+      for (final key in [
+        ToolRow.sizeKey(3),
+        ToolRow.paletteKey,
+        ToolRow.undoKey,
+        ToolRow.newSheetKey,
+      ]) {
+        expect(
+          tester.getBottomLeft(find.byKey(key)).dy,
+          lessThanOrEqualTo(360),
+          reason: '$key',
+        );
+      }
+
+      final rows = <double>{};
+      for (final i in DrawPalette.rowIndices) {
+        await tester.ensureVisible(find.byKey(ToolRow.colorKey(i)));
+        await tester.pump();
+        expect(
+          tester.getBottomLeft(find.byKey(ToolRow.colorKey(i))).dy,
+          lessThanOrEqualTo(360),
+          reason: DrawPalette.nameAt(i),
+        );
+        rows.add(
+          rail.position.pixels +
+              tester.getCenter(find.byKey(ToolRow.colorKey(i))).dy,
+        );
+      }
+      expect(rows, hasLength(3));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a tablet fits every control without scrolling', (
+      tester,
+    ) async {
+      await pumpLandscape(tester, PadSide.right, size: const Size(1280, 800));
+
+      final rail = tester.state<ScrollableState>(find.byType(Scrollable));
+      expect(rail.position.maxScrollExtent, 0);
       expect(tester.takeException(), isNull);
     });
   });
@@ -649,16 +866,26 @@ void main() {
       expect(row(tester).colorIndex, 0);
       expect(row(tester).isDropper, isFalse);
       expect(row(tester).isEraser, isFalse);
-      // The palette button is selected again and names the colour picked, by
-      // ring and word and not by colour alone.
+      // Red's swatch is selected again, by ring and word and not by colour
+      // alone, and the palette button — which was ringed for the grid colour
+      // chosen before — has handed the ring over.
       expect(
-        tester.getSemantics(find.byKey(ToolRow.paletteKey)),
+        tester.getSemantics(find.byKey(ToolRow.colorKey(0))),
         isSemantics(
-          label: 'Colours',
-          value: 'Red',
+          label: 'Red',
           isButton: true,
           hasSelectedState: true,
           isSelected: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.byKey(ToolRow.paletteKey)),
+        isSemantics(
+          label: 'More colours',
+          value: '',
+          isButton: true,
+          hasSelectedState: true,
+          isSelected: false,
         ),
       );
 
@@ -806,15 +1033,15 @@ void main() {
       await tester.tapAt(sheetPoint(canvas, 800, 600));
       await tester.pump();
 
-      // The day theme's surface is near-white, so the grid's pure white — the
-      // expected answer computed from the theme rather than restated, like
-      // `_paperColorOf` elsewhere, and the pinned one as a check that it is
-      // the swatch a child would call white.
+      // The day theme's surface is near-white, so White — the expected answer
+      // computed from the theme rather than restated, like `_paperColorOf`
+      // elsewhere, and the pinned one as a check that it is the swatch a child
+      // would call white.
       expect(
         row(tester).colorIndex,
         DrawPalette.nearestIndex(_paperColorOf(tester)),
       );
-      expect(row(tester).colorIndex, DrawPalette.gridIndex(0, 0));
+      expect(row(tester).colorIndex, _paperIndex);
       expect(controller.strokes, isEmpty);
     });
 
