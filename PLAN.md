@@ -1097,7 +1097,7 @@ promise is what `AGENTS.md` asks for.
 ### Phase 8 — drawing board (5–7 days)
 
 A third card on the home screen: a blank sheet a child draws on with a finger, four pencil sizes,
-eighteen colours, an eraser, undo and redo, saved to and loaded from the device photo library. Planned
+a palette of 262 named colours, an eraser, undo and redo, saved to and loaded from the device photo library. Planned
 as seven pull requests in [`PLAN-phase-8.md`](PLAN-phase-8.md), which carries the design, the rejected
 alternatives and the verification checklist. The estimate assumes the same one developer working part
 time as the phases above, and is wide because one of the seven pull requests is Kotlin and Swift that
@@ -1108,13 +1108,19 @@ CI cannot run and another ends in a device pass.
   the same picture. Undo is then dropping a stroke rather than restoring a bitmap, and export
   rasterises at whatever size the file wants. This is the phase's load-bearing decision; a raster
   canvas would change the save format, the undo model and the export path together.
-- Four pencil sizes, eighteen colours — twelve paint-box colours and six skin tones — and an eraser,
-  each a 56 dp round target carrying a 3 dp `AppBorders.selected` ring when chosen. Colour-blindness
-  cannot be designed out of a paint box — the swatches *are* the content — so what §7's phase-5 rule
-  buys here is that every swatch carries a spoken name and that *selection* is signalled by the ring
-  and a size change rather than by colour. No control needs a word of text.
+- Four pencil sizes, an eraser and a palette of 262 named colours — a 16 x 16 grid of fifteen hues and
+  a grey ramp, each from pale tint to deep shade, plus six skin tones — behind one palette button that
+  opens a popup of small squares. The button, the eraser and the other tools are 56 dp round targets
+  carrying a 3 dp `AppBorders.selected` ring when chosen, and so is the chosen square in the popup.
+  Colour-blindness cannot be designed out of a paint box — the swatches *are* the content — so what §7's
+  phase-5 rule buys here is that every swatch carries a spoken name and that *selection* is signalled by
+  the ring rather than by colour. No control needs a word of text. The popup's squares are
+  **deliberately smaller than the 56 dp floor**, because the player asked for a wide palette of small
+  squares and 262 targets at that size would be a screen of scrolling; the exception stops at the
+  grid, and `PLAN-phase-8.md` §4.7 gives the reasoning. It replaced a row of eighteen 56 dp swatches,
+  and the palette is still a closed set of named colours rather than a continuous picker.
 - A colour dropper beside the eraser: one tap on the sheet picks the colour showing there — the stroke
-  under the finger, else the backdrop photo or the paper snapped to the nearest of the eighteen, since
+  under the finger, else the backdrop photo or the paper snapped to the nearest colour the palette offers, since
   a stroke stores a palette index — and returns to the pencil. It edits nothing, so it adds no undo
   entry and starts no save (`PLAN-phase-8.md` §4.8).
 - Undo and redo at 72 dp, `AppTapTargets.primary`, greyed rather than hidden when their stack is

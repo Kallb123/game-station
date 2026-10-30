@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/features/draw/data/drawing_codec.dart';
+import 'package:zibo_games/features/draw/model/palette.dart';
 import 'package:zibo_games/features/draw/model/stroke.dart';
 
 /// 200 strokes, each with a handful of points already at the codec's 1-decimal
@@ -121,6 +122,49 @@ void main() {
         ),
         throwsA(isA<DrawingFormatException>()),
       );
+    });
+
+    test('a colour index outside the palette is a format error', () {
+      // Read by a build whose palette is shorter than the one that wrote it,
+      // or from a damaged file: either way a RangeError at paint time would
+      // be worse than one picture missing from the gallery.
+      for (final colorIndex in [DrawPalette.colors.length, -2]) {
+        expect(
+          () => decodeDrawing(
+            jsonEncode({
+              'id': 'd1',
+              'createdAt': '2026-08-11T10:00:00Z',
+              'strokes': [
+                {
+                  'colorIndex': colorIndex,
+                  'sizeIndex': 0,
+                  'points': [1, 2],
+                },
+              ],
+            }),
+          ),
+          throwsA(isA<DrawingFormatException>()),
+          reason: 'colorIndex $colorIndex',
+        );
+      }
+    });
+
+    test('the last palette index decodes', () {
+      final drawing = decodeDrawing(
+        jsonEncode({
+          'id': 'd1',
+          'createdAt': '2026-08-11T10:00:00Z',
+          'strokes': [
+            {
+              'colorIndex': DrawPalette.colors.length - 1,
+              'sizeIndex': 0,
+              'points': [1, 2],
+            },
+          ],
+        }),
+      );
+
+      expect(drawing.strokes.single.colorIndex, DrawPalette.colors.length - 1);
     });
 
     test('an empty points list is a format error', () {

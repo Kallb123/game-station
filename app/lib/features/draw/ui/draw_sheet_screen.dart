@@ -123,13 +123,13 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   late bool _ownsController;
 
   int _sizeIndex = 0;
-  int _colorIndex = 0;
+  int _colorIndex = DrawPalette.defaultIndex;
   bool _isEraser = false;
 
   /// Whether the next touch on the sheet picks a colour instead of drawing
   /// (`PLAN-phase-8.md` §4.8). One-shot: [_pickColor] clears it, so the
-  /// colour just picked is what the next stroke draws with and its swatch is
-  /// the one showing selected. Exclusive with [_isEraser].
+  /// colour just picked is what the next stroke draws with and the palette
+  /// button is the one showing selected. Exclusive with [_isEraser].
   bool _isDropper = false;
 
   ui.Image? _baked;
@@ -277,11 +277,14 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   ///
   /// The band scrolls where it does not fit rather than taking the space out
   /// of the sheet, which is the rule the landscape rail has always followed
-  /// (`_landscapeLayout`) and which portrait needed once the palette grew to
-  /// eighteen colours (`PLAN-phase-8.md` §4.7): the band's height is a whole
-  /// number of 56 dp rows, so on a short phone the row that does not fit used
-  /// to come off the canvas — and at 200% text on the shortest of them there
-  /// was no canvas left to take it from, which overflowed the column.
+  /// (`_landscapeLayout`) and which portrait needed when the colours were
+  /// eighteen swatches in the row (`PLAN-phase-8.md` §4.7): the band's height
+  /// is a whole number of 56 dp rows, so on a short phone the row that does
+  /// not fit used to come off the canvas — and at 200% text on the shortest of
+  /// them there was no canvas left to take it from, which overflowed the
+  /// column. The colours have since moved into a popup and the band is three
+  /// lines, so it rarely scrolls now; the bound stays because a canvas can be
+  /// squeezed and a 56 dp control cannot.
   Widget _portraitLayout(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -311,8 +314,8 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   Widget _landscapeLayout(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       // Sized rather than left to shrink-wrap: what the rail is given is
-      // what decides how many colours share a row, and [ToolRow] is where
-      // that arithmetic lives.
+      // what decides whether the four sizes share a line, and [ToolRow] is
+      // where that arithmetic lives.
       final rail = SizedBox(
         width: ToolRow.railWidthFor(constraints.maxWidth),
         child: SingleChildScrollView(
