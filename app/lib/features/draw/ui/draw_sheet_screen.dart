@@ -123,13 +123,13 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   late bool _ownsController;
 
   int _sizeIndex = 0;
-  int _colorIndex = 0;
+  int _colorIndex = DrawPalette.defaultIndex;
   bool _isEraser = false;
 
   /// Whether the next touch on the sheet picks a colour instead of drawing
   /// (`PLAN-phase-8.md` §4.8). One-shot: [_pickColor] clears it, so the
-  /// colour just picked is what the next stroke draws with and its swatch is
-  /// the one showing selected. Exclusive with [_isEraser].
+  /// colour just picked is what the next stroke draws with and the palette
+  /// button is the one showing selected. Exclusive with [_isEraser].
   bool _isDropper = false;
 
   ui.Image? _baked;
@@ -277,11 +277,16 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   ///
   /// The band scrolls where it does not fit rather than taking the space out
   /// of the sheet, which is the rule the landscape rail has always followed
-  /// (`_landscapeLayout`) and which portrait needed once the palette grew to
-  /// eighteen colours (`PLAN-phase-8.md` §4.7): the band's height is a whole
-  /// number of 56 dp rows, so on a short phone the row that does not fit used
-  /// to come off the canvas — and at 200% text on the shortest of them there
-  /// was no canvas left to take it from, which overflowed the column.
+  /// (`_landscapeLayout`): the band's height is a whole number of 56 dp rows,
+  /// so on a short phone the row that does not fit would otherwise come off
+  /// the canvas — and at 200% text on the shortest of them there was no canvas
+  /// left to take it from, which overflowed the column.
+  ///
+  /// With the twelve colours back in the row (`PLAN-phase-8.md` §4.7) this
+  /// does scroll on a 360 x 640 phone: the band is 404 dp tall and the sheet is
+  /// guaranteed its third, so the last line of colours is 72 dp below the
+  /// fold. The colours are the band's last group for that reason, so what
+  /// scrolls out of view is a colour and never a tool, an action or a size.
   Widget _portraitLayout(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -307,12 +312,13 @@ class _DrawSheetScreenState extends State<DrawSheetScreen> {
   /// `sudoku_play_screen.dart`'s `_boardAndKeypad` draws for its own keypad,
   /// and for the same reason: a control panel with a floor on every button
   /// scrolls instead of being squeezed into a flex fraction that does not fit
-  /// it (`PLAN-phase-8.md` §4.7).
+  /// it (`PLAN-phase-8.md` §4.7). On a 640 x 360 phone the rail is 162 dp
+  /// taller than the window and the colours are what lies below the fold.
   Widget _landscapeLayout(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       // Sized rather than left to shrink-wrap: what the rail is given is
-      // what decides how many colours share a row, and [ToolRow] is where
-      // that arithmetic lives.
+      // what decides whether the colours fold into lines of six or of four,
+      // and [ToolRow] is where that arithmetic lives.
       final rail = SizedBox(
         width: ToolRow.railWidthFor(constraints.maxWidth),
         child: SingleChildScrollView(

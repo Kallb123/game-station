@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' show Offset;
 
+import '../model/palette.dart';
 import '../model/stroke.dart';
 
 /// The stored JSON is not a drawing this build can read: a missing field, a
@@ -99,11 +100,25 @@ Stroke _readStroke(Map<String, Object?> raw, String path) {
     );
   }
 
-  return Stroke(
-    colorIndex: _int(
-      _required(raw, 'colorIndex', path),
+  // Checked here rather than left to [DrawPalette.colorAt]: a colour index
+  // past the end of the palette — a drawing written by a later build that grew
+  // it again — would otherwise throw a RangeError from inside a paint call,
+  // where a [DrawingFormatException] here becomes one picture missing from the
+  // gallery.
+  final colorIndex = _int(
+    _required(raw, 'colorIndex', path),
+    _at(path, 'colorIndex'),
+  );
+  if (colorIndex != Stroke.eraserColorIndex &&
+      (colorIndex < 0 || colorIndex >= DrawPalette.colors.length)) {
+    _fail(
       _at(path, 'colorIndex'),
-    ),
+      'expected an index below ${DrawPalette.colors.length}, got $colorIndex',
+    );
+  }
+
+  return Stroke(
+    colorIndex: colorIndex,
     sizeIndex: _int(_required(raw, 'sizeIndex', path), _at(path, 'sizeIndex')),
     points: offsets,
   );
