@@ -1158,6 +1158,27 @@ photo-library permission is easier to negotiate with a store that has already li
 one seeing it for the first time. Neither reason is about the design — moving it into 1.0 means moving
 the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-phase-8.md` changes.
 
+### Phase 9 — Tracks (10–15 days) — planned
+
+A fourth game, and the engine's second: a square grid with a start on the west edge, a goal on the
+south edge and a number beside every row and column. The player drags track from cell to cell so
+that one unbroken track joins start to goal and each row and column holds exactly its number of
+track cells. Grid size (5x5, 7x7, 9x9) and difficulty are the menu's two axes, as in Sudoku.
+Planned as ten pull requests in [`PLAN-phase-9-tracks.md`](PLAN-phase-9-tracks.md).
+
+- **The theme is a skin, never a rule.** The same puzzle draws as a train to a station, Santa to a
+  house, a snail to a pumpkin, or water through pipes to a flower, chosen per profile. The engine,
+  the puzzle ID and the session model know nothing of themes, and a test fails if the model imports
+  one. This is the phase's load-bearing decision: a theme-dependent rule would put the theme into
+  the ID and quadruple the goldens.
+- **Generated like Sudoku**, from `tracks:<size>:<tier>:<index>` through the frozen `Rng`, unique by
+  a solution count that stops at 2, judged by a tiered deduction solver, and pinned by goldens. No
+  tier needs guessing. Adding it changes no Sudoku output, so `generatorVersion` stays 1.
+- No new package and no binary art: sprites are palette-indexed pixel tables in Dart, track pieces
+  are `Canvas` paths, and the four themed arrival sounds come from `tool/audio/generate_motifs.py`.
+
+Like phases 7 and 8, it is a minor release after phase 6 and does not move the release line.
+
 ---
 
 ## 8. Risks
