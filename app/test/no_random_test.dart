@@ -8,7 +8,7 @@
 // what turns "please don't" into a red build if someone reaches for the
 // built-in instead.
 //
-// Modelled on `features/sudoku/data/generation_call_site_test.dart`, including
+// Modelled on `generation_call_site_test.dart`, including
 // its own self-tests: a scanner that silently found nothing would pass
 // forever, so it is exercised against sources that do and do not match before
 // it is trusted against `app/lib`.

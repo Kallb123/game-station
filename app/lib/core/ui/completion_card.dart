@@ -1,4 +1,5 @@
-// What a finished puzzle says, and the two ways on from it.
+// What a finished puzzle says, and the two ways on from it. Shared by both
+// puzzle screens, Sudoku and Tracks (`PLAN-phase-9-tracks.md` §4.12).
 //
 // **A card over the board rather than a screen of its own**
 // (`PLAN-phase-3.md` §4.6): the grid a child has just finished stays visible
@@ -12,9 +13,9 @@
 
 import 'package:flutter/material.dart';
 
-import '../../../core/ui/big_button.dart';
-import '../../../core/ui/layout.dart';
-import '../../../core/ui/tokens.dart';
+import 'big_button.dart';
+import 'layout.dart';
+import 'tokens.dart';
 
 /// What the card says at the top. Public because the tests name the same
 /// strings the card draws.
@@ -29,9 +30,9 @@ const String completionMistakesLabel = 'Mistakes';
 /// carrier of the fact (`AGENTS.md`, `PLAN.md` §9).
 const String completionCleanLabel = 'No hints, no mistakes';
 
-/// The two ways on.
+/// The way on to the next puzzle. The way back is named by each screen, through
+/// [CompletionCard.backLabel].
 const String nextPuzzleLabel = 'Next puzzle';
-const String backToSudokuLabel = 'Back to Sudoku';
 
 /// The card shown over a solved board.
 class CompletionCard extends StatelessWidget {
@@ -42,6 +43,7 @@ class CompletionCard extends StatelessWidget {
     required this.mistakes,
     required this.clean,
     required this.onNext,
+    required this.backLabel,
     required this.onBack,
     super.key,
   });
@@ -49,10 +51,11 @@ class CompletionCard extends StatelessWidget {
   /// How long it took, already formatted — `4:05`.
   final String time;
 
-  /// How many cells a hint gave away.
+  /// How many hints were used.
   final int hints;
 
-  /// How many wrong digits were entered.
+  /// How many mistakes were made: wrong digits in Sudoku, wrong connections in
+  /// Tracks.
   final int mistakes;
 
   /// Whether this solve earned the star: no hints and no mistakes
@@ -62,6 +65,9 @@ class CompletionCard extends StatelessWidget {
   /// Play the next puzzle at this size and difficulty. Null where there is no
   /// next one, which only the last index of the endless list can reach.
   final VoidCallback? onNext;
+
+  /// What the back button says: *Back to Sudoku*, *Back to Tracks*.
+  final String backLabel;
 
   /// Back to where the puzzle was chosen.
   final VoidCallback onBack;
@@ -118,7 +124,7 @@ class CompletionCard extends StatelessWidget {
                     ],
                     BigButton(
                       icon: Icons.grid_on,
-                      label: backToSudokuLabel,
+                      label: backLabel,
                       onPressed: onBack,
                     ),
                   ],

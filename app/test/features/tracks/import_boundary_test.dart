@@ -282,12 +282,12 @@ void main() {
       expect(offendersIn(model), isEmpty);
     });
 
-    test('the data directory, once it exists, holds to the same rule', () {
-      // `lib/features/tracks/data` arrives with PR 7. Until then there is
-      // nothing to scan, and that is not a failure; from then on it is held
-      // to the same boundary as the model.
+    test('the data directory holds to the same rule', () {
+      // It must exist: a directory that was renamed away would otherwise be
+      // scanned as nothing and pass, which is the silent failure this guard
+      // is here to prevent.
       final data = Directory('lib/features/tracks/data');
-      if (!data.existsSync()) return;
+      expect(data.existsSync(), isTrue, reason: '${data.path} is missing');
       expect(offendersIn(data), isEmpty);
     });
 

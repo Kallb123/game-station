@@ -34,10 +34,15 @@ import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
 import 'package:zibo_games/features/sudoku/data/providers.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_grid_view.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_play_screen.dart';
+import 'package:zibo_games/features/tracks/data/providers.dart';
+import 'package:zibo_games/features/tracks/skins/track_skin.dart';
+import 'package:zibo_games/features/tracks/ui/tracks_board.dart';
+import 'package:zibo_games/features/tracks/ui/tracks_play_screen.dart';
 import 'package:zibo_games/routes.dart';
 
 import 'app_harness.dart';
 import 'features/sudoku/puzzle_fixtures.dart';
+import 'features/tracks/tracks_puzzle_fixtures.dart';
 
 /// The window sizes `PLAN-phase-5.md` §4.8 names — a phone, the same phone
 /// turned on its side, and a tablet, an `834x1112` window being
@@ -58,13 +63,18 @@ const Map<String, Size> _sweepSizes = {
 };
 
 /// Every route, and the arguments it needs to be pushed with — every one but
-/// [AppRoutes.sudokuPlay] takes none (`routes.dart`).
+/// [AppRoutes.sudokuPlay], [AppRoutes.tracksPlay] and [AppRoutes.drawSheet]
+/// takes none (`routes.dart`).
 Map<String, Object?> _sweepRoutes(PuzzleId puzzleId) => {
   AppRoutes.home: null,
   AppRoutes.profiles: null,
   AppRoutes.settings: null,
   AppRoutes.sudoku: null,
   AppRoutes.sudokuPlay: SudokuPlayArgs(puzzleId),
+  // The largest board, which is the one a narrow window squeezes hardest.
+  AppRoutes.tracksPlay: TracksPlayArgs(
+    TracksPuzzleId.parse('tracks:9x9:easy:0'),
+  ),
   AppRoutes.arcade: null,
   AppRoutes.arcadeInvaders: null,
   AppRoutes.arcadeSnake: null,
@@ -114,6 +124,9 @@ void main() {
             store: MemorySaveStore(initial: freshSave()),
             overrides: [
               puzzleSourceProvider.overrideWithValue(FakePuzzleSource()),
+              tracksPuzzleSourceProvider.overrideWithValue(
+                FakeTracksPuzzleSource(),
+              ),
               drawingRepositoryProvider.overrideWithValue(
                 DrawingRepository(drawingDir),
               ),
@@ -158,6 +171,20 @@ void main() {
               reason: 'the board must stay square',
             );
             expect(size.width, lessThanOrEqualTo(maxBoardSide));
+          }
+
+          // The Tracks board's own box is not square, so the claim is about
+          // the square it draws inside it: `BoardLayout.fit`, the same
+          // function the painter and the gestures use.
+          final tracks = find.byType(TracksBoard);
+          if (tracks.evaluate().isNotEmpty) {
+            final canvas = find
+                .descendant(of: tracks, matching: find.byType(CustomPaint))
+                .first;
+            final side = tester.widget<TracksBoard>(tracks).session.spec.side;
+            final board = BoardLayout.fit(tester.getSize(canvas), side).board;
+            expect(board.width, lessThanOrEqualTo(maxBoardSide));
+            expect(board.width, greaterThan(0));
           }
         });
       }

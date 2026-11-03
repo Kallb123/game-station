@@ -1,6 +1,6 @@
 # Phase 9 — Tracks, a themeable path puzzle
 
-**In progress: PRs 1 to 6 have landed.** This file is the design and the pull-request breakdown for a fourth game:
+**In progress: PRs 1 to 7 have landed.** This file is the design and the pull-request breakdown for a fourth game:
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
@@ -772,6 +772,28 @@ completion card; a force-quit mid-puzzle (a test that rebuilds the app from the 
 the exact board, marks and clock; with `reduceMotion` on, completion shows the traveller at the goal
 and the goal at `arrival` 1, with no animation frames scheduled; a test asserts `generateTracks` has exactly one call site in
 `app/lib`.
+
+*Built as planned, with these differences.* (1) **Undo, redo and hint are large icon buttons with
+tooltips, not `BigButton`s** (§4.12): three labelled `BigButton`s do not fit a 360 dp phone at 200 %
+text, and Sudoku's keypad already uses icon buttons for the same three actions
+(`ui/tracks_toolbar.dart`). (2) `CompletionCard` and `Confetti` moved to `core/ui/` as §4.12 allowed;
+the card's one Sudoku-specific part, its *Back to Sudoku* label, became a required `backLabel`
+parameter. What both play screens share of the clock — `formatElapsed`, `clockTick`, the spinner delay
+and the failure sentence — moved with them to `core/ui/puzzle_clock.dart`. (3) **The solve is recorded
+the moment the board is solved, not when the journey ends**, so a force-quit mid-journey loses
+nothing; the fanfare, confetti and card wait for the end of the journey, and a tap on the board skips
+to it — a 9x9 route at three cells a second runs over ten seconds. From the moment of solving, the
+board takes no strokes and the toolbar is disabled, because an undo or a retrace during the journey
+would unsolve a board the save already calls finished; the board checks the session itself as well
+as its `interactive` flag, since pointer moves can arrive before the rebuild that clears the flag.
+(4) Sounds map as §4.10 says, with a refused stroke playing `wrong` at half gain and no buzz — a soft
+bump rather than an error (§4.7) — and the completion buzz firing at the moment of solving. (5) The
+cache record is the engine's clue line and the solution in the save's hex cell format, joined by the
+last `|` (`data/tracks_puzzle_record.dart`); the repository's cache eviction now pins Tracks puzzles
+in progress as well as Sudoku's. (6) Only `/tracks/play` arrived; `/tracks` and `/puzzles` are PR 8's,
+so until then the screen is reached by tests alone. `layout_sweep_test.dart` already covers it. (7)
+`generation_call_site_test.dart` moved to `app/test/` beside the haptics guard and checks both
+`generateSudoku` and `generateTracks`.
 
 **PR 8 — the Tracks menu and the Puzzles menu.** `TracksMenu`, the Tracks menu screen, the theme
 picker, `PuzzlesMenuScreen`, the home card renamed to Puzzles, routes, and the Sudoku navigation tests
