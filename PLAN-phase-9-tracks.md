@@ -1,6 +1,6 @@
 # Phase 9 — Tracks, a themeable path puzzle
 
-**In progress: PRs 1 to 5 have landed.** This file is the design and the pull-request breakdown for a fourth game:
+**In progress: PRs 1 to 6 have landed.** This file is the design and the pull-request breakdown for a fourth game:
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
@@ -487,6 +487,29 @@ The theme is chosen per profile — siblings on one tablet want different trains
 buttons on the Tracks menu, and the play screen reads it once per build. Switching it never touches
 the session or the save beyond `Profile.tracksTheme`.
 
+**Built in PR 6, with these differences from the sketch.** (1) **A skin is built for one
+brightness** — `trackSkinFor(theme, brightness)` in `skins/track_skins.dart` — so `colours` is a
+getter and every paint method agrees on which palette its sprites use; the sketch passed a
+`Brightness` to `colours` alone and left the rest to guess. (2) `paintStart` takes `departed`: on a
+solved board the journey draws the traveller, even at t = 0, and the start port draws what stays
+behind — the train's rail stub, the water's tap. (3) `paintJourney` takes a `BoardLayout`, the
+grid-to-canvas mapping both the journey and the painter use, and `cellsPerSecond` is on the
+interface (train 3, water 4). (4) The timeline is plain arithmetic in `skins/journey.dart`:
+`journeyFrameAt(skin, route, elapsed)` returns `t` and `arrival`, so PR 7's ticker only supplies
+elapsed time. (5) **The static board painter landed here, not in PR 7**
+(`ui/tracks_board_painter.dart`): the done-criterion's widget test needs a board painted by each
+skin, and the rule that an unsolved board never advances `arrival` belongs to the painter rather
+than to whoever drives the animation. `TracksBoardPainter.effectiveFrame` turns any frame into
+`waiting` while the session is unsolved. It also draws the clues, with a tick under a met clue and
+an underline under an exceeded one so that colour never carries the state alone (§4.12). Input,
+the toolbar, the ticker and semantics stay PR 7's. (6) The train stops about 0.9 of a cell short of
+the goal port's centre, so it never covers the station lamp that lights on arrival, and the water
+is clipped to the grid so it never runs over the tap or the flower. (7) `santa` and `snail` draw
+with the train skin until PR 9. `trackSkinFor`'s switch has no default, so a fifth theme is a
+compile error there rather than a silent train. (8) Piece geometry shared by both skins — a
+centre line with quarter-circle corners, sampling along it, and the per-cell texture noise — is in
+`skins/piece_path.dart`, so a rail and a pipe turn identically.
+
 ### 4.9 Puzzle source
 
 `TracksPuzzleSource` mirrors `PuzzleSource` (`sudoku/data/puzzle_source.dart`): `load` and
@@ -733,6 +756,14 @@ its palette; a widget test pumps a board painted by each skin in day and night w
 the water goal paints the wilted sprite at `arrival` 0 and the lush one at 1, and a board one
 connection short of solved never advances `arrival`; screenshots of both skins on a 7x7 board,
 including the flower before and after, are attached to the pull request.
+
+*Built as planned, with the differences recorded in §4.8.* The one that moves work between pull
+requests: the static board painter (`TracksBoardPainter`) arrived here so that a board could be
+painted by each skin, and it owns the "unsolved never advances `arrival`" rule. PR 7 keeps input,
+the toolbar, the ticker that feeds the painter, and semantics. The screenshots were rendered from
+`tracks:7x7:medium:0` under `flutter test` and attached to the pull request rather than committed,
+because a binary in the repository is what §1 rules out. The wilted flower is the weakest sprite —
+it reads as a bent stem with a drooping tan head — and §8's device line about it is the check.
 
 **PR 7 — the play screen.** Board painter, drag and tap input, clues, toolbar, mistake feedback,
 hints, auto-save, the journey animation, completion, `TracksPuzzleSource`.
