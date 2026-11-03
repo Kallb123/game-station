@@ -9,6 +9,10 @@ import 'package:puzzle_engine/src/generator_version.dart';
 import 'package:puzzle_engine/src/puzzle_id.dart';
 import 'package:puzzle_engine/src/sudoku_spec.dart';
 import 'package:puzzle_engine/src/technique_solver.dart';
+import 'package:puzzle_engine/src/tracks/tracks_generator.dart';
+import 'package:puzzle_engine/src/tracks/tracks_puzzle.dart';
+import 'package:puzzle_engine/src/tracks/tracks_puzzle_id.dart';
+import 'package:puzzle_engine/src/tracks/tracks_spec.dart';
 
 /// How many indices each golden file covers, counting from 0
 /// (`PLAN-phase-2.md` §4.8).
@@ -73,3 +77,31 @@ List<String> goldenLinesFor(SudokuSpec spec, Difficulty difficulty) => [
 /// How many of [lines] record a widened puzzle.
 int widenedIn(List<String> lines) =>
     lines.where((line) => line.contains(' widened ')).length;
+
+/// Where the golden for the Tracks [spec] and [difficulty] lives, relative to
+/// the package root. The `tracks_` prefix keeps the two games' files apart in
+/// one directory, and `regen_goldens.dart` writes only files it names.
+String tracksGoldenPathFor(TracksSpec spec, Difficulty difficulty) =>
+    'test/golden/tracks_${spec.label}_${difficulty.name}.golden';
+
+/// One Tracks puzzle as a golden line: `index tier ok|widened encoding`.
+///
+/// There is no clue count to record: the encoding holds the fixed pieces
+/// (`PLAN-phase-9-tracks.md` §4.3) and has no space in it, so the line splits
+/// on spaces as Sudoku's does. The tier and the `ok`/`widened` field are
+/// derivable from the encoding and the recipe, and are here for the reason
+/// [goldenLineFor] gives: a diff that says `hard` became `medium` says what
+/// happened.
+String tracksGoldenLineFor(TracksPuzzle puzzle) =>
+    '${puzzle.id.index} ${puzzle.tier.name} '
+    '${puzzle.widened ? 'widened' : 'ok'} ${puzzle.clues.encode()}';
+
+/// The whole of one Tracks golden file as lines, generated from scratch: the
+/// header followed by indices 0 to [goldenIndices] - 1.
+List<String> tracksGoldenLinesFor(TracksSpec spec, Difficulty difficulty) => [
+  goldenHeader,
+  for (var index = 0; index < goldenIndices; index++)
+    tracksGoldenLineFor(
+      generateTracks(TracksPuzzleId(spec, difficulty, index)),
+    ),
+];

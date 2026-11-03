@@ -9,7 +9,7 @@ import 'package:puzzle_engine/src/tracks/tracks_spec.dart';
 import 'package:puzzle_engine/src/tracks/tracks_walk.dart';
 import 'package:test/test.dart';
 
-import 'tracks_counter_test.dart' show brokenRules;
+import 'tracks_fixtures.dart' show brokenRules;
 
 /// The provisional bands of the PR 3 brief; the generator owns the final ones.
 const Map<int, TracksWalkBand> bands = {

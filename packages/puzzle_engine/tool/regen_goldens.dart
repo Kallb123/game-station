@@ -1,4 +1,5 @@
-// Rewrites test/golden/*.golden from the generator as it is now.
+// Rewrites test/golden/*.golden, Sudoku's and Tracks', from the generators as
+// they are now.
 //
 //   cd packages/puzzle_engine && dart run tool/regen_goldens.dart
 //
@@ -38,12 +39,21 @@ void main(List<String> args) {
   stdout.writeln('Writing goldens at generatorVersion $generatorVersion.');
   var overWidened = false;
 
-  for (final (spec, difficulty) in combinations) {
+  final files = <(String, List<String> Function())>[
+    for (final (spec, difficulty) in combinations)
+      (goldenPathFor(spec, difficulty), () => goldenLinesFor(spec, difficulty)),
+    for (final (spec, difficulty) in tracksCombinations)
+      (
+        tracksGoldenPathFor(spec, difficulty),
+        () => tracksGoldenLinesFor(spec, difficulty),
+      ),
+  ];
+
+  for (final (path, generate) in files) {
     final watch = Stopwatch()..start();
-    final lines = goldenLinesFor(spec, difficulty);
+    final lines = generate();
     watch.stop();
 
-    final path = goldenPathFor(spec, difficulty);
     File(path).writeAsStringSync('${lines.join('\n')}\n');
 
     final widened = widenedIn(lines);

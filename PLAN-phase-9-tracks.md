@@ -1,6 +1,6 @@
 # Phase 9 — Tracks, a themeable path puzzle
 
-**Planned, not started.** This file is the design and the pull-request breakdown for a fourth game:
+**In progress: PRs 1 to 3 have landed.** This file is the design and the pull-request breakdown for a fourth game:
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
@@ -136,15 +136,26 @@ Alternatives considered:
 
 | Size | Offered tiers | Why this size |
 |---|---|---|
-| 5x5 | Easy, Medium (Hard if PR 3 measures it) | A first puzzle for a five-year-old: ten-odd track cells. |
+| 5x5 | Easy, Medium | A first puzzle for a five-year-old: fourteen-odd track cells. **Hard is not offered**; see below. |
 | 7x7 | Easy, Medium, Hard | The middle. |
 | 9x9 | Easy, Medium, Hard | The largest grid whose cells match Sudoku 9x9's, which phase 3 already judged readable on a phone. Larger would mean cells under 30 dp. |
 
 Tiers reuse the engine's `Difficulty` enum (`easy`, `medium`, `hard`); `expert` is refused by
 `TracksPuzzleId.parse` and by `generateTracks`, and filtered out by the menu's `tracksDifficultiesFor`
-— the same three places 6x6 Expert is refused today. Whether 5x5 can express Hard is measured in PR 3,
-not assumed: Sudoku's 6x6 Medium turned out to need a sparseness definition (`PLAN.md` §3.4), and the
-answer here may be similar. PR 3 updates this table with what it measured.
+— the same three places 6x6 Expert is refused today.
+
+**5x5 Hard, measured in PR 3 and refused.** A 5x5 puzzle needs T3 only when almost nothing is fixed:
+over 200 indices Hard was reached with 0 or 1 pieces fixed out of a path of 14, at 5 and 11 attempts
+at the median; with 2 pieces fixed it took 33 attempts at the median (133 at the 95th percentile),
+and with 3, 34 of 200 puzzles were widened. So a 5x5 Hard is a counting puzzle with nothing laid to
+start from, which is no step up in kind from 5x5 Medium for a child, and takes two to six times the
+attempts of 5x5 Medium (5 at the median). `TracksPuzzleId.parse` refuses `tracks:5x5:hard:*` and
+`tracksRecipeFor` throws for it, the same refusal 6x6 Expert gets; the menu offers 5x5 Easy and Medium and a child who has outgrown
+them moves to 7x7. Every other combination reaches the tier it is labelled with: no label here is
+Easy by technique under a harder name, unlike Sudoku's 6x6 Medium (`PLAN.md` §3.4). What the
+measurement did show is that technique alone does not separate the labels — the row and column
+counts do most of the work, and even a puzzle with nothing fixed is usually Easy by technique — so
+the number of fixed pieces carries the feel of a label as much as the tier does (§4.5).
 
 ### 4.2 Identity
 
@@ -207,6 +218,14 @@ Sudoku's `GeneratedPuzzle` grew `attempts` and `requested` the same way. The con
 `TrackSide.north` and so on rather than bare top-level constants, which every importer of the engine
 would otherwise have in scope.
 
+**Built in PR 3.** `TracksPuzzle` is the second half: `id`, `clues` (a `TracksClues`, so the port
+rows, counts and fixed pieces are not repeated as fields), `solution` (unmodifiable masks, row-major,
+port bits included), `tier`, `attempts` and `widened`, with `requested` derived from `id.difficulty`.
+The sketch's separate `rowCounts`, `fixed` and `startRow` are reached through `clues`. A fixed cell
+holds the solution's full two-bit piece, the start cell's west bit and the goal cell's south bit
+included. `generateTracks` is exported; `TracksStep` and `nextTracksStep` are exported for the hint
+button, and `solveTracks` and `countTracksSolutions` are not.
+
 ### 4.4 The solution counter
 
 `countTracksSolutions(clues, limit: 2)`, not exported — like `countSolutions`, it is how a puzzle is
@@ -227,48 +246,120 @@ of the generator's own call.
 
 ### 4.5 Generation and judging
 
-Three stages, every choice drawn from `Rng`; nothing iterates a `Set` or `Map`.
+Three stages, every choice drawn from `Rng`; nothing iterates a `Set` or `Map`. The seeds are
+Sudoku's: attempt 0 is `fnv1a32(id.value)`, attempt n is `fnv1a32('${id.value}#$n')`, up to 250.
+Within an attempt the frozen draw order is the ports (start row, then goal column), the walk, and one
+shuffle of the path for the dig. An attempt whose walk exhausts its step budget is spent and the next seed
+starts.
 
-**Walk.** A randomised depth-first self-avoiding walk from the start cell to the goal cell, trying
-directions in `Rng`-shuffled order, with a target length band and a minimum turn count per size and
-tier. A walk that misses the band within a step budget is abandoned and the attempt sub-counter
-advances, as Sudoku's retries do. The turn-count floor exists because an unconstrained walk often
-hugs an edge, which makes a dull puzzle with obvious clues.
+**Walk** (`tracks_walk.dart`). A randomised depth-first self-avoiding walk from the start cell to the
+goal cell, trying directions in a fresh `Rng` shuffle at every cell entered, with a length band and a
+corner-count floor per size. It prunes a branch whose length plus Manhattan distance to the goal
+exceeds the band, and one that has cut the goal off from the unvisited cells. A walk that enters more
+than `stepBudget` cells is abandoned. The bands below are the ones the provisional plan named,
+unchanged by measurement: they hit at every size, and the generator does not need them per tier.
 
-**Dig.** Start with every path cell fixed. Walk the path cells in `Rng`-shuffled order and unfix each
-one if the puzzle stays unique and does not exceed the requested tier — the two refusals Sudoku's dig
-learned in phase 2 (`PLAN.md` §3.4). Stop at the tier's fixed-cell floor once the tier is reached.
+| Size | Path length | Corners at least | `stepBudget` | Walk hit rate |
+|---|---|---|---|---|
+| 5x5 | 9..15 | 3 | 1000 | 100% |
+| 7x7 | 17..29 | 6 | 1000 | 99.9% |
+| 9x9 | 27..45 | 9 | 1000 | 98.2% |
 
-**Judge.** A deduction solver applies techniques in tier order; the highest tier it needs is the
-puzzle's difficulty.
+Hit rates are over 3000 seeds. The budget of 1000 is where more would buy a fraction of a percent
+(98.7% at 3000, 99.6% at 10000 on 9x9) while a miss costs a whole walk. The turn floor exists because
+an unconstrained walk often hugs an edge, which makes a dull puzzle with obvious clues. Measured on the generated puzzles, a path
+runs along a whole border edge in 13 to 14% of 5x5 Easy and Medium puzzles, 3 to 9% of 7x7 and 1 to 2%
+of 9x9; only 5x5 is a share worth a second look, and the lever would be the length band, not the
+turn floor. It was left alone: a 5x5 path of 9 to 15 cells has little room to avoid an edge, and
+those puzzles are still solved by the counts.
+
+**Dig** (`_dig` in `tracks_generator.dart`). Start with every path cell fixed. Walk the path cells in
+`Rng`-shuffled order and unfix each one if `solveTracks` at the recipe's ceiling tier still finishes
+the puzzle. There is no uniqueness check per removal, unlike Sudoku's dig: the solver only reports
+solved after an independent rule check, and every rule is a consequence of the game's, so a solved
+report proves one solution. Stop at the recipe's fixed-piece floor once the ceiling tier has been
+reached, and keep digging past the floor while it has not. The generator then runs
+`countTracksSolutions` on the attempt it is about to return, as a second opinion; an attempt the
+counter does not count as 1 is spent like a missed walk.
+
+**Judge.** The deduction solver (`tracks_deduction.dart`) applies rules in tier order; the highest
+tier it needs is the puzzle's difficulty. The loop runs T1 to a fixpoint, tries T2 only when T1
+stalls, T3 only when T2 stalls, and returns to T1 after any progress. The rules are monotone, so the
+fixpoint and the tier do not depend on the order cells are visited in.
 
 | Tier | Deductions it may use | Label |
 |---|---|---|
-| T1 | A row or column whose count is met: its unknown cells are empty. One whose unknown cells exactly make up the shortfall: they are all track. A track cell with exactly two open sides takes both. A cell with fewer than two open sides is empty. A connection into an empty cell is impossible. | Easy |
-| T2 | + No early loop: two ends of the same fragment cannot be joined. + Reach: a cell no fragment can reach within the remaining counts is empty. | Medium |
-| T3 | + One step of lookahead: assume a cell's state, apply T1 and T2; a contradiction proves the opposite. | Hard |
+| T1 | A row or column whose count is met: its unknown cells are empty. One whose unknown cells exactly make up the shortfall: they are all track. A track cell with two connections takes no more; with exactly two open sides it takes both. A cell with fewer than two open sides is empty. A connection into an empty cell is impossible. | Easy |
+| T2 | + No early loop: an unknown connection joining two cells of one fragment is off (the ports never meet, so there is no exception). + Reach: a cell the start cannot reach through open connections and non-empty cells is empty. | Medium |
+| T3 | + One step of lookahead: assume an unknown cell track, then empty, and then each unknown side of a track cell on, then off; run T1 and T2 on a copy, and a contradiction proves the opposite. The side hypotheses are part of T3 as built. | Hard |
 | — | Needs more than T3 | Discarded |
 
-The exact rule set may move in PR 3, as Sudoku's moved in phase 2 (XY-wing joined T3 when T3 was
-measured almost empty); PR 3 records any change and its measurement here.
+The same solver supplies hints: `nextTracksStep(clues, board)` returns the cheapest cell whose full
+piece deduction proves from the clues plus the connections on the board, skipping fixed cells and
+never returning an empty cell, which is what the hint button reveals (§4.13). Its precondition is a
+board with no wrong connection, which PR 7 checks first.
 
-The same solver supplies hints: `nextTracksStep(puzzle, board)` returns one forced cell state, which
-is what the hint button reveals (§4.13).
+**Recipes**, as `tracksRecipeFor` returns them. Every label's accepted tier range is exactly its own
+tier. The floor is where the dig stops once the tier is reached, so the fixed count of a finished
+puzzle is the floor (or one or two above it when a removal was refused); the ceiling is the most a
+finished puzzle may keep before it counts as a miss.
 
-**Targets, provisional until PR 3 measures them:** 5x5 under 10 ms, 7x7 under 50 ms, 9x9 under 200 ms
-at the median, on the development container, with `tool/benchmark.dart` failing at three times a
-target as it does for Sudoku. If 9x9 Hard misses by more than that, the fallback is more fixed cells
-in the band (fewer uniqueness checks), recorded here, before any change to the solver's shape.
+| Size and label | Tier | Fixed pieces: floor..ceiling | Share of a median path |
+|---|---|---|---|
+| 5x5 Easy | Easy | 8..10 | 57% of 14 |
+| 5x5 Medium | Medium | 4..6 | 29% |
+| 7x7 Easy | Easy | 14..16 | 54% of 26 |
+| 7x7 Medium | Medium | 7..9 | 25% of 28 |
+| 7x7 Hard | Hard | 3..5 | 11% |
+| 9x9 Easy | Easy | 22..24 | 56% of 39 |
+| 9x9 Medium | Medium | 11..13 | 26% of 43 |
+| 9x9 Hard | Hard | 5..7 | 12% |
+
+Easy carries a little over half of its path so that the first puzzles a child meets are nearly
+done (§2). Medium keeps a quarter and Hard a tenth. The fixed count is the floor in nearly every
+puzzle, so Easy puzzles are the same density throughout a size; variety comes from the path and the
+counts.
+
+**Measured over 300 indices of each combination** on the development container, by a throwaway
+script that is not committed (widened is 0 of 300 everywhere, and every puzzle's tier equals its
+label):
+
+| Combination | Attempts p50 / p95 / max | Fixed p50 | Path p50 | Corners p50 | Border run | Generation ms p50 / p95 / max |
+|---|---|---|---|---|---|---|
+| 5x5 Easy | 1 / 1 / 1 | 8 | 14 | 9 | 13% | 0.2 / 0.9 / 2.1 |
+| 5x5 Medium | 5 / 19 / 44 | 4 | 14 | 9 | 14% | 0.8 / 3.4 / 10.7 |
+| 7x7 Easy | 1 / 1 / 1 | 14 | 26 | 15 | 3% | 0.4 / 0.9 / 4.0 |
+| 7x7 Medium | 2 / 6 / 12 | 7 | 28 | 15 | 9% | 1.0 / 3.3 / 8.0 |
+| 7x7 Hard | 2 / 8 / 19 | 3 | 28 | 17 | 3% | 2.3 / 8.8 / 20.7 |
+| 9x9 Easy | 1 / 1 / 2 | 22 | 39 | 23 | 2% | 0.6 / 1.4 / 4.2 |
+| 9x9 Medium | 1 / 5 / 8 | 11 | 43 | 25 | 2% | 1.1 / 4.4 / 13.7 |
+| 9x9 Hard | 1 / 3 / 7 | 5 | 43 | 25 | 1% | 4.2 / 18.3 / 35.5 |
+
+"Border run" is the share of puzzles with a whole border row or column laid straight. The tiers turn
+out to be cheap: the dig reaches T2 and T3 on the way down in a few attempts, because the counts give
+little away once the fixed pieces are gone. So the targets below hold by a wide margin, and the
+fallback this section first named, more fixed pieces in the band, was not needed.
+
+**Targets**, unchanged from the draft and now measured: 5x5 under 10 ms, 7x7 under 50 ms,
+9x9 under 200 ms at the median, with `tool/benchmark.dart` failing at three times a target as it
+does for Sudoku. The benchmark's medians, 50 puzzles per combination: 5x5 Easy 0.5 ms, Medium
+0.7 ms; 7x7 0.4, 0.7, 2.1 ms; 9x9 0.3, 1.0, 4.1 ms. The targets are loose by one to two orders of
+magnitude, and are kept rather than tightened because the app's `compute` isolate on a low-end phone
+is a different machine from this one.
 
 ### 4.6 Determinism tests
 
-- Goldens: `test/golden/tracks_<size>_<tier>.golden`, one per offered combination, `generatorVersion`
-  header plus 100 lines of `index tier widened encoding`, regenerated by the existing
-  `tool/regen_goldens.dart` extended to cover them.
+- Goldens: `test/golden/tracks_<size>_<tier>.golden`, one per offered combination (eight: 5x5 Easy
+  and Medium, and 7x7 and 9x9 at all three tiers), `generatorVersion` header plus 100 lines of
+  `index tier ok|widened encoding`, written by the existing `tool/regen_goldens.dart` and compared by
+  `determinism_test.dart`, which fails when more than 5 in 100 of a file are widened.
 - Sudoku's seven golden files are untouched by every pull request in this phase. A diff to one is a
-  defect, not a regeneration.
-- Fuzz: `FUZZ_SEEDS` puzzles spread across the Tracks combinations — no crash, no non-termination,
-  none over 2 s, exactly one solution each, and the deduction solver's tier equals the reported one.
+  defect, not a regeneration. `regen_goldens.dart` rewrites all fifteen files, and Sudoku's come
+  out byte-identical.
+- Fuzz: `FUZZ_SEEDS` puzzles spread across the Tracks combinations as well as across Sudoku's, so
+  the Tracks share is as large as Sudoku's — no crash, no non-termination, none over 2 s, exactly one
+  solution each, that solution equal to the one the puzzle was built from, and the deduction solver's
+  tier equal to the reported one.
 - `test/rng_test.dart` and `test/hash_test.dart` already run under Chrome; nothing new needs to,
   because the Tracks code does no arithmetic wider than a cell index.
 
@@ -559,6 +650,15 @@ tool/benchmark.dart` prints Tracks rows within three times their targets; regene
 produces no diff; `git diff --stat` shows no change under Sudoku's golden files; §4.1 and §4.5 hold
 measured values rather than provisional ones.
 
+*Built as planned, with four differences.* (1) **5x5 Hard is not offered** (§4.1), so there are eight
+Tracks goldens rather than nine and `TracksPuzzleId.parse` refuses the combination. (2) T3 includes
+hypotheses on a track cell's sides as well as on a cell's state (§4.5). (3) The dig makes no
+uniqueness call per removal: a solved report from the deduction solver is the proof, and the counter
+runs once, on the attempt about to be returned (§4.5). (4) `generateTracksWith(id, recipe)` exists
+beside `generateTracks`, unexported, so a test can ask for a recipe nothing satisfies and watch the
+widening path run. The fixed-piece floors came out as the only lever that separates the labels
+(§4.5); the walk bands needed no tuning.
+
 **PR 4 — save fields.** `Profile.tracksTheme`, `Profile.tracks`, `TracksProgress`, `TracksInProgress`,
 codec and equality.
 **Done when:** a save written before this PR decodes with the defaults (a fixture test); a profile
@@ -634,20 +734,30 @@ theirs.
 
 ## 8. Verification checklist
 
-- [ ] `cd packages/puzzle_engine && FUZZ_SEEDS=2000 dart test` passes, including Tracks goldens and
-      fuzz.
-- [ ] `cd packages/puzzle_engine && dart run tool/benchmark.dart` shows every Tracks combination
-      within three times its target; the measured medians are copied into §4.5.
+- [x] `cd packages/puzzle_engine && FUZZ_SEEDS=2000 dart test` passes, including Tracks goldens and
+      fuzz. *(PR 3: 347 tests, 1 m 32 s; the Tracks fuzz at 2000 puzzles adds about 6 s.)*
+- [x] `cd packages/puzzle_engine && dart run tool/benchmark.dart` shows every Tracks combination
+      within three times its target; the measured medians are copied into §4.5. *(PR 3: every
+      median is under 5 ms against ceilings of 30, 150 and 600 ms; the benchmark takes about
+      15 s in all.)*
 - [ ] `git log -p -- packages/puzzle_engine/test/golden/sudoku_*` shows no commit from this phase.
+      *(PR 3 leaves them byte-identical: `regen_goldens.dart` rewrites them with no diff; the box is
+      ticked when the phase closes.)*
 - [ ] `dart tool/check_determinism.dart` and `dart tool/check_offline.dart` pass; `app/pubspec.yaml`
       and `packages/puzzle_engine/pubspec.yaml` are unchanged by this phase (`git diff main --
-      '*/pubspec.yaml'`).
+      '*/pubspec.yaml'`). *(Both pass after PR 3 and no pubspec has changed; ticked at the close.)*
 - [ ] The import-boundary test fails against a copy of `model/` that imports a skin, and passes
       without it.
 - [ ] A save from before PR 4 loads on the PR 10 build with Tracks at defaults (fixture test).
 - [ ] A players file exported with Tracks progress imports on a second device with the same solved
       list, in-progress board and theme.
 - [ ] `tool/verify.sh` time before and after the phase recorded here: before ___, after ___.
+      *(PR 3's share: before PR 3, 5 m 33 s wall with the engine tests at 1 m 26 s, measured on a
+      container busy with other work, so an upper bound; after PR 3, 4 m 5 s and 4 m 24 s wall on two
+      runs, with the engine tests at 1 m 32 s and the benchmark at 15 s. Tracks added 800 golden puzzles (about 1.3 s to
+      generate), 2000 fuzz puzzles (about 6 s, run in parallel with the goldens) and eight benchmark
+      rows (about 1 s); the rest of the difference is the machine. Left unticked until the phase
+      closes.)*
 - [ ] *(Device)* `tracks_smoke_test.dart` passes on an Android phone; device named in PR 10.
 - [ ] *(Device)* On a 360 dp-wide phone, a 9x9 puzzle can be solved by dragging alone without a
       misplaced connection in three attempts.

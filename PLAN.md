@@ -1163,9 +1163,10 @@ the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-
 A fourth game, and the engine's second: a square grid with a start on the west edge, a goal on the
 south edge and a number beside every row and column. The player drags track from cell to cell so
 that one unbroken track joins start to goal and each row and column holds exactly its number of
-track cells. Grid size (5x5, 7x7, 9x9) and difficulty are the menu's two axes, as in Sudoku. The
-home screen's Sudoku card becomes **Puzzles**, opening a menu that holds Sudoku and Tracks, so the
-home screen keeps its three cards.
+track cells. Grid size (5x5, 7x7, 9x9) and difficulty are the menu's two axes, as in Sudoku; 5x5
+offers Easy and Medium only, because PR 3 measured that a 5x5 reaches Hard only with one piece fixed
+or none. The home screen's Sudoku card becomes **Puzzles**, opening a menu that holds Sudoku and
+Tracks, so the home screen keeps its three cards.
 Planned as ten pull requests in [`PLAN-phase-9-tracks.md`](PLAN-phase-9-tracks.md).
 
 - **The theme is a skin, never a rule.** The same puzzle draws as a train to a station, Santa to a

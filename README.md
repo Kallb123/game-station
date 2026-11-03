@@ -180,7 +180,7 @@ puzzle IDs and not grids, so a generator that read a clock or drew from `dart:ma
 solved puzzle into a different unsolved one on someone else's device, months later.
 [`tool/check_determinism.dart`](tool/check_determinism.dart) catches the cause — a clock, `Random`, or
 iterating a `Set` or `Map` in the engine's `lib/` — and the golden puzzle files catch the effect, by
-holding 700 generated puzzles that CI compares against on every run. The scanner has its own
+holding 1,500 generated puzzles that CI compares against on every run. The scanner has its own
 self-test, because a scanner that silently stops scanning looks exactly like one that found nothing;
 the goldens were checked the other way round, by breaking a PRNG constant and watching them go red.
 

@@ -23,10 +23,6 @@ import 'package:test/test.dart';
 
 import 'tracks_fixtures.dart';
 
-// The helpers moved to tracks_fixtures.dart in PR 3; re-exported so a test
-// that imports them from here keeps working.
-export 'tracks_fixtures.dart';
-
 // ---------------------------------------------------------------------------
 // Fixtures. Each is drawn with the pipe-maze letters above; S marks the start
 // port (the west edge of that row) and G the goal port (the south edge of that

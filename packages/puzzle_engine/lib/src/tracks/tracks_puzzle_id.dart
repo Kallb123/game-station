@@ -31,11 +31,9 @@ class TracksPuzzleId {
   ///
   /// Throws a [FormatException] on anything but the canonical form. Expert is
   /// refused for every size: Tracks has no such tier
-  /// (`PLAN-phase-9-tracks.md` §1, §4.1).
-  ///
-  /// 5x5 Hard is accepted for now. PR 3 measures whether a 5x5 grid can express
-  /// Hard at all, and narrows this parser to refuse the combination if not;
-  /// until then refusing it here would be a guess frozen into a stored format.
+  /// (`PLAN-phase-9-tracks.md` §1, §4.1). 5x5 Hard is refused too: PR 3
+  /// measured that a 5x5 grid reaches Hard only with one piece fixed or none,
+  /// so it is not offered, as 6x6 Expert is not (§4.1).
   factory TracksPuzzleId.parse(String id) {
     final parts = id.split(':');
     if (parts.length != 4) {
@@ -70,6 +68,9 @@ class TracksPuzzleId {
     }
     if (difficulty == Difficulty.expert) {
       throw FormatException('tracks has no expert tier', id, difficultyAt);
+    }
+    if (spec == TracksSpec.s5x5 && difficulty == Difficulty.hard) {
+      throw FormatException('tracks has no 5x5 hard tier', id, difficultyAt);
     }
 
     final indexAt = id.length - parts[3].length;

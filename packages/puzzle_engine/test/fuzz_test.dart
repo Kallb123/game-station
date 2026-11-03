@@ -5,8 +5,10 @@
 // solver agrees with, and it does not take long enough to look broken.
 //
 // `FUZZ_SEEDS` sets how many puzzles in total, dealt round-robin across the
-// seven size-and-label combinations. `verify.sh` and CI both set 2000, so the
-// check people run locally and the check that blocks a merge are the same one.
+// seven Sudoku size-and-label combinations, and again across the eight Tracks
+// ones: the Tracks run is as large as the Sudoku one. `verify.sh` and CI both
+// set 2000, so the check people run locally and the check that blocks a merge
+// are the same one.
 // The default of 200 is what keeps a bare `dart test` affordable while
 // iterating.
 //
@@ -26,9 +28,14 @@ import 'package:puzzle_engine/src/puzzle_id.dart';
 import 'package:puzzle_engine/src/solver.dart';
 import 'package:puzzle_engine/src/sudoku_board.dart';
 import 'package:puzzle_engine/src/technique_solver.dart';
+import 'package:puzzle_engine/src/tracks/tracks_counter.dart';
+import 'package:puzzle_engine/src/tracks/tracks_deduction.dart';
+import 'package:puzzle_engine/src/tracks/tracks_generator.dart';
+import 'package:puzzle_engine/src/tracks/tracks_puzzle_id.dart';
 import 'package:test/test.dart';
 
 import 'combinations.dart';
+import 'tracks/tracks_fixtures.dart';
 
 /// How many puzzles to generate in total, across every size and difficulty.
 final int fuzzSeeds =
@@ -96,6 +103,72 @@ void main() {
           solveWithTechniques(board).tier,
           puzzle.tier,
           reason: '$id: rejudging the clue string disagrees with $puzzle',
+        );
+      }
+
+      expect(
+        slowest,
+        lessThan(generateCeiling),
+        reason:
+            'the slowest of $count was $slowestId at '
+            '${slowest.inMilliseconds} ms',
+      );
+    });
+  }
+
+  // Tracks. The same properties as above, in Tracks' terms: one solution, the
+  // counter's solution is the generator's, and the tier is the one the solver
+  // re-derives from the emitted clues. Dealt by the same rule over
+  // `tracksCombinations`, so Sudoku's share of FUZZ_SEEDS is unchanged.
+  for (var slot = 0; slot < tracksCombinations.length; slot++) {
+    final (spec, difficulty) = tracksCombinations[slot];
+    final count =
+        fuzzSeeds ~/ tracksCombinations.length +
+        (slot < fuzzSeeds % tracksCombinations.length ? 1 : 0);
+
+    test('tracks ${spec.label} ${difficulty.name} generates cleanly', () {
+      var slowest = Duration.zero;
+      var slowestId = '';
+
+      for (var index = 0; index < count; index++) {
+        final id = TracksPuzzleId(spec, difficulty, index);
+
+        final watch = Stopwatch()..start();
+        final puzzle = generateTracks(id);
+        watch.stop();
+        if (watch.elapsed > slowest) {
+          slowest = watch.elapsed;
+          slowestId = '$id';
+        }
+
+        // Counted independently of the generator, which gates on the same
+        // function: this one also reads the board it found, so a puzzle whose
+        // single solution is not the one it was built from fails here.
+        final found = <List<int>>[];
+        expect(
+          countTracksSolutions(puzzle.clues, onSolution: found.add),
+          1,
+          reason:
+              '$id: expected exactly one solution; '
+              '$unknownSolutionCount means the node cap was hit',
+        );
+        expect(
+          found.single,
+          puzzle.solution,
+          reason: '$id: the one solution is not the one it was built from',
+        );
+        expect(
+          brokenRules(puzzle.clues, puzzle.solution),
+          isEmpty,
+          reason: '$id',
+        );
+
+        // The tier re-derived from the emitted clues, so the generator and the
+        // solver cannot drift apart about what the label means.
+        expect(
+          solveTracks(puzzle.clues).tier,
+          puzzle.tier,
+          reason: '$id: rejudging the clues disagrees with $puzzle',
         );
       }
 
