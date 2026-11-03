@@ -45,6 +45,7 @@ Profile fullSecondProfile() => Profile(
   arcadeAutoFire: true,
   padSide: PadSide.left,
   snakeCounting: SnakeCounting.twos,
+  tracksTheme: TracksTheme.snail,
   sudoku: SudokuProgress(
     solved: {
       'sudoku:4x4:easy:1': SolvedPuzzle(
@@ -89,6 +90,29 @@ Profile fullSecondProfile() => Profile(
     drawingCount: 3,
     lastDrawingId: 'd2',
     bytesUsed: 777,
+  ),
+  tracks: TracksProgress(
+    solved: {
+      'tracks:5x5:easy:1': SolvedPuzzle(
+        timeMs: 41000,
+        hints: 1,
+        mistakes: 2,
+        solvedAt: DateTime.utc(2026, 8, 12, 11),
+      ),
+    },
+    inProgress: const {
+      // Row 3's west port only: partial but structurally valid for a 7x7
+      // board, so the save codec keeps it rather than dropping it as
+      // malformed.
+      'tracks:7x7:medium:3': TracksInProgress(
+        cells: '0000000000000000000008000000000000000000000000000',
+        marks: '0000000000100000000000000000000000000000000000000',
+        elapsedMs: 72000,
+        undoStack: ['+r3c0:8', '+r3c0:0'],
+        hints: 2,
+      ),
+    },
+    bestTimeMs: const {'5x5:easy': 41000},
   ),
 );
 
@@ -155,6 +179,31 @@ void main() {
       expect(profile.arcadeEasyMode, isTrue);
       expect(profile.arcadeAutoFire, isTrue);
       expect(profile.draw, isNot(const DrawProgress()));
+      expect(profile.tracksTheme, isNot(TracksTheme.train));
+      expect(profile.tracks, isNot(const TracksProgress()));
+    });
+
+    test('a profile with Tracks progress round trips through a players file '
+        'unchanged', () {
+      // The done-criterion of PLAN-phase-9-tracks.md §6 PR 4. The in-progress
+      // check matters separately: the save codec drops a board that does not
+      // fit its puzzle, so equality alone would hide a fixture gone invalid.
+      final original = fullSecondProfile();
+      final bundle = TransferBundle(
+        exportedAt: DateTime.utc(2026, 10, 8),
+        everyone: false,
+        settings: const AppSettings(),
+        profiles: [original],
+      );
+
+      final back = decodeTransfer(encodeTransfer(bundle)).profiles.single;
+
+      expect(back.tracks, original.tracks);
+      expect(back.tracksTheme, TracksTheme.snail);
+      expect(back.tracks.solved, isNotEmpty);
+      expect(back.tracks.bestTimeMs, isNotEmpty);
+      expect(back.tracks.inProgress.keys, ['tracks:7x7:medium:3']);
+      expect(back.tracks.inProgress.values.single.marks, hasLength(49));
     });
 
     test('a single-player file keeps everyone false', () {

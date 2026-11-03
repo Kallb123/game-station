@@ -4,8 +4,11 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/storage/progress_repository.dart';
+import 'package:zibo_games/core/storage/save_codec.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
+
+import 'save_fixtures.dart';
 
 void main() {
   final starterCreatedAt = DateTime.utc(2026, 8, 12, 9);
@@ -32,6 +35,32 @@ void main() {
 
   ProgressRepository fresh() =>
       repositoryOver(SaveData.initial(createdAt: starterCreatedAt));
+
+  group('the imported result', () {
+    test('carries every profile field except the id', () {
+      // `result` builds a Profile field by field, so a field added to Profile
+      // and left out of it is dropped on import. The players-file round trip
+      // cannot see that: the file keeps the field and only the import loses
+      // it (PLAN-phase-9-tracks.md §6 PR 4). Comparing the encoded forms
+      // covers every field the codec knows without listing them here.
+      final p = fullSave().profiles.first;
+
+      final result = ProfileImportEntry(
+        incoming: p,
+        localId: 'p9',
+        replaces: false,
+      ).result;
+
+      Map<String, Object?> encoded(Profile x) {
+        final json = saveToJson(SaveData(activeProfileId: x.id, profiles: [x]));
+        final profile = (json['profiles']! as List).first;
+        return {...(profile as Map<String, Object?>)}..remove('id');
+      }
+
+      expect(result.id, 'p9');
+      expect(encoded(result), encoded(p));
+    });
+  });
 
   group('planning', () {
     test('is a pure read', () {
@@ -189,7 +218,12 @@ void main() {
         createdAt: local.createdAt,
         padSide: PadSide.left,
         snakeCounting: SnakeCounting.off,
+        tracksTheme: TracksTheme.water,
         draw: const DrawProgress(drawingCount: 4, bytesUsed: 9),
+        tracks: const TracksProgress(
+          solved: {'tracks:5x5:easy:1': SolvedPuzzle(timeMs: 40000)},
+          bestTimeMs: {'5x5:easy': 40000},
+        ),
       );
 
       repository.applyProfileImport(repository.planProfileImport([file]));
@@ -204,7 +238,12 @@ void main() {
           createdAt: local.createdAt,
           padSide: PadSide.left,
           snakeCounting: SnakeCounting.off,
+          tracksTheme: TracksTheme.water,
           draw: const DrawProgress(drawingCount: 4, bytesUsed: 9),
+          tracks: const TracksProgress(
+            solved: {'tracks:5x5:easy:1': SolvedPuzzle(timeMs: 40000)},
+            bestTimeMs: {'5x5:easy': 40000},
+          ),
         ),
       );
       // Nothing was added, so the starter is still there and still active.
