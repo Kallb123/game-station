@@ -24,7 +24,10 @@ import '../../../core/haptics.dart';
 import '../../../core/storage/progress_repository.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/storage/save_data.dart';
+import '../../../core/ui/completion_card.dart';
+import '../../../core/ui/confetti.dart';
 import '../../../core/ui/layout.dart';
+import '../../../core/ui/puzzle_clock.dart';
 import '../../../core/ui/safe_pop.dart';
 import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';
@@ -32,29 +35,12 @@ import '../../../routes.dart';
 import '../data/providers.dart';
 import '../data/puzzle_record.dart';
 import '../model/sudoku_session.dart';
-import 'completion_card.dart';
-import 'confetti.dart';
 import 'sudoku_grid_view.dart';
 import 'sudoku_keypad.dart';
 
-/// How long a load may take before the screen admits it is loading
-/// (`PLAN-phase-3.md` §4.2).
-///
-/// A 9x9 Easy is a millisecond and a cached puzzle is none (`PLAN.md` §3.5), so
-/// a spinner drawn the moment a load starts would be a flash that reads as a
-/// glitch. One constant with one test, rather than a `Future.delayed` at each
-/// call site.
-const Duration puzzleSpinnerDelay = Duration(milliseconds: 150);
-
-/// How often the clock moves.
-const Duration clockTick = Duration(seconds: 1);
-
-/// What is shown while a puzzle that will not load is on screen.
-///
-/// One plain sentence, and the back arrow the screen already has: a child
-/// cannot act on anything more specific, and an internal error is never put in
-/// front of one (`AGENTS.md`). Public because the test names the same string.
-const String puzzleFailedMessage = 'We could not start this puzzle.';
+/// What the Back button on the completion card says
+/// (`PLAN-phase-3.md` §4.6).
+const String backToSudokuLabel = 'Back to Sudoku';
 
 /// What `/sudoku/play` is pushed with.
 ///
@@ -299,6 +285,7 @@ class _SudokuPlayScreenState extends ConsumerState<SudokuPlayScreen> {
           mistakes: session.mistakes,
           clean: session.hints == 0 && session.mistakes == 0,
           onNext: _nextPuzzle(session.id) == null ? null : _playNext,
+          backLabel: backToSudokuLabel,
           onBack: () => popIfPossible(context),
         ),
       ],
@@ -732,21 +719,4 @@ class _Clock extends StatelessWidget {
       },
     );
   }
-}
-
-/// [elapsed] as `4:05`, or as `1:02:03` once a puzzle has run past an hour.
-///
-/// Minutes are not padded and hours are not shown until there are some: the
-/// leading zeros of `00:04:05` are three characters a child has to read past to
-/// find the number that is moving.
-String formatElapsed(Duration elapsed) {
-  String twoDigits(int value) => value.toString().padLeft(2, '0');
-
-  final hours = elapsed.inHours;
-  final minutes = elapsed.inMinutes % Duration.minutesPerHour;
-  final seconds = elapsed.inSeconds % Duration.secondsPerMinute;
-
-  return hours == 0
-      ? '$minutes:${twoDigits(seconds)}'
-      : '$hours:${twoDigits(minutes)}:${twoDigits(seconds)}';
 }

@@ -17,6 +17,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import '../../../core/clock.dart';
 import '../../../core/ui/big_button.dart';
 import '../../../core/ui/layout.dart';
+import '../../../core/ui/puzzle_clock.dart';
 import '../../../core/ui/screen_scaffold.dart';
 import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';

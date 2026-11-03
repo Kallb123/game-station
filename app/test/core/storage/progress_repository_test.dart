@@ -424,6 +424,121 @@ void main() {
     });
   });
 
+  group('tracks', () {
+    TracksPuzzleId puzzleAt(
+      int index, {
+      Difficulty difficulty = Difficulty.easy,
+    }) => TracksPuzzleId(TracksSpec.s7x7, difficulty, index);
+
+    const board = TracksInProgress(cells: '0000000');
+
+    test('saveTracksInProgress stores an entry that reads back', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final id = puzzleAt(3);
+
+      repository.saveTracksInProgress(
+        id,
+        const TracksInProgress(cells: 'abc', elapsedMs: 4000, hints: 1),
+      );
+
+      expect(
+        repository.activeProfile.tracks.inProgress[id.value],
+        const TracksInProgress(cells: 'abc', elapsedMs: 4000, hints: 1),
+      );
+    });
+
+    test(
+      'clearTracksInProgress removes it, and an absent id changes nothing',
+      () {
+        final repository = repositoryOver(
+          MemorySaveStore(initial: freshSave()),
+        );
+        final id = puzzleAt(3);
+        repository.saveTracksInProgress(id, board);
+
+        repository.clearTracksInProgress(id);
+        expect(repository.activeProfile.tracks.inProgress, isEmpty);
+
+        var notifications = 0;
+        repository.addListener(() => notifications++);
+        repository.clearTracksInProgress(puzzleAt(9));
+        expect(notifications, 0);
+      },
+    );
+
+    test('recordTracksSolved stores, stamps and clears in one mutation', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final id = puzzleAt(5);
+      repository.saveTracksInProgress(id, board);
+
+      var notifications = 0;
+      repository.addListener(() => notifications++);
+      repository.recordTracksSolved(id, const SolvedPuzzle(timeMs: 60000));
+
+      expect(notifications, 1);
+      final solved = repository.activeProfile.tracks.solved[id.value];
+      expect(solved?.timeMs, 60000);
+      expect(solved?.solvedAt, clock().toUtc());
+      expect(repository.activeProfile.tracks.inProgress, isEmpty);
+    });
+
+    test('recordTracksSolved keeps the faster best time, not the slower', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      const key = '7x7:easy';
+
+      repository.recordTracksSolved(
+        puzzleAt(1),
+        const SolvedPuzzle(timeMs: 90000),
+      );
+      repository.recordTracksSolved(
+        puzzleAt(2),
+        const SolvedPuzzle(timeMs: 40000),
+      );
+      expect(repository.activeProfile.tracks.bestTimeMs[key], 40000);
+
+      repository.recordTracksSolved(
+        puzzleAt(3),
+        const SolvedPuzzle(timeMs: 120000),
+      );
+      expect(repository.activeProfile.tracks.bestTimeMs[key], 40000);
+    });
+
+    test('Tracks calls leave Sudoku progress untouched', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final sudoku = PuzzleId(SudokuSpec.s9x9, Difficulty.easy, 0);
+      repository.saveInProgress(sudoku, PuzzleInProgress(grid: '.' * 81));
+      final before = repository.activeProfile.sudoku;
+
+      repository.saveTracksInProgress(puzzleAt(0), board);
+      repository.recordTracksSolved(
+        puzzleAt(0),
+        const SolvedPuzzle(timeMs: 1000),
+      );
+
+      expect(repository.activeProfile.sudoku, before);
+    });
+
+    test('a Tracks puzzle in progress is not evicted from the cache', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final pinned = puzzleAt(0);
+      repository.saveTracksInProgress(pinned, board);
+
+      repository.cacheTracksPuzzle(pinned, 'record-pinned');
+      for (var i = 1; i < puzzleCacheCap; i++) {
+        repository.cacheTracksPuzzle(puzzleAt(i), 'record-$i');
+      }
+      repository.cacheTracksPuzzle(puzzleAt(puzzleCacheCap), 'record-new');
+
+      expect(repository.data.puzzleCache, hasLength(puzzleCacheCap));
+      expect(repository.data.puzzleCache.containsKey(pinned.value), isTrue);
+      expect(
+        repository.data.puzzleCache.containsKey(puzzleAt(1).value),
+        isFalse,
+        reason: 'the pin skips to the next-oldest unpinned entry',
+      );
+    });
+  });
+
   group('daily streak', () {
     // Day indices rather than real dates, so the arithmetic is exercised
     // without depending on `dayIndexFor`'s epoch elsewhere in the suite

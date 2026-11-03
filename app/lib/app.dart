@@ -18,6 +18,7 @@ import 'features/profiles/profile_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/sudoku/ui/sudoku_menu_screen.dart';
 import 'features/sudoku/ui/sudoku_play_screen.dart';
+import 'features/tracks/ui/tracks_play_screen.dart';
 import 'features/transfer/ui/transfer_screen.dart';
 import 'routes.dart';
 
@@ -194,13 +195,15 @@ Route<void> _generateRoute(RouteSettings settings) {
 /// The screen behind each route, or null for one no screen answers to.
 ///
 /// Takes the whole [RouteSettings] rather than the name alone because
-/// [AppRoutes.sudokuPlay] carries which puzzle to play.
+/// [AppRoutes.sudokuPlay] and [AppRoutes.tracksPlay] carry which puzzle to
+/// play.
 WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.home => (context) => const HomeScreen(),
   AppRoutes.profiles => (context) => const ProfileScreen(),
   AppRoutes.settings => (context) => const SettingsScreen(),
   AppRoutes.sudoku => (context) => const SudokuMenuScreen(),
   AppRoutes.sudokuPlay => _playScreen(settings.arguments),
+  AppRoutes.tracksPlay => _tracksPlayScreen(settings.arguments),
   AppRoutes.arcade => (context) => const ArcadeMenuScreen(),
   AppRoutes.arcadeInvaders => (context) => const InvadersScreen(),
   AppRoutes.arcadeSnake => (context) => const SnakeScreen(),
@@ -217,6 +220,13 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
 /// builder, which is a grey error page in release rather than the home screen.
 WidgetBuilder? _playScreen(Object? arguments) => arguments is SudokuPlayArgs
     ? (context) => SudokuPlayScreen(args: arguments)
+    : null;
+
+/// The Tracks play screen for [arguments], or null when the route was pushed
+/// without a [TracksPlayArgs], for the same reason [_playScreen] checks.
+WidgetBuilder? _tracksPlayScreen(Object? arguments) =>
+    arguments is TracksPlayArgs
+    ? (context) => TracksPlayScreen(args: arguments)
     : null;
 
 /// The draw sheet for [arguments], defaulting to a blank sheet when the route

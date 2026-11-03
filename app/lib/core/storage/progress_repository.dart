@@ -357,8 +357,10 @@ class ProgressRepository extends ChangeNotifier {
   ///
   /// Device-wide rather than per profile, matching [SaveData.puzzleCache]: two
   /// profiles playing the same puzzle id share one generation.
-  void cachePuzzle(engine.PuzzleId id, String record) {
-    final key = id.value;
+  void cachePuzzle(engine.PuzzleId id, String record) =>
+      _cache(id.value, record);
+
+  void _cache(String key, String record) {
     _cacheRecency
       ..remove(key)
       ..add(key);
@@ -392,9 +394,13 @@ class ProgressRepository extends ChangeNotifier {
           clean: result.clean,
         );
 
-  /// Whether some profile has an `inProgress` entry for [puzzleId].
+  /// Whether some profile has an `inProgress` entry for [puzzleId], in either
+  /// game: Sudoku and Tracks share the one cache, and their ids cannot collide
+  /// (`PLAN-phase-9-tracks.md` §4.9).
   bool _isPinned(String puzzleId) => _data.profiles.any(
-    (profile) => profile.sudoku.inProgress.containsKey(puzzleId),
+    (profile) =>
+        profile.sudoku.inProgress.containsKey(puzzleId) ||
+        profile.tracks.inProgress.containsKey(puzzleId),
   );
 
   /// The streak after solving [id], or [streak] unchanged when [id] is not
@@ -417,6 +423,62 @@ class ProgressRepository extends ChangeNotifier {
         _data.activeProfileId,
         (profile) => profile.copyWith(sudoku: update(profile.sudoku)),
       );
+
+  void _updateActiveTracks(TracksProgress Function(TracksProgress) update) =>
+      _replaceProfile(
+        _data.activeProfileId,
+        (profile) => profile.copyWith(tracks: update(profile.tracks)),
+      );
+
+  // --- tracks ------------------------------------------------------------
+
+  /// Stores [state] as the active profile's in-progress board for [id],
+  /// replacing whatever was there (`PLAN-phase-9-tracks.md` §4.11).
+  void saveTracksInProgress(engine.TracksPuzzleId id, TracksInProgress state) =>
+      _updateActiveTracks(
+        (tracks) => tracks.copyWith(
+          inProgress: {...tracks.inProgress, id.value: state},
+        ),
+      );
+
+  /// Removes the active profile's in-progress entry for [id], if it has one.
+  void clearTracksInProgress(engine.TracksPuzzleId id) => _updateActiveTracks(
+    (tracks) => tracks.copyWith(
+      inProgress: {
+        for (final entry in tracks.inProgress.entries)
+          if (entry.key != id.value) entry.key: entry.value,
+      },
+    ),
+  );
+
+  /// Records [result] as how the active profile finished [id], as
+  /// [recordSolved] does for Sudoku: adds it to `solved`, clears the matching
+  /// `inProgress` entry in the same mutation and keeps the faster best time.
+  ///
+  /// No streak: Tracks has no daily puzzle (`PLAN-phase-9-tracks.md` §2).
+  void recordTracksSolved(engine.TracksPuzzleId id, SolvedPuzzle result) =>
+      _updateActiveTracks((tracks) {
+        final key = TracksProgress.bestTimeKey(id.spec, id.difficulty);
+        final best = tracks.bestTimeMs[key];
+
+        return tracks.copyWith(
+          solved: {...tracks.solved, id.value: _stamped(result)},
+          inProgress: {
+            for (final entry in tracks.inProgress.entries)
+              if (entry.key != id.value) entry.key: entry.value,
+          },
+          bestTimeMs: {
+            ...tracks.bestTimeMs,
+            if (best == null || result.timeMs < best) key: result.timeMs,
+          },
+        );
+      });
+
+  /// Caches [record] — the Tracks puzzle source's encoded form — against [id],
+  /// in the same cache and under the same eviction rules as [cachePuzzle]
+  /// (`PLAN-phase-9-tracks.md` §4.9).
+  void cacheTracksPuzzle(engine.TracksPuzzleId id, String record) =>
+      _cache(id.value, record);
 
   // --- arcade ------------------------------------------------------------
 

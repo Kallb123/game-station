@@ -9,7 +9,7 @@
 // `HapticFeedback` from anywhere but `core/haptics.dart` skips both the
 // `AppSettings.hapticsLevel` mute and the [deviceCanVibrate] platform gate,
 // which is what actually matters. Modelled on
-// `features/sudoku/data/generation_call_site_test.dart`, including its own
+// `generation_call_site_test.dart`, including its own
 // self-tests: a scanner that silently found nothing would pass forever.
 
 import 'dart:io';
