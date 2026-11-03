@@ -4,7 +4,8 @@
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
-through pipes to a flower — the theme is a skin, never a rule.
+through pipes to revive a wilted flower — the theme is a skin, never a rule. Tracks and Sudoku sit
+together behind one **Puzzles** card on the home screen.
 
 [`PLAN.md`](PLAN.md) is the source of truth for the project; §7 there carries a one-paragraph entry
 for this phase pointing here. Where this file and `PLAN.md` disagree, the reason is stated here and
@@ -91,7 +92,7 @@ be shaped around a guess about how hard the puzzles turn out to be.
 4. **The session** — the player's board as plain Dart: laying and lifting track, marks, undo, the win
    check, mistakes and hints.
 5. **The skin system** — the interface plus two deliberately different skins, train and water.
-6. **The play screen**, then **the menu and the home card**.
+6. **The play screen**, then **the Tracks menu and the Puzzles menu** that holds it and Sudoku.
 7. **Santa and the snail**, the themed sounds, then **the device pass and the close**.
 
 **The load-bearing decision: the theme is a presentation skin over one puzzle, and nothing below the
@@ -122,12 +123,16 @@ Alternatives considered:
 | Ports on any two edges | More variety, but a port on the north or east edge collides with the clue numbers in that margin, and "start on the left, finish at the bottom" is a rule a child can hold. Offsets along those edges already vary per puzzle. |
 | Judging difficulty by grid size alone | Size changes how long a puzzle takes, not how hard each step is. Sudoku judges by technique (`PLAN.md` §3.4); so does this (§4.5), and size is the second axis of the menu. |
 | Building the skin interface with the train only, adding the others later | An interface shaped by one implementation fits that one. Water has no sprite and its "journey" is a fill rather than a moving figure, so building train and water together forces the interface to cover both shapes before anything depends on it (PR 6). |
+| A fourth card on the home screen | The owner chose a Puzzles menu instead. It also keeps the home screen's three-card portrait and landscape layouts as they are, where a fourth card would have forced landscape into a 2 x 2 grid. The cost is one extra tap to reach Sudoku (§4.14). |
+| A special-case "wilting" hook for the water skin alone | Every goal takes an `arrival` value instead (§4.8), so the flower reviving is one use of a shape all four skins share, not a branch the board painter has to know about. |
 
 ---
 
 ## 4. Design
 
 ### 4.1 Sizes and tiers
+
+**Settled by the owner: 5x5, 7x7 and 9x9.** The goldens in PR 3 freeze them.
 
 | Size | Offered tiers | Why this size |
 |---|---|---|
@@ -307,10 +312,22 @@ abstract interface class TrackSkin {
   void paintPiece(Canvas canvas, Rect cell, int mask, PieceStyle style); // laid, fixed, wrong
   void paintMark(Canvas canvas, Rect cell);
   void paintStart(Canvas canvas, Rect port);     // the traveller waiting, west of the grid
-  void paintGoal(Canvas canvas, Rect port);      // south of the grid
+  void paintGoal(Canvas canvas, Rect port, double arrival); // south of the grid; 0 waiting, 1 arrived
   void paintJourney(Canvas canvas, TrackGeometry route, double t); // 0..1 along the solved route
+  Duration get arrivalDuration;    // how long the goal takes to change once the journey ends
 }
 ```
+
+**The goal has two states, and the arrival is a transition between them.** The water theme's flower
+is wilted for as long as the puzzle is unsolved and becomes lush when the water reaches it — the
+owner's design, and the moment the whole puzzle builds towards. Rather than special-case water, every
+goal is painted from an `arrival` value: 0 while waiting, rising to 1 over `arrivalDuration` after the
+journey ends. The other skins use it too — the station's lamp lights, the house's windows glow and
+smoke rises from the chimney, the pumpkin glows — so the interface has one shape, not one for water and
+one for the rest. The board's animation is then one timeline: journey `t` from 0 to 1, then `arrival`
+from 0 to 1, then the arrival motif and the completion card. With `reduceMotion` on, both jump to 1.
+A goal painted at `arrival` 1 on a board that is not solved is a bug, and a widget test asserts the
+flower stays wilted on a board one connection short of solved.
 
 `TrackGeometry` is shared: the solved path's centre line through each cell, with quarter-circle
 corners, parametrised by arc length. Every skin moves at the same speed because none of them measures
@@ -322,10 +339,12 @@ pixels.
 | `train` | a locomotive | a station | two rails on sleepers | grass | the locomotive runs along the route, flipped when heading west |
 | `santa` | Santa | a house with a chimney | footprints in snow | snow | Santa walks the route |
 | `snail` | a snail | a pumpkin | a silvery trail | soil | the snail crawls the route, slowest of the four |
-| `water` | a tap | a flower in a pot | pipes with joints | brick | water fills the pipes behind a moving front; no figure |
+| `water` | a tap | a wilted flower in a pot, lush once watered | pipes with joints | brick | water fills the pipes behind a moving front; no figure; the flower lifts and opens as `arrival` rises |
 
 Sprites are 16 x 16 palette-indexed pixel art, one Dart string per row, one character per pixel,
-`'.'` transparent, with a per-sprite palette that can differ in day and night. They are never rotated:
+`'.'` transparent, with a per-sprite palette that can differ in day and night. A goal that changes
+on arrival is a short sequence of sprites — for the flower: wilted, lifting, lush — stepped through by
+`arrival`, because pixel art does not tween. They are never rotated:
 an upside-down Santa reads as broken. Pieces are drawn with `Canvas` paths so they tile at any cell
 size. The travelling speed is the one per-skin number (the snail is slower), in cells per second, so
 the snail's journey is longer but the geometry is shared.
@@ -418,7 +437,7 @@ piece and drawn as fixed. If the board holds a wrong connection, the hint points
 because pointing at a mistake gives nothing away — the rule Sudoku already uses (`PLAN.md` §3.7).
 Hints are counted, and a hinted solve is solved but not clean.
 
-### 4.14 The menu and the home card
+### 4.14 The Tracks menu and the Puzzles menu
 
 The Tracks menu copies Sudoku's: a size toggle (5x5, 7x7, 9x9), a row per offered difficulty
 launching the lowest unsolved index, a solved count and best time per row, and a *Keep going* card
@@ -426,10 +445,25 @@ for the in-progress puzzle with most time on its clock — the rule `SudokuMenu`
 Above them, the theme picker. All menu arithmetic lives in a pure `TracksMenu` class tested with plain
 `test()` calls, as `SudokuMenu` is.
 
-The home screen gains a fourth card. Portrait stacks four; landscape switches from a row of three to
-a 2 x 2 grid, because four cards in a row on a landscape phone are narrower than the label. The route
-`/tracks` and `/tracks/play` join `routes.dart`, and `layout_sweep_test.dart` covers both at 200 %
-text scale.
+**Sudoku and Tracks go into a Puzzles menu — the owner's choice.** The home screen keeps three
+cards: the Sudoku card becomes **Puzzles**, with a puzzle-piece icon in the same palette role, and it
+opens a new `PuzzlesMenuScreen` holding two large game cards, Sudoku and Tracks, built the way
+`arcade_menu_screen.dart` lays out its two games. The home screen's portrait and landscape layouts do
+not change shape, which is what keeps this a smaller change than a fourth home card would have been.
+
+- Routes: `/puzzles` is new; `/sudoku` and `/sudoku/play` keep their names, so no Sudoku screen, test
+  or deep link moves. `/tracks` and `/tracks/play` are new. Back from the Sudoku menu now lands on
+  Puzzles rather than home — one tap further, which is the cost of grouping and the reason the
+  Puzzles screen has only two cards and nothing to read.
+- Sudoku's pre-warm stays where it is, on opening the Sudoku menu, and Tracks pre-warms on opening its
+  own menu. Opening Puzzles warms neither: a child who taps Tracks should not have paid for a Sudoku
+  generation.
+- Existing tests that tap the home card by its `Sudoku` label (`app_test.dart`,
+  `home_screen_test.dart`, `save_notice_test.dart`, `sudoku_menu_screen_test.dart`) and
+  `integration_test/sudoku_smoke_test.dart` move to Puzzles then Sudoku in the same pull request.
+- `layout_sweep_test.dart` covers `/puzzles`, `/tracks` and `/tracks/play` at 200 % text scale.
+- The Puzzles menu arrives with Tracks in PR 8, not before it: a Puzzles screen holding only Sudoku
+  would be a tap that offers no choice.
 
 ---
 
@@ -451,6 +485,8 @@ app/lib/features/tracks/
   data/                       # TracksPuzzleSource, the cache record
   skins/                      # TrackSkin, TrackGeometry, the four skins and their sprites
   ui/                         # menu screen, play screen, board painter, theme picker
+app/lib/features/puzzles/
+  puzzles_menu_screen.dart    # two game cards: Sudoku and Tracks (§4.14)
 app/assets/audio/tracks/      # four arrival motifs
 app/integration_test/tracks_smoke_test.dart
 ```
@@ -477,7 +513,7 @@ because the tier hit rates are unknown until measured — the same unknown that 
 | 5 | `TracksSession`: strokes, marks, undo, win, mistakes, hints | 1–2 days |
 | 6 | The skin system, with train and water | 1–2 days |
 | 7 | The play screen | 1.5–2 days |
-| 8 | The menu, the theme picker and the home card | 1 day |
+| 8 | The Tracks menu, the theme picker and the Puzzles menu | 1–1.5 days |
 | 9 | Santa, the snail and the arrival sounds | 1 day |
 | 10 | Smoke test, device pass and close | 0.5–1 day, plus device time |
 
@@ -520,22 +556,26 @@ format and its decoder, the train and water skins.
 **Done when:** a `TrackGeometry` test places the traveller in the expected cell at t = 0, 0.5 and 1 on
 three fixture routes; a sprite-table test asserts every sprite is 16 x 16 and uses only characters in
 its palette; a widget test pumps a board painted by each skin in day and night without exceptions;
-screenshots of both skins on a 7x7 board are attached to the pull request.
+the water goal paints the wilted sprite at `arrival` 0 and the lush one at 1, and a board one
+connection short of solved never advances `arrival`; screenshots of both skins on a 7x7 board,
+including the flower before and after, are attached to the pull request.
 
 **PR 7 — the play screen.** Board painter, drag and tap input, clues, toolbar, mistake feedback,
 hints, auto-save, the journey animation, completion, `TracksPuzzleSource`.
 **Done when:** widget tests drive a fixture puzzle to solved with simulated drags and see the
 completion card; a force-quit mid-puzzle (a test that rebuilds the app from the written save) restores
 the exact board, marks and clock; with `reduceMotion` on, completion shows the traveller at the goal
-with no animation frames scheduled; a test asserts `generateTracks` has exactly one call site in
+and the goal at `arrival` 1, with no animation frames scheduled; a test asserts `generateTracks` has exactly one call site in
 `app/lib`.
 
-**PR 8 — the menu and the home card.** `TracksMenu`, the menu screen, the theme picker, the fourth
-home card, routes.
+**PR 8 — the Tracks menu and the Puzzles menu.** `TracksMenu`, the Tracks menu screen, the theme
+picker, `PuzzlesMenuScreen`, the home card renamed to Puzzles, routes, and the Sudoku navigation tests
+moved behind it (§4.14).
 **Done when:** `TracksMenu` tests cover *Keep going*, the lowest unsolved index and best times;
 choosing the snail on one profile leaves another profile on the train; `layout_sweep_test.dart` passes
-with `/tracks` and `/tracks/play` included; the home screen shows four cards in portrait and a 2 x 2
-grid in landscape on the sweep's phone and tablet sizes.
+with `/puzzles`, `/tracks` and `/tracks/play` included; the home screen still shows three cards, the
+first labelled Puzzles; home → Puzzles → Sudoku → back → back returns home in a widget test; and the
+Sudoku smoke test passes through the Puzzles menu.
 
 **PR 9 — Santa, the snail and sound.** The two remaining skins and the four arrival motifs.
 **Done when:** the PR 6 skin tests run over all four themes; the four motifs are generated by
@@ -566,7 +606,7 @@ theirs.
 | Children do not grasp the rule without words | Medium | The first 5x5 Easy indices are nearly complete, so the rule is shown by the board; a clue's tick shows what "met" means. No mitigation is proven until a child plays it (§8). |
 | Adding Tracks moves a Sudoku golden | High | Sudoku goldens are untouched in every PR's done-criterion; CI's golden test fails on any drift. |
 | `tool/verify.sh` grows past its budget | Low | PR 3 measures the added time and records it in §8; `FUZZ_SEEDS` already scales the fuzz. |
-| A fourth home card crowds a landscape phone | Low | 2 x 2 grid in landscape; `layout_sweep_test.dart` at 200 % text. |
+| Moving Sudoku behind Puzzles strands a child who knew where it was | Low | The Puzzles card keeps Sudoku's place, colour and size on the home screen, and the Puzzles screen holds two picture cards and nothing else. Checked with a child who already plays Sudoku in §8. |
 
 ---
 
@@ -593,6 +633,9 @@ theirs.
       someone who has not seen the code.
 - [ ] *(Device)* A five- or six-year-old solves a 5x5 Easy unaided after one demonstration.
 - [ ] *(Device)* The four arrival motifs are heard and each reads as its theme.
+- [ ] *(Device)* The flower reads as wilted before the water arrives and as lush after — asked of
+      someone who has not seen the code.
+- [ ] *(Device)* A child who already plays Sudoku finds it through the Puzzles card unaided.
 - [ ] *(Device)* Rotating mid-puzzle keeps the board and the clock.
 
 ---
@@ -601,23 +644,22 @@ theirs.
 
 | Question | What resolves it |
 |---|---|
-| The game's name on the home card. "Tracks" is the working name and the ID prefix; the prefix is frozen once shipped, the label is not. | The owner chooses before PR 8. |
-| The water theme's goal: a flower in a pot, a bath, or a bucket. | The owner chooses before PR 6. |
-| A fourth home card, or a "Puzzles" card holding Sudoku and Tracks. | The owner chooses before PR 8. This plan assumes a fourth card because it changes no existing route. |
-| Sizes 5x5, 7x7 and 9x9 — or 6x6 and 8x8 to sit beside Sudoku's sizes. | The owner, before PR 3, since the goldens freeze the sizes. |
+| The game's name on the Puzzles menu. "Tracks" is the working name and the ID prefix; the prefix is frozen once shipped, the label is not. | The owner chooses before PR 8. |
 | Is the "no track here" mark worth having for young children, or is it a control they will not use? | The device pass. It costs one tap gesture and no button, so it ships unless the pass says it confuses. |
 | Should the theme also be switchable from the play screen, not only the menu? | Device pass and the owner. Menu-only is the default because it keeps a control off the play screen. |
 | A daily puzzle and streak, as Sudoku has. | Deferred (§2); the engine supports it already. |
 | A seasonal default theme, such as Santa in December. | Deferred (§2). |
 | Commissioned art in place of pixel sprites. | Deferred; the `TrackSkin` interface does not depend on how a sprite is stored. |
 
+**Answered by the owner:** sizes are 5x5, 7x7 and 9x9 (§4.1); the water theme's goal is a flower in a
+pot that starts wilted and turns lush when the water reaches it (§4.8); Sudoku and Tracks sit behind
+one Puzzles card (§4.14).
+
 ---
 
 ## 10. Starting order
 
-1. Answer the size question in §9: the goldens in PR 3 freeze it, so it is the one choice that
-   becomes expensive to change.
-2. PR 2: write `TracksPuzzleId` and the counter with its four hand-written fixtures before any
+1. PR 2: write `TracksPuzzleId` and the counter with its four hand-written fixtures before any
    generator, so uniqueness is checkable before anything produces a puzzle to check.
-3. PR 3: the walk and the deduction solver, then measure. Everything after PR 3 builds on numbers
+2. PR 3: the walk and the deduction solver, then measure. Everything after PR 3 builds on numbers
    this plan only estimates.
