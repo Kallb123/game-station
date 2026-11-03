@@ -307,7 +307,9 @@ class PuzzleInProgress {
 /// empty, meaning no marks, or one `'0'` or `'1'` per cell, row-major. The
 /// codec drops an entry whose board is not a board of the puzzle its key names
 /// (`save_codec.dart`); whether the board agrees with the puzzle's clues needs
-/// the generated puzzle and is checked on resume.
+/// the generated puzzle and is checked on resume. That includes reciprocity: a
+/// fixed piece's open end is unanswered on a good board, and only the puzzle
+/// says which pieces are fixed (`PLAN-phase-9-tracks.md` §4.11, PR 5).
 class TracksInProgress {
   const TracksInProgress({
     required this.cells,

@@ -724,11 +724,18 @@ void main() {
       expectDropped(key, {'cells': withCell(20, '4')});
     });
 
-    test('a connection its neighbour does not return is dropped', () {
-      // (2,0) is W|E, so its east neighbour must hold a west bit: blank it.
-      expectDropped(key, {'cells': withCell(11, '4')});
+    test('a connection its neighbour does not return is kept', () {
+      // A fixed piece's open end points at a free cell the child has not laid
+      // into, so an unanswered connection is a perfectly good board, and the
+      // codec cannot tell fixed pieces from free ones without generating the
+      // puzzle. The session's resume refuses it when the unanswered end is not
+      // a fixed piece's (`PLAN-phase-9-tracks.md` §4.11, PR 5).
+      // (2,0) is W|E, so its east neighbour would hold a west bit: blank it.
+      final east = decodeWith(key, {'cells': withCell(11, '4')});
+      expect(east[key]!.cells, withCell(11, '4'));
       // And the other direction: a south bit with nothing below it.
-      expectDropped(key, {'cells': withCell(16, '0')});
+      final south = decodeWith(key, {'cells': withCell(16, '0')});
+      expect(south[key]!.cells, withCell(16, '0'));
     });
 
     test('a key that is not a Tracks puzzle id is dropped', () {
