@@ -27,17 +27,19 @@ step 'Analyzing app'
 step 'Analyzing tool scripts'
 dart analyze --fatal-infos --fatal-warnings tool
 
-# FUZZ_SEEDS is how many puzzles test/fuzz_test.dart generates, across every
-# size and difficulty. It defaults to 200 so a bare `dart test` stays usable
-# while iterating; this and CI both set 2000, so the check that blocks a merge
-# and the check people run here are the same one rather than two that drift.
-# It is most of this script's runtime — see AGENTS.md's table.
+# FUZZ_SEEDS is how many puzzles test/fuzz_test.dart generates for each game,
+# across every size and difficulty. It defaults to 200 so a bare `dart test`
+# stays usable while iterating; this and CI both set 2000, so the check that
+# blocks a merge and the check people run here are the same one rather than two
+# that drift. With the goldens it is a third of this script's runtime — see
+# AGENTS.md's table.
 step 'Testing puzzle_engine'
 (cd packages/puzzle_engine && FUZZ_SEEDS=2000 dart test)
 
-# PLAN.md §3.5's generation targets. About ten seconds, and it fails only at
-# three times the target on a median, so what it catches is a regression of the
-# order of magnitude rather than a busy machine.
+# PLAN.md §3.5's generation targets, and PLAN-phase-9-tracks.md §4.5's. About
+# fifteen seconds, and it fails only at three times the target on a median, so
+# what it catches is a regression of the order of magnitude rather than a busy
+# machine.
 step 'Benchmarking the generator'
 (cd packages/puzzle_engine && dart run tool/benchmark.dart)
 

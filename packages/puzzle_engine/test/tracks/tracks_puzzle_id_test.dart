@@ -27,6 +27,10 @@ void main() {
     test('round-trips through the parser for every shape', () {
       for (final spec in TracksSpec.supported) {
         for (final difficulty in tiers) {
+          // 5x5 Hard is not an ID; the test at the foot of the file says why.
+          if (spec == TracksSpec.s5x5 && difficulty == Difficulty.hard) {
+            continue;
+          }
           for (final index in [0, 1, 9, 10, 412, 99999, 999999999]) {
             final id = TracksPuzzleId(spec, difficulty, index);
             expect(TracksPuzzleId.parse(id.value), id, reason: id.value);
@@ -168,9 +172,20 @@ void main() {
     expect(() => PuzzleId.parse('tracks:9x9:easy:0'), throwsFormatException);
   });
 
-  test('5x5 hard is accepted until PR 3 measures it', () {
-    // Guards the doc comment on parse: when PR 3 narrows this, the change to
-    // this test is the record that it was deliberate.
-    expect(TracksPuzzleId.parse('tracks:5x5:hard:0').spec, TracksSpec.s5x5);
+  test('5x5 hard is refused, because a 5x5 cannot carry it', () {
+    // PR 3 measured Hard on 5x5 reaching only one or two fixed pieces out of
+    // fourteen (PLAN-phase-9-tracks.md §4.1), so it is not offered. The offset
+    // is the difficulty field, as for expert.
+    expect(
+      () => TracksPuzzleId.parse('tracks:5x5:hard:0'),
+      throwsA(
+        isA<FormatException>()
+            .having((e) => e.offset, 'offset', 11)
+            .having((e) => e.message, 'message', contains('5x5 hard')),
+      ),
+    );
+    expect(TracksPuzzleId.parse('tracks:7x7:hard:0').spec, TracksSpec.s7x7);
+    expect(TracksPuzzleId.parse('tracks:9x9:hard:0').spec, TracksSpec.s9x9);
+    expect(TracksPuzzleId.parse('tracks:5x5:medium:0').spec, TracksSpec.s5x5);
   });
 }

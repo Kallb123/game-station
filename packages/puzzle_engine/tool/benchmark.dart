@@ -1,4 +1,5 @@
-// Measures what generation costs, against `PLAN.md` §3.5's targets.
+// Measures what generation costs, against `PLAN.md` §3.5's targets and, for
+// Tracks, `PLAN-phase-9-tracks.md` §4.5's.
 //
 //   cd packages/puzzle_engine && dart run tool/benchmark.dart
 //
@@ -26,6 +27,9 @@ import 'package:puzzle_engine/src/generator_version.dart';
 import 'package:puzzle_engine/src/puzzle_id.dart';
 import 'package:puzzle_engine/src/sudoku_spec.dart';
 import 'package:puzzle_engine/src/technique_solver.dart';
+import 'package:puzzle_engine/src/tracks/tracks_generator.dart';
+import 'package:puzzle_engine/src/tracks/tracks_puzzle_id.dart';
+import 'package:puzzle_engine/src/tracks/tracks_spec.dart';
 
 import '../test/combinations.dart';
 
@@ -62,6 +66,18 @@ int targetMsFor(SudokuSpec spec, Difficulty difficulty) {
   };
 }
 
+/// What `PLAN-phase-9-tracks.md` §4.5 asks of one call to `generateTracks`, in
+/// milliseconds.
+///
+/// By size alone: unlike Sudoku's, the Tracks targets do not rise with the tier,
+/// because the dig's cost is a solve per piece of the path and the path, not the
+/// label, is what grows with the grid.
+int tracksTargetMsFor(TracksSpec spec) => switch (spec.side) {
+  5 => 10,
+  7 => 50,
+  _ => 200,
+};
+
 void main(List<String> args) {
   if (args.isNotEmpty) {
     stderr.writeln('usage: dart run tool/benchmark.dart');
@@ -74,28 +90,26 @@ void main(List<String> args) {
     '$generatorVersion, on Dart ${Platform.version.split(' ').first}.',
   );
   stdout.writeln(
-    'The ceiling is ${ceilingFactor}x the PLAN.md §3.5 target, applied to the '
-    'median.\n',
+    'The ceiling is ${ceilingFactor}x the PLAN.md §3.5 target (Tracks: '
+    'PLAN-phase-9-tracks.md §4.5), applied to the median.\n',
   );
   stdout.writeln(
-    '${'combination'.padRight(14)}${'p50'.padLeft(9)}${'p95'.padLeft(9)}'
+    '${'combination'.padRight(22)}${'p50'.padLeft(9)}${'p95'.padLeft(9)}'
     '${'max'.padLeft(9)}${'target'.padLeft(9)}${'ceiling'.padLeft(9)}  verdict',
   );
 
   final over = <String>[];
-  for (final (spec, difficulty) in combinations) {
-    final name = '${spec.label} ${difficulty.name}';
-    final target = targetMsFor(spec, difficulty);
+  void measure(String name, int target, void Function(int index) generate) {
     final ceiling = target * ceilingFactor;
 
     for (var i = 0; i < warmUpCount; i++) {
-      generateSudoku(PuzzleId(spec, difficulty, warmUpFrom + i));
+      generate(warmUpFrom + i);
     }
 
     final times = <int>[];
     for (var index = 0; index < benchmarkCount; index++) {
       final watch = Stopwatch()..start();
-      generateSudoku(PuzzleId(spec, difficulty, index));
+      generate(index);
       watch.stop();
       times.add(watch.elapsedMicroseconds);
     }
@@ -108,17 +122,32 @@ void main(List<String> args) {
     }
 
     stdout.writeln(
-      '${name.padRight(14)}${_ms(p50).padLeft(9)}'
+      '${name.padRight(22)}${_ms(p50).padLeft(9)}'
       '${_ms(_percentile(times, 95)).padLeft(9)}${_ms(times.last).padLeft(9)}'
       '${'$target ms'.padLeft(9)}${'$ceiling ms'.padLeft(9)}'
       '  ${failed ? 'OVER' : 'ok'}',
     );
   }
 
+  for (final (spec, difficulty) in combinations) {
+    measure(
+      'sudoku ${spec.label} ${difficulty.name}',
+      targetMsFor(spec, difficulty),
+      (index) => generateSudoku(PuzzleId(spec, difficulty, index)),
+    );
+  }
+  for (final (spec, difficulty) in tracksCombinations) {
+    measure(
+      'tracks ${spec.label} ${difficulty.name}',
+      tracksTargetMsFor(spec),
+      (index) => generateTracks(TracksPuzzleId(spec, difficulty, index)),
+    );
+  }
+
   if (over.isEmpty) return;
   stderr.writeln(
     '\nGeneration is more than $ceilingFactor times slower than PLAN.md §3.5 '
-    'asks for: ${over.join('; ')}.',
+    '(Tracks: PLAN-phase-9-tracks.md §4.5) asks for: ${over.join('; ')}.',
   );
   exitCode = 1;
 }
