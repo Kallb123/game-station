@@ -1,4 +1,5 @@
-/// Deterministic Sudoku generation and solving for Zibo Games.
+/// Deterministic Sudoku generation and solving for Zibo Games, and the
+/// identity and encoding of its Tracks puzzles.
 ///
 /// Every puzzle is a pure function of its ID, so the same ID yields the same
 /// grid on every platform, in every release, with nothing stored and nothing
@@ -15,11 +16,16 @@
 /// data in, data out, which keeps its tests fast enough to fuzz thousands of
 /// seeds per run.
 ///
+/// Tracks (`PLAN-phase-9-tracks.md`) follows the same rule: a puzzle is a
+/// function of its [TracksPuzzleId], and [TracksClues] is the one-line form of
+/// what the player sees.
+///
 /// Four things are deliberately *not* exported. `Rng` and `fnv1a32` are the
 /// frozen sequence itself, and freezing it is only meaningful if nothing
 /// outside this package can start a different one — `Rng(DateTime.now())` in
 /// the app does not compile because the type is not there to name.
-/// `countSolutions` and `CandidateGrid` are how a puzzle is built and judged
+/// `countSolutions`, its Tracks counterpart `countTracksSolutions`, and
+/// `CandidateGrid` are how a puzzle is built and judged
 /// rather than anything the app has a question for; the answers it wants are
 /// already fields on [GeneratedPuzzle].
 library;
@@ -31,3 +37,7 @@ export 'src/puzzle_id.dart';
 export 'src/sudoku_board.dart';
 export 'src/sudoku_spec.dart';
 export 'src/technique_solver.dart';
+export 'src/tracks/track_side.dart';
+export 'src/tracks/tracks_clues.dart';
+export 'src/tracks/tracks_puzzle_id.dart';
+export 'src/tracks/tracks_spec.dart';
