@@ -1,6 +1,6 @@
 # Phase 9 — Tracks, a themeable path puzzle
 
-**In progress: PRs 1 to 3 have landed.** This file is the design and the pull-request breakdown for a fourth game:
+**In progress: PRs 1 to 4 have landed.** This file is the design and the pull-request breakdown for a fourth game:
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
@@ -506,7 +506,13 @@ the completion buzz, through `core/haptics.dart` and so gated by `hapticsLevel` 
   are the same and mean the same thing. `inProgress` is a new `TracksInProgress`: `cells` is one
   hex character per cell (the connection mask), `marks` a bit string, the undo stack the session's
   compact move strings. A `cells` string that is the wrong length or not reciprocal decodes to a
-  fresh board for that puzzle, said once, never an error (`AGENTS.md`).
+  fresh board for that puzzle, never an error (`AGENTS.md`). *As built in PR 4:* the codec drops the
+  entry, so the puzzle opens empty, and says nothing — the handling Sudoku's play screen already
+  gives a bad Sudoku entry. The check is structural only: the key parses as a `TracksPuzzleId`;
+  `cells` is that size's length in lowercase hex; no cell has more than two bits; no bit leaves
+  through the north or east edge; at most one west-edge and one south-edge bit (the two ports); every
+  interior connection is reciprocated; `marks` is empty or one `0`/`1` per cell. A board that
+  contradicts the generated clues passes this and is PR 5's to refuse on resume, as Sudoku's is.
 - `schemaVersion` stays 1: both fields are optional with defaults, the reasoning phases 3, 4, 7 and
   8 recorded. `transfer_codec.dart` nests the save codec's output, so a players file carries both
   with no change there; PR 4 adds a transfer round-trip test that proves it rather than assuming it.
@@ -666,6 +672,14 @@ with Tracks progress round-trips through the save codec and through a players fi
 (`transfer_codec.dart`) unchanged; a `cells` string of the wrong length decodes to an empty board
 for that puzzle rather than throwing; `schemaVersion` is still 1.
 
+*Built as planned, with two differences.* (1) A malformed in-progress board is dropped silently
+rather than "said once" (§4.11): one board starting empty is not news a child can act on, and a
+notice would need a channel from the codec to the UI that nothing else uses. (2)
+`ProfileImportEntry.result` (`progress_repository.dart`) builds an imported profile field by field,
+so it gained the two fields too, and a guard test now fails if a future profile field is left out of
+it — the players-file round trip alone would not catch that, because the file keeps the field and
+only the import drops it.
+
 **PR 5 — the session.** `TracksSession` and its codec, against puzzles from the real engine.
 **Done when:** plain `test()` cases cover every stroke rule of §4.7, including the retrace, the
 two-connection refusal, the fixed-cell refusal and the fast diagonal; undo and redo restore exact
@@ -749,6 +763,8 @@ theirs.
 - [ ] The import-boundary test fails against a copy of `model/` that imports a skin, and passes
       without it.
 - [ ] A save from before PR 4 loads on the PR 10 build with Tracks at defaults (fixture test).
+      *(PR 4: `preTracksSaveJson` in `save_fixtures.dart` is the pre-PR encoder's output, frozen as
+      text; ticked at the close, once it still passes on the PR 10 build.)*
 - [ ] A players file exported with Tracks progress imports on a second device with the same solved
       list, in-progress board and theme.
 - [ ] `tool/verify.sh` time before and after the phase recorded here: before ___, after ___.

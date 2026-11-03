@@ -19,6 +19,8 @@
 
 import 'dart:convert';
 
+import 'package:puzzle_engine/puzzle_engine.dart' as engine;
+
 import 'save_data.dart';
 
 /// The save file is not what this build can read: a missing field, a field of
@@ -288,6 +290,8 @@ Profile _readProfile(Map<String, Object?> raw, String path) => Profile(
           _at(path, 'padSide'),
         ),
   snakeCounting: _readSnakeCounting(raw, path),
+  tracksTheme: _readTracksTheme(raw, path),
+  tracks: _readTracks(_optMap(raw, 'tracks', path), _at(path, 'tracks')),
 );
 
 /// Reads `snakeCounting`, defaulting to [SnakeCounting.ones] both when the key
@@ -305,6 +309,22 @@ SnakeCounting _readSnakeCounting(Map<String, Object?> raw, String path) {
     if (counting.name == name) return counting;
   }
   return SnakeCounting.ones;
+}
+
+/// Reads `tracksTheme`, defaulting to [TracksTheme.train] both when the key is
+/// missing and when it names a skin this build does not know
+/// (`PLAN-phase-9-tracks.md` §4.11), the leniency [_readSnakeCounting] gives
+/// its enum. A newer build's fifth theme must open on an older one, and a skin
+/// is never a rule, so falling back costs a save nothing. A value that is not
+/// even a string is still a format error.
+TracksTheme _readTracksTheme(Map<String, Object?> raw, String path) {
+  final value = raw['tracksTheme'];
+  if (value == null) return TracksTheme.train;
+  final name = _string(value, _at(path, 'tracksTheme'));
+  for (final theme in TracksTheme.values) {
+    if (theme.name == name) return theme;
+  }
+  return TracksTheme.train;
 }
 
 SudokuProgress _readSudoku(Map<String, Object?> raw, String path) =>
@@ -350,6 +370,138 @@ PuzzleInProgress _readPuzzleInProgress(Map<String, Object?> raw, String path) =>
       undoStack: _readStringList(raw['undoStack'], _at(path, 'undoStack')),
       hints: _optInt(raw, 'hints', path, 0),
     );
+
+TracksProgress _readTracks(Map<String, Object?> raw, String path) =>
+    TracksProgress(
+      solved: _readMapOf(
+        _optMap(raw, 'solved', path),
+        _at(path, 'solved'),
+        _readSolvedPuzzle,
+      ),
+      inProgress: _readTracksInProgressMap(
+        _optMap(raw, 'inProgress', path),
+        _at(path, 'inProgress'),
+      ),
+      bestTimeMs: _readIntMap(
+        _optMap(raw, 'bestTimeMs', path),
+        _at(path, 'bestTimeMs'),
+      ),
+    );
+
+TracksInProgress _readTracksInProgress(Map<String, Object?> raw, String path) =>
+    TracksInProgress(
+      cells: _string(_required(raw, 'cells', path), _at(path, 'cells')),
+      marks: raw['marks'] == null
+          ? ''
+          : _string(raw['marks'], _at(path, 'marks')),
+      elapsedMs: _optInt(raw, 'elapsedMs', path, 0),
+      undoStack: _readStringList(raw['undoStack'], _at(path, 'undoStack')),
+      hints: _optInt(raw, 'hints', path, 0),
+    );
+
+/// Reads Tracks' in-progress boards, dropping any whose board does not describe
+/// a board of the puzzle its key names (`PLAN-phase-9-tracks.md` §4.11).
+///
+/// This is the one place the codec looks inside a board, and the one place it
+/// forgives. Sudoku keeps its grid opaque and its play screen drops a bad entry
+/// on resume; Tracks' plan puts the structural check here so that a malformed
+/// board is never handed to the session. Dropping the entry is "a fresh board
+/// for that puzzle": the child opens it to an empty board. Like Sudoku's it is
+/// dropped silently rather than reported, since telling a child that one board
+/// was malformed helps nobody (`AGENTS.md`). A wrong *type* is still a format
+/// error, as everywhere else in this file.
+///
+/// What this cannot check is anything that needs the generated puzzle: a board
+/// contradicting a fixed piece, or the start port being on the wrong row. Those
+/// belong to the session's resume, as Sudoku's do.
+Map<String, TracksInProgress> _readTracksInProgressMap(
+  Map<String, Object?> raw,
+  String path,
+) {
+  final entries = _readMapOf(raw, path, _readTracksInProgress);
+  return {
+    for (final entry in entries.entries)
+      if (_tracksBoardFits(entry.key, entry.value)) entry.key: entry.value,
+  };
+}
+
+/// Whether [entry]'s strings describe a board of the puzzle [key] names.
+bool _tracksBoardFits(String key, TracksInProgress entry) {
+  // An unparseable key means the length cannot be known, and the entry could
+  // never be opened anyway.
+  final engine.TracksSpec spec;
+  try {
+    spec = engine.TracksPuzzleId.parse(key).spec;
+  } on FormatException {
+    return false;
+  }
+  final side = spec.side;
+  final cells = entry.cells;
+  if (cells.length != spec.cells) return false;
+
+  // One spelling per board: lowercase hex only, so two strings never name one
+  // board.
+  final masks = <int>[];
+  for (var i = 0; i < cells.length; i++) {
+    final mask = _hexDigits.indexOf(cells[i]);
+    if (mask < 0) return false;
+    masks.add(mask);
+  }
+
+  // At most two bits. Exactly two is not required: mid-puzzle, the cell a
+  // stroke ended in holds a single connection.
+  for (final mask in masks) {
+    if (_bitCount(mask) > 2) return false;
+  }
+
+  var startPorts = 0;
+  var goalPorts = 0;
+  for (var row = 0; row < side; row++) {
+    for (var col = 0; col < side; col++) {
+      final mask = masks[row * side + col];
+      // Only the west edge and the south edge have ports: start and goal.
+      if (row == 0 && mask & engine.TrackSide.north != 0) return false;
+      if (col == side - 1 && mask & engine.TrackSide.east != 0) return false;
+      if (col == 0 && mask & engine.TrackSide.west != 0) startPorts++;
+      if (row == side - 1 && mask & engine.TrackSide.south != 0) goalPorts++;
+
+      // Every interior connection is reciprocated: checking east and south of
+      // each cell covers every neighbouring pair once, in both directions.
+      if (col < side - 1) {
+        final east = masks[row * side + col + 1];
+        final here = mask & engine.TrackSide.east != 0;
+        final there = east & engine.TrackSide.west != 0;
+        if (here != there) return false;
+      }
+      if (row < side - 1) {
+        final south = masks[(row + 1) * side + col];
+        final here = mask & engine.TrackSide.south != 0;
+        final there = south & engine.TrackSide.north != 0;
+        if (here != there) return false;
+      }
+    }
+  }
+  if (startPorts > 1 || goalPorts > 1) return false;
+
+  final marks = entry.marks;
+  if (marks.isNotEmpty) {
+    if (marks.length != spec.cells) return false;
+    for (var i = 0; i < marks.length; i++) {
+      if (marks[i] != '0' && marks[i] != '1') return false;
+    }
+  }
+  return true;
+}
+
+const String _hexDigits = '0123456789abcdef';
+
+int _bitCount(int mask) {
+  var count = 0;
+  for (var bits = mask; bits != 0; bits >>= 1) {
+    count += bits & 1;
+  }
+  return count;
+}
 
 DailyStreak _readStreak(Map<String, Object?> raw, String path) => DailyStreak(
   current: _optInt(raw, 'current', path, 0),
@@ -426,11 +578,27 @@ Map<String, Object?> _writeProfile(Profile profile) => {
   'sudoku': _writeSudoku(profile.sudoku),
   'arcade': _sorted(profile.arcade.games, _writeArcadeGame),
   'draw': _writeDraw(profile.draw),
+  'tracks': _writeTracks(profile.tracks),
   'mistakeFeedback': profile.mistakeFeedback.name,
   'arcadeEasyMode': profile.arcadeEasyMode,
   'arcadeAutoFire': profile.arcadeAutoFire,
   'padSide': profile.padSide.name,
   'snakeCounting': profile.snakeCounting.name,
+  'tracksTheme': profile.tracksTheme.name,
+};
+
+Map<String, Object?> _writeTracks(TracksProgress tracks) => {
+  'solved': _sorted(tracks.solved, _writeSolvedPuzzle),
+  'inProgress': _sorted(tracks.inProgress, _writeTracksInProgress),
+  'bestTimeMs': _sorted(tracks.bestTimeMs, (int value) => value),
+};
+
+Map<String, Object?> _writeTracksInProgress(TracksInProgress puzzle) => {
+  'cells': puzzle.cells,
+  'marks': puzzle.marks,
+  'elapsedMs': puzzle.elapsedMs,
+  'undoStack': puzzle.undoStack,
+  'hints': puzzle.hints,
 };
 
 Map<String, Object?> _writeSudoku(SudokuProgress sudoku) => {

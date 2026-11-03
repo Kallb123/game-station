@@ -83,6 +83,26 @@ enum SnakeCounting {
   twos,
 }
 
+/// The skin a profile draws Tracks with (`PLAN-phase-9-tracks.md` §4.8).
+///
+/// Per profile because siblings on one tablet want different trains. A skin
+/// and never a rule: nothing below the widget layer reads it except to choose
+/// a skin (§3), so no puzzle, hint or save check depends on which is set.
+enum TracksTheme {
+  /// A locomotive running on rails to a station. The default.
+  train,
+
+  /// Santa walking through snow to a house with a chimney.
+  santa,
+
+  /// A snail crawling a silvery trail to a pumpkin.
+  snail,
+
+  /// Water running from a tap through pipes to a wilted flower, which turns
+  /// lush when it arrives.
+  water,
+}
+
 /// How hard [AppSettings] buzzes. Replaces the plain on/off `haptics` bool
 /// PR 5 first shipped, once a device pass found every call too faint to feel
 /// reliably (`PLAN-phase-5.md` §4.5) — `core/haptics.dart` climbs a four-rung
@@ -191,8 +211,9 @@ class AppSettings {
 
 /// A puzzle this profile has finished.
 ///
-/// Keyed by puzzle id in [SudokuProgress.solved], so the grid itself is not
-/// stored — the id plus the generator reproduces it (`PLAN.md` §5.2).
+/// Keyed by puzzle id in [SudokuProgress.solved] and [TracksProgress.solved], so
+/// the grid itself is not stored — the id plus the generator reproduces it
+/// (`PLAN.md` §5.2).
 class SolvedPuzzle {
   const SolvedPuzzle({
     required this.timeMs,
@@ -205,10 +226,10 @@ class SolvedPuzzle {
   /// How long the puzzle took, in milliseconds.
   final int timeMs;
 
-  /// How many cells the technique solver gave away.
+  /// How many cells (or, in Tracks, pieces) the technique solver gave away.
   final int hints;
 
-  /// How many wrong digits were entered.
+  /// How many wrong digits, or wrong connections in Tracks, were entered.
   final int mistakes;
 
   /// When it was finished, in UTC. Optional because `PLAN.md` §5.2's own
@@ -274,6 +295,57 @@ class PuzzleInProgress {
   @override
   int get hashCode =>
       Object.hash(grid, notes, elapsedMs, Object.hashAll(undoStack), hints);
+}
+
+/// A Tracks puzzle left half-finished, restored on the next launch
+/// (`PLAN-phase-9-tracks.md` §4.11).
+///
+/// [cells] and [marks] are the two strings the codec checks for shape and
+/// nothing more: [cells] is one lowercase hex character per cell, row-major,
+/// holding the cell's connection mask (`TrackSide` bits: north 1, east 2,
+/// south 4, west 8; a port cell carries its outward bit). [marks] is either
+/// empty, meaning no marks, or one `'0'` or `'1'` per cell, row-major. The
+/// codec drops an entry whose board is not a board of the puzzle its key names
+/// (`save_codec.dart`); whether the board agrees with the puzzle's clues needs
+/// the generated puzzle and is checked on resume.
+class TracksInProgress {
+  const TracksInProgress({
+    required this.cells,
+    this.marks = '',
+    this.elapsedMs = 0,
+    this.undoStack = const [],
+    this.hints = 0,
+  });
+
+  /// The connection masks, one lowercase hex character per cell.
+  final String cells;
+
+  /// Empty, or one `'0'` or `'1'` per cell.
+  final String marks;
+
+  /// Time on the clock when the app was last closed.
+  final int elapsedMs;
+
+  /// The session's compact move strings, oldest first. Opaque to the codec:
+  /// the session owns their encoding, as phase 3 owns Sudoku's
+  /// (`PLAN-phase-9-tracks.md` §6, PR 5).
+  final List<String> undoStack;
+
+  /// Hints used so far, carried into the [SolvedPuzzle] on completion.
+  final int hints;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TracksInProgress &&
+      other.cells == cells &&
+      other.marks == marks &&
+      other.elapsedMs == elapsedMs &&
+      _listEquals(other.undoStack, undoStack) &&
+      other.hints == hints;
+
+  @override
+  int get hashCode =>
+      Object.hash(cells, marks, elapsedMs, Object.hashAll(undoStack), hints);
 }
 
 /// The daily-puzzle streak.
@@ -366,6 +438,61 @@ class SudokuProgress {
     dailyStreak,
     _mapHash(bestTimeMs),
   );
+}
+
+/// One profile's Tracks history (`PLAN-phase-9-tracks.md` §4.11).
+///
+/// [SudokuProgress] without the daily streak: Tracks has no daily puzzle (§2).
+/// [solved] reuses [SolvedPuzzle] because the fields mean the same thing. Its
+/// keys are `tracks:` puzzle ids, so they can never collide with Sudoku's.
+class TracksProgress {
+  const TracksProgress({
+    this.solved = const {},
+    this.inProgress = const {},
+    this.bestTimeMs = const {},
+  });
+
+  /// Puzzle id to how it was finished.
+  final Map<String, SolvedPuzzle> solved;
+
+  /// Puzzle id to the board as it was left.
+  final Map<String, TracksInProgress> inProgress;
+
+  /// `"7x7:easy"` to the best time in milliseconds. Derived from [solved], but
+  /// stored, so the menu can show a best time without walking every entry.
+  final Map<String, int> bestTimeMs;
+
+  /// The key [bestTimeMs] holds one size and difficulty under.
+  ///
+  /// Beside the field rather than in the repository that writes it, because the
+  /// menu reads it too: two spellings of `"7x7:easy"` would agree right up
+  /// until one of them was edited, and the failure then is a best time that
+  /// silently stops being found (as for [SudokuProgress.bestTimeKey]).
+  static String bestTimeKey(
+    engine.TracksSpec spec,
+    engine.Difficulty difficulty,
+  ) => '${spec.label}:${difficulty.name}';
+
+  TracksProgress copyWith({
+    Map<String, SolvedPuzzle>? solved,
+    Map<String, TracksInProgress>? inProgress,
+    Map<String, int>? bestTimeMs,
+  }) => TracksProgress(
+    solved: solved ?? this.solved,
+    inProgress: inProgress ?? this.inProgress,
+    bestTimeMs: bestTimeMs ?? this.bestTimeMs,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is TracksProgress &&
+      _mapEquals(other.solved, solved) &&
+      _mapEquals(other.inProgress, inProgress) &&
+      _mapEquals(other.bestTimeMs, bestTimeMs);
+
+  @override
+  int get hashCode =>
+      Object.hash(_mapHash(solved), _mapHash(inProgress), _mapHash(bestTimeMs));
 }
 
 /// One entry in a game's high-score table.
@@ -557,6 +684,8 @@ class Profile {
     this.arcadeAutoFire = false,
     this.padSide = PadSide.right,
     this.snakeCounting = SnakeCounting.ones,
+    this.tracksTheme = TracksTheme.train,
+    this.tracks = const TracksProgress(),
   }) : assert(createdAt.isUtc, 'createdAt must be UTC');
 
   /// `"p1"`, `"p2"`, … — a counter, never random and never a clock reading, so
@@ -599,6 +728,13 @@ class Profile {
   /// [SnakeCounting] (`PLAN-phase-7-snake.md` §4.8).
   final SnakeCounting snakeCounting;
 
+  /// The skin this profile draws Tracks with. A child's choice, not the
+  /// tablet's — see [TracksTheme] (`PLAN-phase-9-tracks.md` §4.8).
+  final TracksTheme tracksTheme;
+
+  /// This profile's Tracks history.
+  final TracksProgress tracks;
+
   Profile copyWith({
     String? name,
     AvatarId? avatar,
@@ -610,6 +746,8 @@ class Profile {
     bool? arcadeAutoFire,
     PadSide? padSide,
     SnakeCounting? snakeCounting,
+    TracksTheme? tracksTheme,
+    TracksProgress? tracks,
   }) => Profile(
     id: id,
     name: name ?? this.name,
@@ -623,6 +761,8 @@ class Profile {
     arcadeAutoFire: arcadeAutoFire ?? this.arcadeAutoFire,
     padSide: padSide ?? this.padSide,
     snakeCounting: snakeCounting ?? this.snakeCounting,
+    tracksTheme: tracksTheme ?? this.tracksTheme,
+    tracks: tracks ?? this.tracks,
   );
 
   @override
@@ -639,7 +779,9 @@ class Profile {
       other.arcadeEasyMode == arcadeEasyMode &&
       other.arcadeAutoFire == arcadeAutoFire &&
       other.padSide == padSide &&
-      other.snakeCounting == snakeCounting;
+      other.snakeCounting == snakeCounting &&
+      other.tracksTheme == tracksTheme &&
+      other.tracks == tracks;
 
   @override
   int get hashCode => Object.hash(
@@ -655,6 +797,8 @@ class Profile {
     arcadeAutoFire,
     padSide,
     snakeCounting,
+    tracksTheme,
+    tracks,
   );
 }
 

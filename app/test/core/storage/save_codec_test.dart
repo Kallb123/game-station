@@ -5,6 +5,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:puzzle_engine/puzzle_engine.dart' as engine;
 import 'package:zibo_games/core/storage/save_codec.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 
@@ -128,6 +129,50 @@ void main() {
                   bestLength: 24,
                 ),
               },
+            ),
+          ),
+        ],
+      );
+
+      final decoded = decodeSave(encodeSave(save));
+
+      expect(decoded, save);
+      expect(decoded.schemaVersion, currentSchemaVersion);
+    });
+
+    // PR 4's own round trip (`PLAN-phase-9-tracks.md` §6): a non-default skin,
+    // solved and in-progress puzzles and a best time go through the codec
+    // without moving the schema.
+    test('a non-default tracksTheme, solved, in-progress and best times round '
+        'trip', () {
+      final save = SaveData(
+        activeProfileId: 'p1',
+        profiles: [
+          Profile(
+            id: 'p1',
+            name: 'Ana',
+            avatar: AvatarId.fox,
+            createdAt: DateTime.utc(2026),
+            tracksTheme: TracksTheme.water,
+            tracks: TracksProgress(
+              solved: {
+                'tracks:7x7:easy:0': SolvedPuzzle(
+                  timeMs: 61000,
+                  mistakes: 1,
+                  solvedAt: DateTime.utc(2026, 8, 11, 10, 30),
+                  clean: true,
+                ),
+              },
+              inProgress: const {
+                'tracks:5x5:easy:2': TracksInProgress(
+                  cells: _validBoard,
+                  marks: '0100000000000000000000001',
+                  elapsedMs: 90000,
+                  undoStack: ['+r2c0:a', '-r3c1'],
+                  hints: 1,
+                ),
+              },
+              bestTimeMs: const {'7x7:easy': 61000},
             ),
           ),
         ],
@@ -270,6 +315,71 @@ void main() {
       );
 
       expect(save.activeProfile.snakeCounting, SnakeCounting.ones);
+    });
+
+    // A file written before Tracks has neither `tracksTheme` nor `tracks`
+    // (`PLAN-phase-9-tracks.md` §6, PR 4's own done-criterion). The fixture is
+    // frozen text, so this reads what an older build really wrote.
+    test('a file written before Tracks decodes with every Tracks field at its '
+        'default and nothing else changed', () {
+      final save = decodeSave(preTracksSaveJson);
+      final expected = fullSave().copyWith(
+        profiles: [
+          for (final profile in fullSave().profiles)
+            profile.copyWith(
+              tracksTheme: TracksTheme.train,
+              tracks: const TracksProgress(),
+            ),
+        ],
+      );
+
+      for (final profile in save.profiles) {
+        expect(profile.tracksTheme, TracksTheme.train);
+        expect(profile.tracks, const TracksProgress());
+      }
+      expect(save, expected);
+    });
+
+    test('the plan example and the minimal file decode with Tracks at its '
+        'defaults', () {
+      for (final json in [planExampleJson, minimalSaveJson]) {
+        final profile = decodeSave(json).activeProfile;
+
+        expect(profile.tracksTheme, TracksTheme.train);
+        expect(profile.tracks, const TracksProgress());
+      }
+    });
+
+    test('an unknown tracksTheme string decodes to train', () {
+      // A newer build's fifth theme must open on this one (§4.11).
+      final save = decodeSave(
+        _patch(
+          minimalSaveJson,
+          '"createdAt": "2026-08-11T10:00:00Z" }',
+          '"createdAt": "2026-08-11T10:00:00Z", "tracksTheme": "rocket" }',
+        ),
+      );
+
+      expect(save.activeProfile.tracksTheme, TracksTheme.train);
+    });
+
+    test('a tracksTheme of the wrong type is refused and names its path', () {
+      expect(
+        () => decodeSave(
+          _patch(
+            minimalSaveJson,
+            '"createdAt": "2026-08-11T10:00:00Z" }',
+            '"createdAt": "2026-08-11T10:00:00Z", "tracksTheme": 3 }',
+          ),
+        ),
+        throwsA(
+          isA<SaveFormatException>().having(
+            (e) => e.path,
+            'path',
+            'profiles[0].tracksTheme',
+          ),
+        ),
+      );
     });
 
     test('a profile\'s draw block and allowPhotoImport round trip', () {
@@ -524,6 +634,147 @@ void main() {
     });
   });
 
+  // `PLAN-phase-9-tracks.md` §4.11 and §6, PR 4: the codec drops an in-progress
+  // board that does not describe a board of the puzzle its key names, rather
+  // than handing it to the session or refusing the file. Each test keeps a valid
+  // sibling in the same map, so it also proves the rest of the save survives.
+  group('a Tracks board that does not fit its puzzle', () {
+    const key = 'tracks:5x5:easy:2';
+    const sibling = 'tracks:5x5:easy:3';
+
+    Map<String, TracksInProgress> decodeWith(
+      String badKey,
+      Map<String, Object?> bad,
+    ) {
+      final json = jsonEncode({
+        'schemaVersion': 1,
+        'activeProfileId': 'p1',
+        'profiles': [
+          {
+            'id': 'p1',
+            'name': 'Ana',
+            'avatar': 'fox',
+            'createdAt': '2026-08-11T10:00:00Z',
+            'tracks': {
+              'inProgress': {
+                badKey: bad,
+                sibling: {'cells': _validBoard, 'hints': 1},
+              },
+            },
+          },
+        ],
+      });
+      return decodeSave(json).activeProfile.tracks.inProgress;
+    }
+
+    // Asserts the bad entry is gone and the valid sibling is intact.
+    void expectDropped(String badKey, Map<String, Object?> bad) {
+      final result = decodeWith(badKey, bad);
+
+      expect(result.keys, [sibling]);
+      expect(result[sibling]!.cells, _validBoard);
+      expect(result[sibling]!.hints, 1);
+    }
+
+    String withCell(int index, String char) =>
+        _validBoard.replaceRange(index, index + 1, char);
+
+    test('a valid board with both port bits survives', () {
+      final result = decodeWith(key, {'cells': _validBoard});
+
+      expect(result.keys.toSet(), {key, sibling});
+      expect(result[key]!.cells, _validBoard);
+    });
+
+    // The PR's done-criterion: a board of the wrong length decodes to a fresh
+    // board for that puzzle, not an error.
+    test('a cells string of the wrong length is dropped, never an error', () {
+      expectDropped(key, {'cells': _validBoard.substring(1)});
+      expectDropped(key, {'cells': '${_validBoard}0'});
+      expectDropped(key, {'cells': ''});
+      // A 7x7 board under a 5x5 key.
+      expectDropped(key, {'cells': _sevenEmpty});
+    });
+
+    test('a character that is not lowercase hex is dropped', () {
+      expectDropped(key, {'cells': withCell(0, 'g')});
+      expectDropped(key, {'cells': withCell(11, 'C')});
+      expectDropped(key, {'cells': withCell(0, ' ')});
+    });
+
+    test('a cell with three bits is dropped', () {
+      // 0x7 is north, east and south.
+      expectDropped(key, {'cells': withCell(12, '7')});
+    });
+
+    test('a north bit in the top row is dropped', () {
+      expectDropped(key, {'cells': withCell(2, '1')});
+    });
+
+    test('an east bit in the last column is dropped', () {
+      expectDropped(key, {'cells': withCell(9, '2')});
+    });
+
+    test('two west-edge port bits are dropped', () {
+      // The valid board's start port is (2,0); (0,0) with west is a second.
+      expectDropped(key, {'cells': withCell(0, '8')});
+    });
+
+    test('two south-edge port bits are dropped', () {
+      expectDropped(key, {'cells': withCell(20, '4')});
+    });
+
+    test('a connection its neighbour does not return is dropped', () {
+      // (2,0) is W|E, so its east neighbour must hold a west bit: blank it.
+      expectDropped(key, {'cells': withCell(11, '4')});
+      // And the other direction: a south bit with nothing below it.
+      expectDropped(key, {'cells': withCell(16, '0')});
+    });
+
+    test('a key that is not a Tracks puzzle id is dropped', () {
+      expectDropped('tracks:5x5:hard:0', {'cells': _validBoard});
+      expectDropped('sudoku:9x9:easy:0', {'cells': _validBoard});
+      expectDropped('nonsense', {'cells': _validBoard});
+    });
+
+    test('marks of the wrong length are dropped', () {
+      expectDropped(key, {'cells': _validBoard, 'marks': '0101'});
+    });
+
+    test('a marks character other than 0 and 1 is dropped', () {
+      expectDropped(key, {
+        'cells': _validBoard,
+        'marks': '2000000000000000000000000',
+      });
+    });
+
+    test('empty marks are allowed', () {
+      expect(
+        decodeWith(key, {'cells': _validBoard, 'marks': ''}),
+        hasLength(2),
+      );
+    });
+
+    // A wrong type is a format error everywhere in this codec; only a board
+    // that is the right type and the wrong shape is forgiven.
+    test('cells of the wrong type or missing is still a format error', () {
+      expect(
+        () => decodeWith(key, {'cells': 12}),
+        throwsA(
+          isA<SaveFormatException>().having(
+            (e) => e.path,
+            'path',
+            'profiles[0].tracks.inProgress.$key.cells',
+          ),
+        ),
+      );
+      expect(
+        () => decodeWith(key, {'hints': 1}),
+        throwsA(isA<SaveFormatException>()),
+      );
+    });
+  });
+
   group('schema version', () {
     test('a newer save is refused rather than guessed at', () {
       expect(
@@ -650,6 +901,48 @@ void main() {
       );
     });
 
+    test('tracksTheme is stored by name', () {
+      final json = jsonDecode(encodeSave(fullSave())) as Map<String, Object?>;
+      final profiles = json['profiles']! as List<Object?>;
+
+      expect((profiles.first! as Map<String, Object?>)['tracksTheme'], 'santa');
+    });
+
+    test('Tracks\' solved, inProgress and bestTimeMs keys are sorted', () {
+      final save = SaveData(
+        activeProfileId: 'p1',
+        profiles: [
+          Profile(
+            id: 'p1',
+            name: 'Ana',
+            avatar: AvatarId.fox,
+            createdAt: DateTime.utc(2026),
+            tracks: const TracksProgress(
+              solved: {
+                'tracks:9x9:hard:1': SolvedPuzzle(timeMs: 1),
+                'tracks:5x5:easy:1': SolvedPuzzle(timeMs: 1),
+              },
+              inProgress: {
+                'tracks:7x7:easy:1': TracksInProgress(cells: _sevenEmpty),
+                'tracks:5x5:easy:1': TracksInProgress(cells: _fiveEmpty),
+              },
+              bestTimeMs: {'9x9:hard': 1, '5x5:easy': 1},
+            ),
+          ),
+        ],
+      );
+      final json = jsonDecode(encodeSave(save)) as Map<String, Object?>;
+      final profile =
+          (json['profiles']! as List<Object?>).first! as Map<String, Object?>;
+      final tracks = profile['tracks']! as Map<String, Object?>;
+
+      for (final block in ['solved', 'inProgress', 'bestTimeMs']) {
+        final keys = (tracks[block]! as Map<String, Object?>).keys.toList();
+        expect(keys, [...keys]..sort(), reason: block);
+        expect(keys, hasLength(2), reason: block);
+      }
+    });
+
     test('absent optional values are omitted rather than written as null', () {
       final json = encodeSave(
         SaveData(
@@ -707,6 +1000,16 @@ void main() {
       );
     });
   });
+
+  test('TracksProgress.bestTimeKey spells size and difficulty', () {
+    expect(
+      TracksProgress.bestTimeKey(
+        engine.TracksSpec.s7x7,
+        engine.Difficulty.easy,
+      ),
+      '7x7:easy',
+    );
+  });
 }
 
 /// Replaces the single occurrence of [from] in [source] with [to].
@@ -722,3 +1025,12 @@ String _patch(String source, String from, String to) {
   );
   return source.replaceFirst(from, to);
 }
+
+/// A complete 5x5 board for `tracks:5x5:easy:2` (start on row 2, goal in column
+/// 1): (2,0) is west and east, (2,1) west and south, (3,1) and (4,1) north and
+/// south, the last one's south bit being the goal port.
+const String _validBoard = '0000000000ac0000500005000';
+
+const String _fiveEmpty = '0000000000000000000000000';
+
+const String _sevenEmpty = '0000000000000000000000000000000000000000000000000';

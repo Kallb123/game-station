@@ -78,6 +78,8 @@ class ProfileImportEntry {
     arcadeAutoFire: incoming.arcadeAutoFire,
     padSide: incoming.padSide,
     snakeCounting: incoming.snakeCounting,
+    tracksTheme: incoming.tracksTheme,
+    tracks: incoming.tracks,
   );
 }
 

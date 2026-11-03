@@ -30,12 +30,49 @@ void main() {
       expect(changed, isNot(fullSave()));
     });
 
+    test('a difference in the Tracks fields is a difference at the root', () {
+      final profile = fullSave().profiles.first;
+      SaveData with_(Profile changed) =>
+          fullSave().copyWith(profiles: [changed, fullSave().profiles.last]);
+
+      expect(
+        with_(profile.copyWith(tracksTheme: TracksTheme.snail)),
+        isNot(fullSave()),
+      );
+      expect(
+        with_(
+          profile.copyWith(
+            tracks: profile.tracks.copyWith(bestTimeMs: const {'5x5:easy': 1}),
+          ),
+        ),
+        isNot(fullSave()),
+      );
+      expect(
+        with_(
+          profile.copyWith(
+            tracks: profile.tracks.copyWith(
+              inProgress: const {
+                'tracks:5x5:easy:4': TracksInProgress(cells: 'x'),
+              },
+            ),
+          ),
+        ),
+        isNot(fullSave()),
+      );
+    });
+
     test('maps compare by content, not by insertion order', () {
       SudokuProgress best(List<String> keys) =>
           SudokuProgress(bestTimeMs: {for (final key in keys) key: 1});
 
       expect(best(['a', 'b']), best(['b', 'a']));
       expect(best(['a', 'b']).hashCode, best(['b', 'a']).hashCode);
+
+      TracksProgress tracks(List<String> keys) =>
+          TracksProgress(bestTimeMs: {for (final key in keys) key: 1});
+
+      expect(tracks(['a', 'b']), tracks(['b', 'a']));
+      expect(tracks(['a', 'b']).hashCode, tracks(['b', 'a']).hashCode);
     });
   });
 
