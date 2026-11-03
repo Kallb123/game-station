@@ -1,6 +1,6 @@
 # Phase 9 — Tracks, a themeable path puzzle
 
-**In progress: PRs 1 to 4 have landed.** This file is the design and the pull-request breakdown for a fourth game:
+**In progress: PRs 1 to 5 have landed.** This file is the design and the pull-request breakdown for a fourth game:
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
@@ -407,6 +407,29 @@ The model imports nothing from `ui/` or `skins/`. A test in the style of
 `haptics_call_site_test.dart` scans `features/tracks/model` and `features/tracks/data` and fails if
 either imports a skin, which is the mechanism behind §3's load-bearing decision.
 
+**Built in PR 5, with these differences from the sketch.** (1) **Strokes are addressed by `(row,
+column)`, not a cell index:** the two ports sit outside the grid — the start port is `(startRow, -1)`,
+the goal port `(side, goalColumn)` — and walking a jump needs coordinates anyway. (2) **A fixed
+piece's open ends are the child's to join:** the board starts as `clues.fixed` exactly, and the free
+neighbour a fixed piece points into starts empty, so a fixed piece may hold a bit its neighbour does
+not answer. A stroke from that neighbour into the piece lays the neighbour's half only. Seeding the
+neighbour's half instead was tried first and measured: it completes cells the child never touched,
+and opened 13% of 5x5 Easy, 6% of 7x7 Easy and 3% of 9x9 Easy puzzles already solved. Only the fixed
+piece's own bits can never be lifted (`fixedSides`). (3) `marked` and `wrongConnections` are queries per cell — `isMarked`,
+`wrongSides` (the fact) and `flaggedSides` (what the board draws, after the feedback mode) — so no
+caller iterates a `Set`. (4) **Mistakes are counted when a stroke ends**, for each wrong connection the
+stroke laid and left on the board: a fast swipe's overshoot that is retraced within the stroke costs
+nothing. Laying a connection still plays `wrong` at once under `immediate`. (5) The cursor follows
+the finger through a refusal, so the next cell entered lays from where the finger is, not from where
+the refusal happened; retracing restores a mark the stroke cleared. (6) On a diagonal tie the jump
+walks first along the axis of the stroke's previous step, or across columns if there was none, so a
+swipe that turns a corner keeps going the way it was going. (7) **Resume refuses a board that does not
+fit the puzzle** — a missing fixed connection, a port on the wrong cell, a mark on track, anything the
+codec's structural check refuses — with a `FormatException`, as Sudoku's does, but **an undo stack
+that does not replay into valid boards is dropped alone** and the board kept: losing history costs
+less than losing a half-laid track. Undo entries are the touched cells' prior states,
+`<index>.<mask>.<mark>` joined by commas (`tracks_session_codec.dart`).
+
 ### 4.8 Skins
 
 ```dart
@@ -510,8 +533,10 @@ the completion buzz, through `core/haptics.dart` and so gated by `hapticsLevel` 
   entry, so the puzzle opens empty, and says nothing — the handling Sudoku's play screen already
   gives a bad Sudoku entry. The check is structural only: the key parses as a `TracksPuzzleId`;
   `cells` is that size's length in lowercase hex; no cell has more than two bits; no bit leaves
-  through the north or east edge; at most one west-edge and one south-edge bit (the two ports); every
-  interior connection is reciprocated; `marks` is empty or one `0`/`1` per cell. A board that
+  through the north or east edge; at most one west-edge and one south-edge bit (the two ports);
+  `marks` is empty or one `0`/`1` per cell. *PR 5 removed a fifth check, that every interior
+  connection is reciprocated:* a fixed piece's open end is unanswered on a good board (§4.7), and
+  only the session's resume knows which pieces are fixed, so reciprocity is checked there. A board that
   contradicts the generated clues passes this and is PR 5's to refuse on resume, as Sudoku's is.
 - `schemaVersion` stays 1: both fields are optional with defaults, the reasoning phases 3, 4, 7 and
   8 recorded. `transfer_codec.dart` nests the save codec's output, so a players file carries both
@@ -553,6 +578,12 @@ The hint button reveals one cell: the next cell `nextTracksStep` can prove, fill
 piece and drawn as fixed. If the board holds a wrong connection, the hint points at it instead, free,
 because pointing at a mistake gives nothing away — the rule Sudoku already uses (`PLAN.md` §3.7).
 Hints are counted, and a hinted solve is solved but not clean.
+
+*As built in PR 5,* the hinted piece is an ordinary laid piece — liftable and undoable — rather than
+drawn as fixed: `TracksInProgress` has no field to remember which cells were hinted, so a fixed hint
+would turn loose on the next launch, which is worse than never being fixed. If `nextTracksStep` finds
+nothing, the hint reveals the lowest cell that differs from the solution, so the button never does
+nothing on an unsolved board.
 
 ### 4.14 The Tracks menu and the Puzzles menu
 
@@ -687,6 +718,13 @@ boards across 300 entries and drop the oldest beyond; `isSolved` agrees with `so
 generated puzzles solved by replaying their solution as strokes; the import-boundary test fails when a
 skin import is added to `model/` (checked against a deliberately broken copy, per `AGENTS.md`).
 
+*Built as planned, with the differences recorded in §4.7 and §4.13.* The one that reached outside
+`model/`: a fixed piece's open end is now the child's to join, so the save codec's reciprocity check
+moved from `save_codec.dart` to the session's resume (§4.11). The replay covers 500 puzzles across
+all eight offered combinations in about a second, and a further test asserts that no fresh session
+of indices 0–199 of any combination opens solved. `app/test/features/tracks/` holds 137 tests and
+runs in about four seconds; `tool/verify.sh` took 3 m 40 s wall on this change.
+
 **PR 6 — skins: interface, train, water.** `TrackSkin`, `TrackGeometry`, `SkinColours`, the sprite
 format and its decoder, the train and water skins.
 **Done when:** a `TrackGeometry` test places the traveller in the expected cell at t = 0, 0.5 and 1 on
@@ -760,8 +798,9 @@ theirs.
 - [ ] `dart tool/check_determinism.dart` and `dart tool/check_offline.dart` pass; `app/pubspec.yaml`
       and `packages/puzzle_engine/pubspec.yaml` are unchanged by this phase (`git diff main --
       '*/pubspec.yaml'`). *(Both pass after PR 3 and no pubspec has changed; ticked at the close.)*
-- [ ] The import-boundary test fails against a copy of `model/` that imports a skin, and passes
-      without it.
+- [x] The import-boundary test fails against a copy of `model/` that imports a skin, and passes
+      without it. *(PR 5: `app/test/features/tracks/import_boundary_test.dart` copies `model/` to a
+      temporary directory, adds a skin import, and asserts the scan reports it.)*
 - [ ] A save from before PR 4 loads on the PR 10 build with Tracks at defaults (fixture test).
       *(PR 4: `preTracksSaveJson` in `save_fixtures.dart` is the pre-PR encoder's output, frozen as
       text; ticked at the close, once it still passes on the PR 10 build.)*

@@ -412,8 +412,12 @@ TracksInProgress _readTracksInProgress(Map<String, Object?> raw, String path) =>
 /// error, as everywhere else in this file.
 ///
 /// What this cannot check is anything that needs the generated puzzle: a board
-/// contradicting a fixed piece, or the start port being on the wrong row. Those
-/// belong to the session's resume, as Sudoku's do.
+/// contradicting a fixed piece, the start port being on the wrong row, or a
+/// connection its neighbour does not return. That last one is legal on a good
+/// board: a fixed piece's open end points at a free cell the child has not laid
+/// into yet, and only the puzzle says which pieces are fixed. All of these
+/// belong to the session's resume, as Sudoku's do
+/// (`PLAN-phase-9-tracks.md` §4.11, PR 5).
 Map<String, TracksInProgress> _readTracksInProgressMap(
   Map<String, Object?> raw,
   String path,
@@ -464,21 +468,6 @@ bool _tracksBoardFits(String key, TracksInProgress entry) {
       if (col == side - 1 && mask & engine.TrackSide.east != 0) return false;
       if (col == 0 && mask & engine.TrackSide.west != 0) startPorts++;
       if (row == side - 1 && mask & engine.TrackSide.south != 0) goalPorts++;
-
-      // Every interior connection is reciprocated: checking east and south of
-      // each cell covers every neighbouring pair once, in both directions.
-      if (col < side - 1) {
-        final east = masks[row * side + col + 1];
-        final here = mask & engine.TrackSide.east != 0;
-        final there = east & engine.TrackSide.west != 0;
-        if (here != there) return false;
-      }
-      if (row < side - 1) {
-        final south = masks[(row + 1) * side + col];
-        final here = mask & engine.TrackSide.south != 0;
-        final there = south & engine.TrackSide.north != 0;
-        if (here != there) return false;
-      }
     }
   }
   if (startPorts > 1 || goalPorts > 1) return false;
