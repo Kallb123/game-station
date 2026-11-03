@@ -432,6 +432,13 @@ class ProgressRepository extends ChangeNotifier {
 
   // --- tracks ------------------------------------------------------------
 
+  /// Changes the skin the active profile draws Tracks with. Per profile, so
+  /// siblings on one tablet keep their own (`PLAN-phase-9-tracks.md` §4.8).
+  void setTracksTheme(TracksTheme theme) => _replaceProfile(
+    _data.activeProfileId,
+    (profile) => profile.copyWith(tracksTheme: theme),
+  );
+
   /// Stores [state] as the active profile's in-progress board for [id],
   /// replacing whatever was there (`PLAN-phase-9-tracks.md` §4.11).
   void saveTracksInProgress(engine.TracksPuzzleId id, TracksInProgress state) =>

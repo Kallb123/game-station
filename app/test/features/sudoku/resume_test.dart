@@ -123,6 +123,8 @@ void main() {
 /// transition happened to take. 400 ms is past the transition and short of the
 /// first tick.
 Future<void> _openTheBoard(WidgetTester tester) async {
+  await tester.tap(find.text('Puzzles'));
+  await tester.pumpAndSettle();
   await tester.tap(find.text('Sudoku'));
   await tester.pumpAndSettle();
   await tester.tap(find.text(resumePuzzle.spec.label));

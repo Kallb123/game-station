@@ -16,15 +16,22 @@ abstract final class AppRoutes {
   /// The settings screen.
   static const String settings = '/settings';
 
-  /// Sudoku, from phase 3.
+  /// The Puzzles menu: Sudoku and Tracks behind one home card
+  /// (`PLAN-phase-9-tracks.md` §4.14).
+  static const String puzzles = '/puzzles';
+
+  /// Sudoku, from phase 3. Reached through [puzzles] since phase 9.
   static const String sudoku = '/sudoku';
 
   /// One Sudoku puzzle, being played. Pushed with a `SudokuPlayArgs`.
   static const String sudokuPlay = '/sudoku/play';
 
+  /// The Tracks menu, reached through [puzzles] (`PLAN-phase-9-tracks.md`
+  /// §4.14).
+  static const String tracks = '/tracks';
+
   /// One Tracks puzzle, being played. Pushed with a `TracksPlayArgs`
-  /// (`PLAN-phase-9-tracks.md` §6, PR 7). The Tracks menu that reaches it is
-  /// PR 8's.
+  /// (`PLAN-phase-9-tracks.md` §6, PR 7).
   static const String tracksPlay = '/tracks/play';
 
   /// The arcade, from phase 4.

@@ -17,7 +17,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import '../../../core/clock.dart';
 import '../../../core/ui/big_button.dart';
 import '../../../core/ui/layout.dart';
-import '../../../core/ui/puzzle_clock.dart';
+import '../../../core/ui/puzzle_menu.dart';
 import '../../../core/ui/screen_scaffold.dart';
 import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';
@@ -25,6 +25,11 @@ import '../../../routes.dart';
 import '../data/providers.dart';
 import '../model/difficulties.dart';
 import 'sudoku_play_screen.dart';
+
+// The shared words stay importable from here, so the tests that name them do
+// not move (`PLAN-phase-9-tracks.md` §4.14).
+export '../../../core/ui/puzzle_menu.dart'
+    show difficultyChoices, tierProgressLabel;
 
 /// The screen's name.
 const String sudokuMenuTitle = 'Sudoku';
@@ -34,23 +39,6 @@ const String dailyPuzzleTitle = 'Today’s puzzle';
 
 /// The heading over the size toggle and the difficulty list.
 const String pickPuzzleTitle = 'Pick a puzzle';
-
-/// What each difficulty is called, and the glyph beside it.
-///
-/// The engine never returns a display string (`difficulty.dart`), so the words
-/// are the app's. Public because the tests name the same ones the screen does.
-///
-/// The glyph is what a child who is still learning to read picks by, so the
-/// four are a scale rather than four unrelated pictures — and none of them is a
-/// sad face: "this one will make you unhappy" is not what Expert means
-/// (`AGENTS.md`).
-const Map<Difficulty, ({String label, IconData icon})> difficultyChoices =
-    <Difficulty, ({String label, IconData icon})>{
-      Difficulty.easy: (label: 'Easy', icon: Icons.sentiment_very_satisfied),
-      Difficulty.medium: (label: 'Medium', icon: Icons.sentiment_satisfied),
-      Difficulty.hard: (label: 'Hard', icon: Icons.local_fire_department),
-      Difficulty.expert: (label: 'Expert', icon: Icons.rocket_launch),
-    };
 
 /// The glyph for [spec] in the size toggle.
 ///
@@ -81,15 +69,6 @@ String streakLabel(int streak) => switch (streak) {
   1 => '1 day in a row',
   _ => '$streak days in a row',
 };
-
-/// The line under a difficulty, saying how it has gone so far.
-String tierProgressLabel({required int solved, required int? bestTimeMs}) {
-  if (solved == 0) return 'Not solved yet';
-  final best = bestTimeMs == null
-      ? ''
-      : ' · Best ${formatElapsed(Duration(milliseconds: bestTimeMs))}';
-  return 'Solved $solved$best';
-}
 
 /// Sudoku's own screen: continue, today, and everything else there is to play.
 class SudokuMenuScreen extends ConsumerStatefulWidget {
@@ -168,7 +147,7 @@ class _SudokuMenuScreenState extends ConsumerState<SudokuMenuScreen> {
                   onPlay: () => _play(daily),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                _SectionHeading(pickPuzzleTitle),
+                SectionHeading(pickPuzzleTitle),
                 const SizedBox(height: AppSpacing.md),
                 _SizeToggle(
                   chosen: spec,
@@ -178,7 +157,7 @@ class _SudokuMenuScreenState extends ConsumerState<SudokuMenuScreen> {
                 for (final difficulty in difficultiesFor(spec))
                   Padding(
                     padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: _DifficultyRow(
+                    child: DifficultyRow(
                       difficulty: difficulty,
                       solved: menu.solvedCount(spec, difficulty),
                       bestTimeMs: menu.bestTimeMs(spec, difficulty),
@@ -319,70 +298,6 @@ class _SizeToggle extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// One difficulty: what it is called, how it has gone, and a way into it.
-///
-/// A [ListTile] rather than a [BigButton], because the row carries two lines —
-/// the tier and the record — and the whole row is the target either way.
-class _DifficultyRow extends StatelessWidget {
-  const _DifficultyRow({
-    required this.difficulty,
-    required this.solved,
-    required this.bestTimeMs,
-    required this.onPlay,
-  });
-
-  final Difficulty difficulty;
-  final int solved;
-  final int? bestTimeMs;
-  final VoidCallback onPlay;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final choice = difficultyChoices[difficulty]!;
-
-    return ListTile(
-      onTap: onPlay,
-      // A floor, not a height: the tile still grows when the label wraps at a
-      // large text scale. Primary rather than minimum because these rows are
-      // what the screen is for, and a `ListTile` takes no size from the button
-      // themes that hold the rest of the app above the floor (`theme.dart`).
-      minTileHeight: AppTapTargets.primary,
-      minVerticalPadding: AppSpacing.md,
-      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      tileColor: theme.colorScheme.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadii.card),
-      ),
-      leading: Icon(choice.icon, size: AppIconSizes.large),
-      title: Text(choice.label, style: theme.textTheme.titleMedium),
-      subtitle: Text(
-        tierProgressLabel(solved: solved, bestTimeMs: bestTimeMs),
-        style: theme.textTheme.bodySmall,
-      ),
-      trailing: const Icon(Icons.chevron_right, size: AppIconSizes.large),
-    );
-  }
-}
-
-/// A heading over a group, at the size the rest of the app puts one.
-class _SectionHeading extends StatelessWidget {
-  const _SectionHeading(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Semantics(
-        header: true,
-        child: Text(text, style: Theme.of(context).textTheme.titleLarge),
-      ),
     );
   }
 }

@@ -75,6 +75,8 @@ void main() {
       ],
     );
 
+    await tester.tap(find.text('Puzzles'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Sudoku'));
     await tester.pumpAndSettle();
     // Scrolled to before each tap, because the menu scrolls: at 200% text scale

@@ -26,7 +26,7 @@ void main() {
   testWidgets('every control clears the tap-target floor', (tester) async {
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
-    for (final card in const ['Sudoku', 'Arcade', 'Draw']) {
+    for (final card in const ['Puzzles', 'Arcade', 'Draw']) {
       expect(
         tester
             .getSize(
@@ -62,7 +62,7 @@ void main() {
 
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
-    expect(find.text('Sudoku'), findsOneWidget);
+    expect(find.text('Puzzles'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
     expect(find.text('Draw'), findsOneWidget);
     expect(find.text('Playing as Player 1'), findsOneWidget);
@@ -75,11 +75,11 @@ void main() {
     // who cannot tell the colours apart still has a glyph and a word.
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
-    expect(find.byIcon(homeSudokuIcon), findsOneWidget);
+    expect(find.byIcon(homePuzzlesIcon), findsOneWidget);
     expect(find.byIcon(homeArcadeIcon), findsOneWidget);
     expect(find.byIcon(homeDrawIcon), findsOneWidget);
     expect(
-      {homeSudokuIcon, homeArcadeIcon, homeDrawIcon},
+      {homePuzzlesIcon, homeArcadeIcon, homeDrawIcon},
       hasLength(3),
       reason: 'all three icons differ',
     );
