@@ -187,12 +187,29 @@ loop.
 
 The encoding for the cache and the goldens is one line: size, start row, goal column, the two count
 lists, then the fixed cells as `index:mask` pairs. The solution is not stored; it is regenerated, or
-recovered by the solver from the clues, which is cheap and keeps the cache line short. PR 2 fixes the
-exact format and the codec's round-trip test.
+recovered by the solver from the clues, which is cheap and keeps the cache line short. PR 2 fixed the
+format:
+
+```
+<label>|<startRow>|<goalColumn>|<rowCounts>|<columnCounts>|<fixed>
+7x7|3|4|2,4,3,1,3,2,1|1,2,3,3,2,4,1|10:5,24:12
+```
+
+Decimals throughout, fixed cells in ascending index order, and an empty last field when nothing is
+fixed. It holds no space, because a golden line is `index tier widened encoding` split on spaces.
+`TracksClues.decode` accepts only the spelling `encode` writes, so one puzzle has one cache line.
+
+**Built in PR 2 as two halves.** The sketch above is one class; PR 2 built only the half that has an
+encoding, `TracksClues` — spec, ports, counts and fixed cells, which is everything the player sees and
+everything the counter reads. `TracksPuzzle`, which wraps `TracksClues` with the ID, the solution, the
+tier and `widened`, arrives with `generateTracks` in PR 3, when it is known what the generator reports;
+Sudoku's `GeneratedPuzzle` grew `attempts` and `requested` the same way. The connection bits are
+`TrackSide.north` and so on rather than bare top-level constants, which every importer of the engine
+would otherwise have in scope.
 
 ### 4.4 The solution counter
 
-`countTracksSolutions(puzzle, limit: 2)`, not exported — like `countSolutions`, it is how a puzzle is
+`countTracksSolutions(clues, limit: 2)`, not exported — like `countSolutions`, it is how a puzzle is
 built rather than anything the app asks. Backtracking over cells in row-major order with each cell's
 state being one of seven (empty or one of six pieces), pruned at every step by:
 
@@ -200,9 +217,12 @@ state being one of seven (empty or one of six pieces), pruned at every step by:
   reach it;
 - connection consistency with the north and west neighbours already decided;
 - no closed loop: a union-find over placed connections refuses one that joins two ends of the same
-  fragment, unless it completes the whole puzzle.
+  fragment. As built in PR 2 there is no exception for the last connection: the track's two ends
+  leave through the ports rather than meeting, so a valid board never closes a loop at all.
 
-It stops at 2. The fuzz test calls it on every generated puzzle and asserts exactly 1, independently
+It stops at 2, and like `countSolutions` it caps its work rather than its time, returning
+`unknownSolutionCount` past the cap. An optional callback receives each solution it finds, which is
+how the tests check it found the right board and how a solution can be recovered from a cached line. The fuzz test calls it on every generated puzzle and asserts exactly 1, independently
 of the generator's own call.
 
 ### 4.5 Generation and judging
@@ -474,7 +494,9 @@ packages/puzzle_engine/
   lib/src/tracks/
     tracks_spec.dart          # 5x5 / 7x7 / 9x9
     tracks_puzzle_id.dart     # id <-> seed, strict parse
-    tracks_puzzle.dart        # the puzzle, its encoding
+    track_side.dart           # connection bits and the six pieces
+    tracks_clues.dart         # what the player sees, and its one-line encoding
+    tracks_puzzle.dart        # TracksClues plus solution and tier (PR 3)
     tracks_counter.dart       # solution counting, stop at 2 — not exported
     tracks_deduction.dart     # the tiered solver, nextTracksStep
     tracks_generator.dart     # walk / dig / judge
@@ -521,8 +543,8 @@ because the tier hit rates are unknown until measured — the same unknown that 
 **Done when:** both are on `main`. A §9 question that names a pull request is answered before that
 pull request starts; the others are settled by the device pass or stay deferred.
 
-**PR 2 — identity, encoding, counter.** `TracksSpec`, `TracksPuzzleId`, `TracksPuzzle` and its
-encoding, `countTracksSolutions`. Tested against hand-written puzzles: a unique 5x5, one with two
+**PR 2 — identity, encoding, counter.** `TracksSpec`, `TracksPuzzleId`, `TracksClues` and its
+encoding (`TracksPuzzle` moved to PR 3, §4.3), `countTracksSolutions`. Tested against hand-written puzzles: a unique 5x5, one with two
 solutions, one with none, one whose only near-solution closes a loop.
 **Done when:** `dart test test/tracks` passes; `TracksPuzzleId.parse` refuses `tracks:7x7:expert:0`,
 `tracks:7x7:easy:01` and `tracks:8x8:easy:0`; the counter returns 1, 2 (capped), 0 and 0 on the four
