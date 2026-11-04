@@ -34,7 +34,7 @@ void main() {
     for (final brightness in Brightness.values) {
       test('${theme.name} ${brightness.name}: every paint method runs', () {
         final skin = trackSkinFor(theme, brightness);
-        expect(skin.theme, anyOf(theme, TracksTheme.train));
+        expect(skin.theme, theme);
         expect(skin.brightness, brightness);
         final canvas = Canvas(PictureRecorder());
         const cell = Rect.fromLTWH(20, 20, 48, 48);
