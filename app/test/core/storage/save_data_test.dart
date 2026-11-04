@@ -51,6 +51,26 @@ void main() {
         with_(
           profile.copyWith(
             tracks: profile.tracks.copyWith(
+              bestSolve: const {'5x5:easy': SolvedPuzzle(timeMs: 52000)},
+            ),
+          ),
+        ),
+        isNot(fullSave()),
+      );
+      expect(
+        with_(
+          profile.copyWith(
+            sudoku: profile.sudoku.copyWith(
+              bestSolve: const {'9x9:easy': SolvedPuzzle(timeMs: 180000)},
+            ),
+          ),
+        ),
+        isNot(fullSave()),
+      );
+      expect(
+        with_(
+          profile.copyWith(
+            tracks: profile.tracks.copyWith(
               inProgress: const {
                 'tracks:5x5:easy:4': TracksInProgress(cells: 'x'),
               },
@@ -73,6 +93,70 @@ void main() {
 
       expect(tracks(['a', 'b']), tracks(['b', 'a']));
       expect(tracks(['a', 'b']).hashCode, tracks(['b', 'a']).hashCode);
+    });
+
+    test('bestSolve takes part in equality, hashing and copyWith', () {
+      const solve = SolvedPuzzle(timeMs: 1000, hints: 1);
+      const sudoku = SudokuProgress(bestSolve: {'9x9:easy': solve});
+      const tracks = TracksProgress(bestSolve: {'7x7:easy': solve});
+
+      expect(sudoku, isNot(const SudokuProgress()));
+      expect(sudoku.hashCode, isNot(const SudokuProgress().hashCode));
+      expect(sudoku.copyWith(), sudoku);
+      expect(sudoku.copyWith(bestSolve: const {}), const SudokuProgress());
+      expect(tracks, isNot(const TracksProgress()));
+      expect(tracks.hashCode, isNot(const TracksProgress().hashCode));
+      expect(tracks.copyWith(), tracks);
+      expect(tracks.copyWith(bestSolve: const {}), const TracksProgress());
+    });
+  });
+
+  // The consistency rule of `PLAN-best-time-assists.md` §4.2.
+  group('bestSolveFor', () {
+    const solve = SolvedPuzzle(timeMs: 1000, hints: 2, mistakes: 1);
+
+    test('returns the entry when bestTimeMs agrees with its time', () {
+      const sudoku = SudokuProgress(
+        bestTimeMs: {'9x9:easy': 1000},
+        bestSolve: {'9x9:easy': solve},
+      );
+      const tracks = TracksProgress(
+        bestTimeMs: {'7x7:easy': 1000},
+        bestSolve: {'7x7:easy': solve},
+      );
+
+      expect(sudoku.bestSolveFor('9x9:easy'), solve);
+      expect(tracks.bestSolveFor('7x7:easy'), solve);
+    });
+
+    test('is null when the times disagree', () {
+      const sudoku = SudokuProgress(
+        bestTimeMs: {'9x9:easy': 900},
+        bestSolve: {'9x9:easy': solve},
+      );
+      const tracks = TracksProgress(
+        bestTimeMs: {'7x7:easy': 900},
+        bestSolve: {'7x7:easy': solve},
+      );
+
+      expect(sudoku.bestSolveFor('9x9:easy'), isNull);
+      expect(tracks.bestSolveFor('7x7:easy'), isNull);
+    });
+
+    test('is null when bestTimeMs has no such key, or bestSolve has none', () {
+      const sudoku = SudokuProgress(
+        bestTimeMs: {'9x9:medium': 1000},
+        bestSolve: {'9x9:easy': solve},
+      );
+      const tracks = TracksProgress(
+        bestTimeMs: {'7x7:medium': 1000},
+        bestSolve: {'7x7:easy': solve},
+      );
+
+      expect(sudoku.bestSolveFor('9x9:easy'), isNull);
+      expect(sudoku.bestSolveFor('9x9:medium'), isNull);
+      expect(tracks.bestSolveFor('7x7:easy'), isNull);
+      expect(tracks.bestSolveFor('7x7:medium'), isNull);
     });
   });
 

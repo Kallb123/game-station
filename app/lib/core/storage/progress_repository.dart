@@ -324,6 +324,8 @@ class ProgressRepository extends ChangeNotifier {
   /// `solved`, clears the matching `inProgress` entry in the same mutation so
   /// a save cannot hold a puzzle that is both finished and in progress, and
   /// updates `bestTimeMs` and the daily streak (`PLAN-phase-3.md` §4.7, §4.8).
+  /// A solve that lowers `bestTimeMs` also becomes `bestSolve` for that key; a
+  /// slower or equal one changes neither (`PLAN-best-time-assists.md` §4.5).
   ///
   /// A [result] with no [SolvedPuzzle.solvedAt] is stamped from this
   /// repository's own clock — the one the streak is counted against, so a solve
@@ -334,18 +336,19 @@ class ProgressRepository extends ChangeNotifier {
       _updateActiveSudoku((sudoku) {
         final key = SudokuProgress.bestTimeKey(id.spec, id.difficulty);
         final best = sudoku.bestTimeMs[key];
+        // One stamp for both maps, so `solvedAt` agrees between them.
+        final stamped = _stamped(result);
+        final faster = best == null || result.timeMs < best;
 
         return sudoku.copyWith(
-          solved: {...sudoku.solved, id.value: _stamped(result)},
+          solved: {...sudoku.solved, id.value: stamped},
           inProgress: {
             for (final entry in sudoku.inProgress.entries)
               if (entry.key != id.value) entry.key: entry.value,
           },
           dailyStreak: _nextStreak(sudoku.dailyStreak, id),
-          bestTimeMs: {
-            ...sudoku.bestTimeMs,
-            if (best == null || result.timeMs < best) key: result.timeMs,
-          },
+          bestTimeMs: {...sudoku.bestTimeMs, if (faster) key: result.timeMs},
+          bestSolve: {...sudoku.bestSolve, if (faster) key: stamped},
         );
       });
 
@@ -460,24 +463,26 @@ class ProgressRepository extends ChangeNotifier {
 
   /// Records [result] as how the active profile finished [id], as
   /// [recordSolved] does for Sudoku: adds it to `solved`, clears the matching
-  /// `inProgress` entry in the same mutation and keeps the faster best time.
+  /// `inProgress` entry in the same mutation and keeps the faster best time,
+  /// together with the solve that set it in `bestSolve`.
   ///
   /// No streak: Tracks has no daily puzzle (`PLAN-phase-9-tracks.md` §2).
   void recordTracksSolved(engine.TracksPuzzleId id, SolvedPuzzle result) =>
       _updateActiveTracks((tracks) {
         final key = TracksProgress.bestTimeKey(id.spec, id.difficulty);
         final best = tracks.bestTimeMs[key];
+        // One stamp for both maps, so `solvedAt` agrees between them.
+        final stamped = _stamped(result);
+        final faster = best == null || result.timeMs < best;
 
         return tracks.copyWith(
-          solved: {...tracks.solved, id.value: _stamped(result)},
+          solved: {...tracks.solved, id.value: stamped},
           inProgress: {
             for (final entry in tracks.inProgress.entries)
               if (entry.key != id.value) entry.key: entry.value,
           },
-          bestTimeMs: {
-            ...tracks.bestTimeMs,
-            if (best == null || result.timeMs < best) key: result.timeMs,
-          },
+          bestTimeMs: {...tracks.bestTimeMs, if (faster) key: result.timeMs},
+          bestSolve: {...tracks.bestSolve, if (faster) key: stamped},
         );
       });
 

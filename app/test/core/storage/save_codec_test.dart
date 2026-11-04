@@ -185,6 +185,132 @@ void main() {
     });
   });
 
+  group('bestSolve', () {
+    final solve = SolvedPuzzle(
+      timeMs: 61000,
+      hints: 2,
+      mistakes: 1,
+      solvedAt: DateTime.utc(2026, 8, 11, 10, 30),
+    );
+
+    SaveData saveWith({SudokuProgress? sudoku, TracksProgress? tracks}) =>
+        SaveData(
+          activeProfileId: 'p1',
+          profiles: [
+            Profile(
+              id: 'p1',
+              name: 'Ana',
+              avatar: AvatarId.fox,
+              createdAt: DateTime.utc(2026),
+              sudoku: sudoku ?? const SudokuProgress(),
+              tracks: tracks ?? const TracksProgress(),
+            ),
+          ],
+        );
+
+    /// [save] encoded, with [change] applied to the first profile's JSON.
+    String edited(SaveData save, void Function(Map<String, Object?>) change) {
+      final json = jsonDecode(encodeSave(save)) as Map<String, Object?>;
+      change(
+        (json['profiles']! as List<Object?>).first! as Map<String, Object?>,
+      );
+      return jsonEncode(json);
+    }
+
+    test('round trips for Sudoku and for Tracks', () {
+      final save = saveWith(
+        sudoku: SudokuProgress(
+          bestTimeMs: const {'9x9:easy': 61000},
+          bestSolve: {'9x9:easy': solve},
+        ),
+        tracks: TracksProgress(
+          bestTimeMs: const {'7x7:easy': 61000},
+          bestSolve: {'7x7:easy': solve},
+        ),
+      );
+
+      final decoded = decodeSave(encodeSave(save));
+
+      expect(decoded, save);
+      expect(decoded.activeProfile.sudoku.bestSolve['9x9:easy'], solve);
+      expect(decoded.activeProfile.tracks.bestSolve['7x7:easy'], solve);
+    });
+
+    test('a file without bestSolve decodes to empty and keeps its times', () {
+      final save = saveWith(
+        sudoku: SudokuProgress(
+          bestTimeMs: const {'9x9:easy': 61000},
+          bestSolve: {'9x9:easy': solve},
+        ),
+        tracks: TracksProgress(
+          bestTimeMs: const {'7x7:easy': 61000},
+          bestSolve: {'7x7:easy': solve},
+        ),
+      );
+      final stripped = edited(save, (profile) {
+        (profile['sudoku']! as Map<String, Object?>).remove('bestSolve');
+        (profile['tracks']! as Map<String, Object?>).remove('bestSolve');
+      });
+
+      final profile = decodeSave(stripped).activeProfile;
+
+      expect(profile.sudoku.bestSolve, isEmpty);
+      expect(profile.tracks.bestSolve, isEmpty);
+      expect(profile.sudoku.bestTimeMs, {'9x9:easy': 61000});
+      expect(profile.tracks.bestTimeMs, {'7x7:easy': 61000});
+      expect(profile.sudoku.bestSolveFor('9x9:easy'), isNull);
+    });
+
+    test('the plan example and the minimal file decode with it empty', () {
+      for (final json in [planExampleJson, minimalSaveJson]) {
+        final profile = decodeSave(json).activeProfile;
+
+        expect(profile.sudoku.bestSolve, isEmpty);
+        expect(profile.tracks.bestSolve, isEmpty);
+      }
+    });
+
+    test('a wrong type is refused and names its path', () {
+      for (final game in ['sudoku', 'tracks']) {
+        for (final (bad, path) in <(Object, String)>[
+          ({'9x9:easy': 5}, 'profiles[0].$game.bestSolve.9x9:easy'),
+          (<Object>[], 'profiles[0].$game.bestSolve'),
+        ]) {
+          final json = edited(saveWith(), (profile) {
+            (profile[game]! as Map<String, Object?>)['bestSolve'] = bad;
+          });
+
+          expect(
+            () => decodeSave(json),
+            throwsA(
+              isA<SaveFormatException>().having((e) => e.path, 'path', path),
+            ),
+            reason: '$game: $bad',
+          );
+        }
+      }
+    });
+
+    test('a solve inside it with a wrong field type names that field', () {
+      final json = edited(saveWith(), (profile) {
+        (profile['sudoku']! as Map<String, Object?>)['bestSolve'] = {
+          '9x9:easy': {'timeMs': 'fast'},
+        };
+      });
+
+      expect(
+        () => decodeSave(json),
+        throwsA(
+          isA<SaveFormatException>().having(
+            (e) => e.path,
+            'path',
+            'profiles[0].sudoku.bestSolve.9x9:easy.timeMs',
+          ),
+        ),
+      );
+    });
+  });
+
   group('decoding a v1 file', () {
     test('the PLAN.md §5.2 example decodes with nothing lost', () {
       final save = decodeSave(planExampleJson);
@@ -329,6 +455,9 @@ void main() {
             profile.copyWith(
               tracksTheme: TracksTheme.train,
               tracks: const TracksProgress(),
+              // The frozen text predates `bestSolve` too; the fixture's
+              // value for it is not in the file, so it decodes empty.
+              sudoku: profile.sudoku.copyWith(bestSolve: const {}),
             ),
         ],
       );
@@ -915,7 +1044,8 @@ void main() {
       expect((profiles.first! as Map<String, Object?>)['tracksTheme'], 'santa');
     });
 
-    test('Tracks\' solved, inProgress and bestTimeMs keys are sorted', () {
+    test('Tracks\' solved, inProgress, bestTimeMs and bestSolve keys are '
+        'sorted', () {
       final save = SaveData(
         activeProfileId: 'p1',
         profiles: [
@@ -934,6 +1064,10 @@ void main() {
                 'tracks:5x5:easy:1': TracksInProgress(cells: _fiveEmpty),
               },
               bestTimeMs: {'9x9:hard': 1, '5x5:easy': 1},
+              bestSolve: {
+                '9x9:hard': SolvedPuzzle(timeMs: 1),
+                '5x5:easy': SolvedPuzzle(timeMs: 1),
+              },
             ),
           ),
         ],
@@ -943,11 +1077,39 @@ void main() {
           (json['profiles']! as List<Object?>).first! as Map<String, Object?>;
       final tracks = profile['tracks']! as Map<String, Object?>;
 
-      for (final block in ['solved', 'inProgress', 'bestTimeMs']) {
+      for (final block in ['solved', 'inProgress', 'bestTimeMs', 'bestSolve']) {
         final keys = (tracks[block]! as Map<String, Object?>).keys.toList();
         expect(keys, [...keys]..sort(), reason: block);
         expect(keys, hasLength(2), reason: block);
       }
+    });
+
+    test('Sudoku\'s bestSolve keys are sorted', () {
+      final save = SaveData(
+        activeProfileId: 'p1',
+        profiles: [
+          Profile(
+            id: 'p1',
+            name: 'Ana',
+            avatar: AvatarId.fox,
+            createdAt: DateTime.utc(2026),
+            sudoku: const SudokuProgress(
+              bestTimeMs: {'9x9:hard': 1, '4x4:easy': 1},
+              bestSolve: {
+                '9x9:hard': SolvedPuzzle(timeMs: 1),
+                '4x4:easy': SolvedPuzzle(timeMs: 1),
+              },
+            ),
+          ),
+        ],
+      );
+      final json = jsonDecode(encodeSave(save)) as Map<String, Object?>;
+      final profile =
+          (json['profiles']! as List<Object?>).first! as Map<String, Object?>;
+      final sudoku = profile['sudoku']! as Map<String, Object?>;
+
+      final keys = (sudoku['bestSolve']! as Map<String, Object?>).keys.toList();
+      expect(keys, ['4x4:easy', '9x9:hard']);
     });
 
     test('absent optional values are omitted rather than written as null', () {

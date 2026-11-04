@@ -386,6 +386,7 @@ class SudokuProgress {
     this.inProgress = const {},
     this.dailyStreak = const DailyStreak(),
     this.bestTimeMs = const {},
+    this.bestSolve = const {},
   });
 
   /// Puzzle id to how it was finished.
@@ -401,6 +402,12 @@ class SudokuProgress {
   /// stored, so the menu can show a best time without walking every entry.
   final Map<String, int> bestTimeMs;
 
+  /// `"9x9:easy"` to the solve that set that key's entry in [bestTimeMs], so the
+  /// menu can say how the best time was earned (`PLAN-best-time-assists.md`
+  /// §3). Optional on disk: [bestTimeMs] stays the authority, and read this
+  /// only through [bestSolveFor].
+  final Map<String, SolvedPuzzle> bestSolve;
+
   /// The key [bestTimeMs] holds one size and difficulty under
   /// (`PLAN.md` §5.2).
   ///
@@ -413,16 +420,30 @@ class SudokuProgress {
     engine.Difficulty difficulty,
   ) => '${spec.label}:${difficulty.name}';
 
+  /// The solve behind the best time for [key], or null when none is known.
+  ///
+  /// Returned only when [bestTimeMs] has [key] and agrees with the entry's
+  /// time, so a stale detail (for example from a build that rewrote
+  /// [bestTimeMs] and dropped [bestSolve]) is never shown beside a time it
+  /// does not describe (`PLAN-best-time-assists.md` §4.2).
+  SolvedPuzzle? bestSolveFor(String key) {
+    final solve = bestSolve[key];
+    final best = bestTimeMs[key];
+    return solve != null && best != null && best == solve.timeMs ? solve : null;
+  }
+
   SudokuProgress copyWith({
     Map<String, SolvedPuzzle>? solved,
     Map<String, PuzzleInProgress>? inProgress,
     DailyStreak? dailyStreak,
     Map<String, int>? bestTimeMs,
+    Map<String, SolvedPuzzle>? bestSolve,
   }) => SudokuProgress(
     solved: solved ?? this.solved,
     inProgress: inProgress ?? this.inProgress,
     dailyStreak: dailyStreak ?? this.dailyStreak,
     bestTimeMs: bestTimeMs ?? this.bestTimeMs,
+    bestSolve: bestSolve ?? this.bestSolve,
   );
 
   @override
@@ -431,7 +452,8 @@ class SudokuProgress {
       _mapEquals(other.solved, solved) &&
       _mapEquals(other.inProgress, inProgress) &&
       other.dailyStreak == dailyStreak &&
-      _mapEquals(other.bestTimeMs, bestTimeMs);
+      _mapEquals(other.bestTimeMs, bestTimeMs) &&
+      _mapEquals(other.bestSolve, bestSolve);
 
   @override
   int get hashCode => Object.hash(
@@ -439,6 +461,7 @@ class SudokuProgress {
     _mapHash(inProgress),
     dailyStreak,
     _mapHash(bestTimeMs),
+    _mapHash(bestSolve),
   );
 }
 
@@ -452,6 +475,7 @@ class TracksProgress {
     this.solved = const {},
     this.inProgress = const {},
     this.bestTimeMs = const {},
+    this.bestSolve = const {},
   });
 
   /// Puzzle id to how it was finished.
@@ -464,6 +488,12 @@ class TracksProgress {
   /// stored, so the menu can show a best time without walking every entry.
   final Map<String, int> bestTimeMs;
 
+  /// `"7x7:easy"` to the solve that set that key's entry in [bestTimeMs], so the
+  /// menu can say how the best time was earned (`PLAN-best-time-assists.md`
+  /// §3). Optional on disk: [bestTimeMs] stays the authority, and read this
+  /// only through [bestSolveFor].
+  final Map<String, SolvedPuzzle> bestSolve;
+
   /// The key [bestTimeMs] holds one size and difficulty under.
   ///
   /// Beside the field rather than in the repository that writes it, because the
@@ -475,14 +505,28 @@ class TracksProgress {
     engine.Difficulty difficulty,
   ) => '${spec.label}:${difficulty.name}';
 
+  /// The solve behind the best time for [key], or null when none is known.
+  ///
+  /// Returned only when [bestTimeMs] has [key] and agrees with the entry's
+  /// time, so a stale detail (for example from a build that rewrote
+  /// [bestTimeMs] and dropped [bestSolve]) is never shown beside a time it
+  /// does not describe (`PLAN-best-time-assists.md` §4.2).
+  SolvedPuzzle? bestSolveFor(String key) {
+    final solve = bestSolve[key];
+    final best = bestTimeMs[key];
+    return solve != null && best != null && best == solve.timeMs ? solve : null;
+  }
+
   TracksProgress copyWith({
     Map<String, SolvedPuzzle>? solved,
     Map<String, TracksInProgress>? inProgress,
     Map<String, int>? bestTimeMs,
+    Map<String, SolvedPuzzle>? bestSolve,
   }) => TracksProgress(
     solved: solved ?? this.solved,
     inProgress: inProgress ?? this.inProgress,
     bestTimeMs: bestTimeMs ?? this.bestTimeMs,
+    bestSolve: bestSolve ?? this.bestSolve,
   );
 
   @override
@@ -490,11 +534,16 @@ class TracksProgress {
       other is TracksProgress &&
       _mapEquals(other.solved, solved) &&
       _mapEquals(other.inProgress, inProgress) &&
-      _mapEquals(other.bestTimeMs, bestTimeMs);
+      _mapEquals(other.bestTimeMs, bestTimeMs) &&
+      _mapEquals(other.bestSolve, bestSolve);
 
   @override
-  int get hashCode =>
-      Object.hash(_mapHash(solved), _mapHash(inProgress), _mapHash(bestTimeMs));
+  int get hashCode => Object.hash(
+    _mapHash(solved),
+    _mapHash(inProgress),
+    _mapHash(bestTimeMs),
+    _mapHash(bestSolve),
+  );
 }
 
 /// One entry in a game's high-score table.
