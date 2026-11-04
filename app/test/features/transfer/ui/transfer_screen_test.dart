@@ -217,9 +217,26 @@ void main() {
   }
 
   /// A tap whose handler does real file work, settled.
+  ///
+  /// Settled means the work has finished, not that a fixed time has passed:
+  /// the screen disables its buttons while busy, so the tapped button being
+  /// enabled again, or no longer hit-testable because the confirmation page
+  /// is closing, is the signal. A fixed wait failed on a slow CI runner, where
+  /// a load had not finished and the confirmation page still covered the
+  /// screen the test went on to read.
   Future<void> tapAndSettle(WidgetTester tester, String label) async {
     await tapText(tester, label);
-    await settleDrawIO(tester);
+    await settleDrawIO(
+      tester,
+      until: () {
+        final button = find
+            .ancestor(of: find.text(label), matching: find.byType(FilledButton))
+            .hitTestable();
+        return button.evaluate().isEmpty ||
+            tester.widget<FilledButton>(button.first).enabled;
+      },
+    );
+    await tester.pumpAndSettle();
   }
 
   ProgressRepository repository(ProviderContainer container) =>

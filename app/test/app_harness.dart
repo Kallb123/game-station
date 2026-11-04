@@ -106,9 +106,16 @@ Override drawTempRepositoryOverride() {
 /// writes, flushes, closes and renames), so this loops a few times rather
 /// than once — every widget test that reaches the draw feature's disk needs
 /// this in place of a bare `pumpAndSettle`.
-Future<void> settleDrawIO(WidgetTester tester) async {
+///
+/// The fixed rounds give real I/O about half a second, which a slow CI runner
+/// can exceed: a players-file load writes every drawing it carries. A caller
+/// that can see when the work is done passes [until], and the loop carries on
+/// past the fixed rounds, for up to ten seconds, until it holds — a deadline
+/// rather than a guess, so a slow machine costs time instead of a red build.
+Future<void> settleDrawIO(WidgetTester tester, {bool Function()? until}) async {
   await tester.pumpAndSettle();
-  for (var i = 0; i < 20; i++) {
+  for (var i = 0; i < 400; i++) {
+    if (i >= 20 && (until == null || until())) break;
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 25)),
     );
