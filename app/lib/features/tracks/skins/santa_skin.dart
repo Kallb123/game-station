@@ -115,7 +115,6 @@ class SantaSkin implements TrackSkin {
     'D': Color(0xFF2B3A55),
     'W': Color(0xFFFFE066),
     'm': Color(0xFFA9B0BC),
-    'o': Color(0xFFD5DAE2),
   };
 
   static const Map<String, Color> _houseNight = {
@@ -128,7 +127,6 @@ class SantaSkin implements TrackSkin {
     'D': Color(0xFF141C2E),
     'W': Color(0xFFFFE066),
     'm': Color(0xFFC0C8D6),
-    'o': Color(0xFFE6EAF0),
   };
 
   /// The house with its windows dark and no smoke.
@@ -210,7 +208,7 @@ class SantaSkin implements TrackSkin {
   @override
   SkinColours get colours => _dark ? _night : _day;
 
-  // Between the snail (2) and the train (3): a walk, but a brisk one.
+  // Faster than the snail, slower than the train.
   @override
   double get cellsPerSecond => 2.5;
 
@@ -233,7 +231,6 @@ class SantaSkin implements TrackSkin {
     canvas.drawRect(cell, Paint()..color = base!);
 
     final u = cell.width;
-    // A low drift: a shallow arc in a slightly deeper shade.
     final drift = Paint()
       ..color = Color.lerp(colours.ground, colours.gridLine, 0.6)!
       ..style = PaintingStyle.stroke
@@ -248,7 +245,6 @@ class SantaSkin implements TrackSkin {
       drift,
     );
 
-    // A sparkle on some cells: a small plus, brighter than the snow.
     if (cellNoise(row, column, 4) > 0.55) {
       final sparkle = Paint()
         ..color = _dark ? const Color(0xFFDDE8FA) : const Color(0xFFFFFFFF)
@@ -282,8 +278,12 @@ class SantaSkin implements TrackSkin {
     canvas.restore();
   }
 
-  /// Pairs of boot prints along [centre], [count] of them, alternating left and
-  /// right of the line.
+  /// Boot prints along [centre], [count] of them, alternating left and right of
+  /// the line.
+  ///
+  /// Each print is a plain oval with no toe or heel. `centreline` runs in
+  /// `TrackSide` order, not in the direction of travel, so a print that pointed
+  /// anywhere would point backwards in some cells.
   void _drawPrints(
     Canvas canvas,
     Rect cell,
@@ -294,50 +294,56 @@ class SantaSkin implements TrackSkin {
     final u = cell.width;
     final fixed = style == PieceStyle.fixed;
     final wrong = style == PieceStyle.wrong;
-    final fill = Paint()
-      ..color = wrong
-          ? colours.wrong
-          : (fixed ? colours.fixedTrack : colours.track);
-    // A fixed print is bigger and has an outline in the snow's own colour, so
-    // it reads as deeper without relying on its shade.
-    final rim = Paint()
-      ..color = colours.ground
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1, u * 0.025);
-    final scale = fixed ? 1.35 : 1.0;
 
     final samples = samplesAlong(centre, count);
     for (var i = 0; i < samples.length; i++) {
       final s = samples[i];
       final side = i.isEven ? 1.0 : -1.0;
+      final normal = Offset(-s.tangent.dy, s.tangent.dx);
       var angle = math.atan2(s.tangent.dy, s.tangent.dx);
-      var at = s.point + Offset(-s.tangent.dy, s.tangent.dx) * (side * u * 0.1);
+      var at = s.point + normal * (side * u * (fixed ? 0.11 : 0.1));
+      var width = u * 0.13;
+      var height = u * 0.085;
       if (wrong) {
-        // Scattered: every print askew and pushed off its line, like a trail
+        // Scattered: askew, pushed off the line, and thin, like a trail
         // someone has stumbled along.
-        angle += (i.isEven ? 0.7 : -0.7);
-        at += Offset(-s.tangent.dy, s.tangent.dx) * (side * u * 0.05);
+        angle += i.isEven ? 0.7 : -0.7;
+        at += normal * (side * u * 0.05);
+        height = u * 0.05;
+      } else if (fixed) {
+        width = u * 0.2;
+        height = u * 0.14;
       }
       canvas.save();
       canvas.translate(at.dx, at.dy);
       canvas.rotate(angle);
-      final sole = Rect.fromCenter(
-        center: Offset(u * 0.045 * scale, 0),
-        width: u * 0.13 * scale,
-        height: u * 0.085 * scale,
-      );
-      final heel = Rect.fromCenter(
-        center: Offset(-u * 0.06 * scale, 0),
-        width: u * 0.065 * scale,
-        height: u * 0.06 * scale,
+      final print = Rect.fromCenter(
+        center: Offset.zero,
+        width: width,
+        height: height,
       );
       if (fixed) {
-        canvas.drawOval(sole, rim);
-        canvas.drawOval(heel, rim);
+        // Pressed in: a dark ring round a lighter hollow, which reads as a
+        // deeper print at any size and in either brightness.
+        canvas.drawOval(print, Paint()..color = colours.fixedTrack);
+        canvas.drawOval(
+          print.deflate(u * 0.03),
+          Paint()
+            ..color = Color.lerp(colours.fixedTrack, colours.ground, 0.55)!,
+        );
+        canvas.drawOval(
+          print,
+          Paint()
+            ..color = colours.clue
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(1, u * 0.025),
+        );
+      } else {
+        canvas.drawOval(
+          print,
+          Paint()..color = wrong ? colours.wrong : colours.track,
+        );
       }
-      canvas.drawOval(sole, fill);
-      // A wrong print has no heel: half a print reads as broken without colour.
-      if (!wrong) canvas.drawOval(heel, fill);
       canvas.restore();
     }
   }

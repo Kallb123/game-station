@@ -306,6 +306,8 @@ class TrainSkin implements TrackSkin {
     final u = cell.width;
     final end = Offset.lerp(cell.center, sideMidpoint(cell, side), 0.8)!;
     final along = end - cell.center;
+    // A cell with no size has no direction to put the stop across.
+    if (along.distance == 0) return;
     final unit = along / along.distance;
     final across = Offset(-unit.dy, unit.dx) * (u * 0.22);
     canvas.drawLine(
