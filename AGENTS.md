@@ -67,27 +67,44 @@ will tell us" is a gap to state, not to hide.
 **`app/integration_test/` is the one suite neither of them runs.** `flutter test` collects `app/test`
 only, `tool/verify.sh` does not name it, and CI has no emulator to run it on — an emulator job is
 `PLAN.md` §9's open question, and until it exists these are checks somebody performs rather than ones
-a merge waits for (`PLAN-phase-3.md` §7, `PLAN-phase-4.md` §7). There are two, and they are run by
+a merge waits for (`PLAN-phase-3.md` §7, `PLAN-phase-4.md` §7). There are four, and they are run by
 hand against a device from `flutter devices`:
 
 ```sh
 cd app && flutter test -d <device-id> integration_test/sudoku_smoke_test.dart
 cd app && flutter test -d <device-id> integration_test/invaders_smoke_test.dart
+cd app && flutter test -d <device-id> integration_test/snake_smoke_test.dart
+cd app && flutter test -d <device-id> integration_test/tracks_smoke_test.dart
 ```
 
 | File | What only a device answers | What covers the same ground on every commit |
 |---|---|---|
 | `sudoku_smoke_test.dart` | `compute` really spawns an isolate for a 9x9 Medium, and `path_provider` really resolves the directory `save.json` is written into. | `app/test/features/sudoku/resume_test.dart`, over a fake puzzle source and an in-memory store. |
 | `invaders_smoke_test.dart` | Two real fingers on a real touchscreen, which is what the gesture arena is least faithfully simulated for, and a real frame clock driving the fixed-step accumulator. | `app/test/features/arcade/`, over synthetic pointers and a fake controller. |
+| `snake_smoke_test.dart` | Two real fingers on adjacent D-pad buttons whose bounding boxes overlap by design, a real frame clock driving the fixed-step accumulator, and a run's score read back out of a real `save.json`. | `app/test/features/arcade/snake/` and `app/test/features/arcade/`, over synthetic pointers, a fake controller and an in-memory store. |
+| `tracks_smoke_test.dart` | A drag laying a whole solution across a board at the device's real size and pixel ratio, `compute` really spawning the generation isolate, and `path_provider` really resolving the directory the solve is read back from. | `app/test/features/tracks/`, over a fixture puzzle source, synthetic drags and an in-memory store. |
 
-`-d flutter-tester` runs either headless on the host in about ten seconds, and is worth doing before
+`-d flutter-tester` runs any of them headless on the host in about ten seconds, and is worth doing before
 a device run because it still exercises the real accumulator, the real codec and a real filesystem.
 It is not a substitute: no plugin answers there, so `path_provider` falls back to a temp directory,
 and the whole reason this suite exists is the part only a device can answer. Run them on hardware for
 anything that touches generation, the save, a screen's lifecycle, or the control pad, and say in the
 pull request which device each ran on.
 
-Neither of them is the ten minutes of play `PLAN.md` §7's phase-4 criterion asks for. An automated
+In a container with no Linux desktop toolchain, `flutter-tester` cannot load the audio plugin's
+native library, so the first sound the app plays throws and the test fails. Build `libminisound_ffi.so` by hand from the pub
+cache and point the loader at it; the tests then pass. The line "AppAudio: silenced after Minisound
+platform exception" is still logged and is harmless, because no audio device answers there:
+
+```sh
+src=$(ls -d ~/.pub-cache/hosted/pub.dev/minisound_ffi-*/src | tail -1)
+mkdir -p /tmp/minisound-build && cd /tmp/minisound-build
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release "$src" && ninja
+cd <repo>/app && LD_LIBRARY_PATH=/tmp/minisound-build \
+  flutter test -d flutter-tester integration_test/tracks_smoke_test.dart
+```
+
+None of the four is the ten minutes of play `PLAN.md` §7's phase-4 criterion asks for. An automated
 run confirms that the path works; whether the aliens are too fast for a six-year-old, and whether a
 144 Hz display plays at the same speed as a 60 Hz one, are answered by playing on the hardware and
 saying so — the numbers to move are all in `invaders_rules.dart` (`PLAN-phase-4.md` §4.4).

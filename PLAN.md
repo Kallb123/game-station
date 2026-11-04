@@ -1,8 +1,9 @@
 # Zibo Games — Implementation Plan
 
 A local, offline, ad-free games app for children. Sudoku (9x9 and 6x6, deterministic from a date or
-index) plus retro arcade games driven by on-screen controls, with progress that persists across
-sessions. A drawing board arrives after the release line, as §7's phase 8.
+index) and Tracks, a themeable path puzzle generated the same way, plus retro arcade games driven by
+on-screen controls, with progress that persists across sessions. A drawing board and Tracks arrive
+after the release line, as §7's phases 8 and 9.
 
 ---
 
@@ -521,6 +522,48 @@ a file written before phase 7 decodes with nothing lost and `schemaVersion` stay
 sets `snakeCounting` to its non-default `twos` for the same reason it shows `day`, and the one stored
 score carries `counting: true` so the codec test can tell the field was read rather than defaulted.
 
+`tracksTheme` and `tracks` arrived with phase 9 (`PLAN-phase-9-tracks.md` §4.11) and are not in the
+block above: `planExampleJson` in `app/test/core/storage/save_fixtures.dart` copies that block and a
+test asserts it decodes with Tracks at its defaults, so the fields are shown here instead.
+
+```json
+"tracksTheme": "water",
+"tracks": {
+  "solved": {
+    "tracks:7x7:easy:0": { "timeMs": 61000, "hints": 0, "mistakes": 1,
+                           "solvedAt": "...", "clean": true }
+  },
+  "inProgress": {
+    "tracks:9x9:hard:4": { "cells": "0a0c50…", "marks": "…", "elapsedMs": 90000,
+                           "undoStack": [], "hints": 1 }
+  },
+  "bestTimeMs": { "7x7:easy": 61000 }
+}
+```
+
+`Profile.tracksTheme` is the skin the child draws Tracks with — `train`, `santa`, `snail` or `water` —
+stored by name and on the profile for the reason `snakeCounting` is: siblings on one tablet want
+different trains. It defaults to `train`; an unknown name decodes to the default, so a save from a
+build with a fifth theme opens on an older one, and a value of the wrong type is refused naming its
+path. Nothing below the widget layer reads it, because the theme is a skin and never a rule.
+`Profile.tracks` is a `TracksProgress` and defaults to empty. `solved` reuses `SolvedPuzzle`, whose
+fields mean the same thing, keyed by `tracks:` ids that cannot collide with Sudoku's. `bestTimeMs`
+is keyed `"<size>:<tier>"` and derived from `solved` but stored, as Sudoku's is. Tracks has no daily
+streak. `inProgress` holds `TracksInProgress`: `cells`, one lowercase hex character per cell,
+row-major, holding the cell's connection mask (north 1, east 2, south 4, west 8, a port cell carrying
+its outward bit); `marks`, empty or one `0` or `1` per cell for the "no track here" marks; and
+`elapsedMs`, `undoStack` (the session's compact move strings, opaque to the codec) and `hints`, as
+Sudoku's entry has. The codec drops, without a notice, an entry whose board is not a board of the
+puzzle its key names — an unparseable key, a `cells` string of the wrong length or holding a
+character that is not lowercase hex, a cell with more than two bits, a bit through the north or east edge, a second start or goal port, or a `marks`
+string of the wrong length — so that puzzle opens empty rather than the file failing to load. Whether
+the board agrees with the generated clues, and that interior connections are reciprocated, needs the
+puzzle and is checked when the session resumes. A Tracks `puzzleCache` value is
+`"<clue line>|<solution>"`, the solution in the same hex cell format, and the cache's eviction pins
+Tracks puzzles in progress as it does Sudoku's. Both fields are optional with defaults, so a file
+written before phase 9 decodes with nothing lost and `schemaVersion` stays 1; `transfer_codec.dart`
+nests this codec's output, so a players file carries both with no change there.
+
 `draw` arrives with phase 8 and holds three numbers, not the drawings. A drawing is one file under
 `drawings/<profileId>/` (§6), because §5.2's whole point is a save file of a few kilobytes and one
 pencil drawing is tens of them — and because a corrupt file then costs one picture rather than a
@@ -565,7 +608,7 @@ board representation can change without changing the save format; §4.4 there is
 
 ### 5.3 Rules
 
-- Write on every Sudoku move (debounced 500 ms), on game over, and on app pause or close. A finished
+- Write on every Sudoku or Tracks move (debounced 500 ms), on game over, and on app pause or close. A finished
   drawing stroke is the same event, debounced the same way (phase 8).
 - Read once at startup into memory; every later read is from memory. No disk access inside a game
   loop.
@@ -606,12 +649,15 @@ game-station/
 │     │     ├─ generator.dart       # grow / dig / judge
 │     │     ├─ solver.dart          # solution counting, technique tiers
 │     │     ├─ techniques/          # singles, pairs, pointing, x-wing…
-│     │     └─ puzzle_id.dart       # id <-> seed, date <-> index
+│     │     ├─ puzzle_id.dart       # id <-> seed, date <-> index
+│     │     └─ tracks/              # phase 9 (PLAN-phase-9-tracks.md §5): spec, id, clues,
+│     │                             #   counter, deduction solver, walk, generator
 │     └─ test/
 │        ├─ generator_test.dart
 │        ├─ solver_test.dart
 │        ├─ determinism_test.dart
-│        └─ golden/*.golden
+│        ├─ tracks/                 # id, encoding, counter, deduction, generator, fuzz
+│        └─ golden/*.golden         # sudoku_* and tracks_*
 └─ app/
    ├─ lib/
    │  ├─ main.dart
@@ -626,7 +672,13 @@ game-station/
    │  │  ├─ home/
    │  │  ├─ profiles/
    │  │  ├─ settings/
+   │  │  ├─ puzzles/                # phase 9: the Puzzles menu holding Sudoku and Tracks
    │  │  ├─ sudoku/                 # grid widget, keypad, controller
+   │  │  ├─ tracks/                 # phase 9 (PLAN-phase-9-tracks.md §5)
+   │  │  │  ├─ model/               # TracksSession, TracksMenu, session codec — no widgets, no skins
+   │  │  │  ├─ data/                # TracksPuzzleSource, the puzzle-cache record
+   │  │  │  ├─ skins/               # TrackSkin, TrackGeometry, the train, Santa, snail and water skins
+   │  │  │  └─ ui/                  # menu and play screens, board painter, toolbar, theme picker
    │  │  ├─ arcade/
    │  │     ├─ arcade_menu_screen.dart   # two game cards, each with its own options and top five
    │  │     ├─ shared/
@@ -650,9 +702,11 @@ game-station/
    │  │     ├─ model/               # Stroke, Drawing, DrawingController — no widgets
    │  │     ├─ data/                # codec, drawings/<id>/, PNG export, the two platform edges
    │  │     └─ ui/                  # canvas painter, tool row, the gallery grid
-   ├─ assets/{fonts,images,audio}/  # bundled, never fetched; licensed per file
+   ├─ assets/{fonts,images,audio}/  # bundled, never fetched; licensed per file; audio/ has a
+   │                                #   directory per game, tracks/ holding the four arrival motifs
    ├─ test/                         # widget tests
-   ├─ integration_test/             # on-device smoke tests, from phases 3, 4 and 7
+   ├─ integration_test/             # on-device smoke tests, from phases 3, 4, 7 and 9 —
+   │                                #   sudoku_, invaders_, snake_ and tracks_smoke_test.dart
    └─ pubspec.yaml
 ```
 
@@ -1158,7 +1212,7 @@ photo-library permission is easier to negotiate with a store that has already li
 one seeing it for the first time. Neither reason is about the design — moving it into 1.0 means moving
 the phase between 5 and 6 and moving the release date with it. Nothing in `PLAN-phase-8.md` changes.
 
-### Phase 9 — Tracks (10–15 days) — planned
+### Phase 9 — Tracks (10–15 days) — done, except the hardware device pass
 
 A fourth game, and the engine's second: a square grid with a start on the west edge, a goal on the
 south edge and a number beside every row and column. The player drags track from cell to cell so
@@ -1167,7 +1221,7 @@ track cells. Grid size (5x5, 7x7, 9x9) and difficulty are the menu's two axes, a
 offers Easy and Medium only, because PR 3 measured that a 5x5 reaches Hard only with one piece fixed
 or none. The home screen's Sudoku card becomes **Puzzles**, opening a menu that holds Sudoku and
 Tracks, so the home screen keeps its three cards.
-Planned as ten pull requests in [`PLAN-phase-9-tracks.md`](PLAN-phase-9-tracks.md).
+Built as ten pull requests, planned and closed in [`PLAN-phase-9-tracks.md`](PLAN-phase-9-tracks.md).
 
 - **The theme is a skin, never a rule.** The same puzzle draws as a train to a station, Santa to a
   house, a snail to a pumpkin, or water through pipes to a wilted flower that turns lush when the
@@ -1182,6 +1236,49 @@ Planned as ten pull requests in [`PLAN-phase-9-tracks.md`](PLAN-phase-9-tracks.m
   are `Canvas` paths, and the four themed arrival sounds come from `tool/audio/generate_motifs.py`.
 
 Like phases 7 and 8, it is a minor release after phase 6 and does not move the release line.
+
+**Tracks shipped through all ten pull requests; PR 10 closes it with the same hardware gap phases 3,
+4, 5 and 7 each recorded rather than assumed shut.** The engine gained `lib/src/tracks` (identity,
+clue encoding, a solution counter that stops at 2, the walk, the tiered deduction solver and the
+generator) with eight goldens and a 2000-seed fuzz, and no Sudoku golden moved, so `generatorVersion`
+stays 1. The app gained `TracksSession` (strokes, marks, undo, win, mistakes, hints), the four skins
+with their arrival motifs, the play screen, the Tracks menu with a per-profile theme picker, and the
+**Puzzles** card, which took Sudoku's place on the home screen and opens a menu of two picture cards.
+Two save fields were added, `Profile.tracksTheme` and `Profile.tracks` (§5.2), with `schemaVersion`
+still 1. No package was added and `git diff 06dcdac -- '*/pubspec.yaml'` shows only the version line
+and the `assets/audio/tracks/` declaration. The app moved from 0.4.6+12 to 0.5.0+15: PRs 8 and 9 moved
+only the patch, and the close moves the minor.
+
+What differed from the plan, in the order `PLAN-phase-9-tracks.md` §6 records it. **5x5 Hard is not
+offered**, because PR 3 measured that a 5x5 reaches Hard only with one piece fixed or none, so there
+are eight goldens rather than nine. The deduction solver's third tier also makes hypotheses on a
+track cell's sides, and the dig makes no uniqueness call per removal: a solved report from the
+solver is the proof, and the counter runs once on the attempt about to be returned. A malformed
+in-progress board is dropped silently rather than said once, and a fixed piece's open end being the
+child's to join moved the reciprocity check from the save codec to the session's resume. The
+import step builds a profile field by field, so it gained the two fields and a guard test that fails
+when a future field is left out. Undo, redo and hint are icon buttons with tooltips, not `BigButton`s,
+and the solve is recorded the moment the board is solved rather than when the journey ends, so a
+force-quit mid-journey loses nothing. The theme picker offers all four themes in two rows of two.
+`BigButton` now shrinks a one-word label that does not fit rather than wrapping it, because "Puzzles"
+split by characters at 200 % text on a 360 dp phone. Each skin names its arrival motif, which plays
+when travel ends and the fanfare follows; a guard test fails if a motif's file, its `pubspec.yaml`
+declaration or its `LICENSE-ASSETS.md` row is missing, and it found four Snake motifs missing from
+the inventory. The Tracks label is held in one constant, since the game's name is still the
+owner's to choose.
+
+**What was not done.** No Android phone, tablet or desktop display was available in this or any
+session that built this phase, so every *(Device)* line of `PLAN-phase-9-tracks.md` §8 stays open
+there: a 9x9 solved by dragging alone on a 360 dp phone, whether the four start and goal sprites and
+the wilted flower read to someone who has not seen the code, whether a five- or six-year-old solves
+a 5x5 Easy unaided after one demonstration, the four motifs heard, a Sudoku player finding it
+through the Puzzles card unaided, and rotation mid-puzzle. The players-file line is open for want of
+a second device; its round trip is covered by tests, each half separately. `app/integration_test/
+tracks_smoke_test.dart` drives home, Puzzles, Tracks and a puzzle to solved with simulated drags and
+checks the solve in a real `save.json`. It passes headless under `-d flutter-tester`, which is
+evidence and not a device run (`AGENTS.md`), so that line stays open too. Unlike phase 7's close,
+the headless run works here: `libminisound_ffi.so` was built from the pub cache's source with cmake
+and put on `LD_LIBRARY_PATH`, which `AGENTS.md` now describes.
 
 ---
 
