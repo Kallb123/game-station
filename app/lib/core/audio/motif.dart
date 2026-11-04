@@ -3,9 +3,10 @@
 /// `PLAN-phase-5.md` §4.2. Six are Sudoku's, synthesised by
 /// `tool/audio/generate_motifs.py` into `assets/audio/sudoku/`; nine are
 /// Invaders' `arcade/` set (`PLAN-phase-5.md` PR 3); four are Snake's
-/// `snake/` set (`PLAN-phase-7-snake.md` §4.10). There is no `isMusic`:
-/// `settings.sound` gates all nineteen, because there is no music
-/// (`PLAN-phase-5.md` §4.6).
+/// `snake/` set (`PLAN-phase-7-snake.md` §4.10); four are Tracks' arrival
+/// motifs, one per theme (`PLAN-phase-9-tracks.md` §4.10). There is no
+/// `isMusic`: `settings.sound` gates all twenty-three, because there is no
+/// music (`PLAN-phase-5.md` §4.6).
 enum Motif {
   sudokuPlace('sudoku/place.wav'),
   sudokuCorrect('sudoku/correct.wav'),
@@ -25,7 +26,11 @@ enum Motif {
   snakeEat('snake/eat.wav'),
   snakeNotYet('snake/not_yet.wav'),
   snakeCrash('snake/crash.wav'),
-  snakeLevelClear('snake/level_clear.wav');
+  snakeLevelClear('snake/level_clear.wav'),
+  tracksWhistle('tracks/whistle.wav'),
+  tracksSleighBells('tracks/sleigh_bells.wav'),
+  tracksPop('tracks/pop.wav'),
+  tracksGurgle('tracks/gurgle.wav');
 
   const Motif(this.asset);
 

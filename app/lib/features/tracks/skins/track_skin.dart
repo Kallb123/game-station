@@ -17,6 +17,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart' show immutable;
 
+import '../../../core/audio/motif.dart';
 import '../../../core/storage/save_data.dart' show TracksTheme;
 import 'track_geometry.dart';
 
@@ -196,6 +197,13 @@ abstract interface class TrackSkin {
   /// How long the goal takes to go from waiting to arrived once the journey
   /// ends.
   Duration get arrivalDuration;
+
+  /// The theme's arrival sound, played as the traveller reaches the goal and
+  /// before the shared fanfare (`PLAN-phase-9-tracks.md` §4.10). Null means the
+  /// fanfare alone: the fallback for a motif that does not read as its theme
+  /// on a device, so dropping one is a one-line change here rather than a
+  /// branch in the play screen.
+  Motif? get arrivalMotif;
 
   /// One grid cell's ground, before any track. [row] and [column] let a
   /// texture vary from cell to cell without randomness.

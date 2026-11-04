@@ -561,6 +561,106 @@ def level_clear() -> list[float]:
     return at_peak(render(voices, 0.55), -9)
 
 
+# --- The Tracks set (`PLAN-phase-9-tracks.md` §4.10) ------------------------
+#
+# Four arrival sounds, one per skin, each played once as the traveller reaches
+# the goal. The fanfare, `sudoku/complete.wav` (-3 dBFS), follows once the
+# goal has finished changing, so each is shorter than its skin's
+# `arrivalDuration` and sits well under the fanfare: it leads into it rather
+# than competing with it.
+
+
+def whistle() -> list[float]:
+    """The train reaches the station: a friendly steam whistle.
+
+    A C major triad, C5, E5 and G5, close enough together to blend into one
+    chord, each bending up a semitone into its note at the start (the whistle
+    "catching" its pressure; the starting pitches are outside the key only for
+    that instant), a slow-ish attack and a gentle vibrato. A little
+    low-passed noise under it is the breath of the steam. No harsh partials: it
+    is a toy train, not a locomotive, so the timbre stays near-sine and the
+    whole thing is low-passed at 2.5 kHz.
+    """
+    chord = dict(timbre=MUTED, attack=0.05, decay=0.5, vibrato_hz=5.0,
+                 vibrato_cents=12.0)
+    voices = [
+        Voice(0.0, 0.55, "B4", bend_to="C5", gain=1.0, **chord),
+        Voice(0.0, 0.55, "D#5", bend_to="E5", gain=0.8, **chord),
+        Voice(0.0, 0.55, "F#5", bend_to="G5", gain=0.7, **chord),
+    ]
+    tone = render(voices, 0.55)
+    breath = low_pass(_noise_burst(0.55, seed=5, attack=0.06, decay=0.3), 2500)
+    mixed = [t + 0.12 * b for t, b in zip(tone, breath)]
+    return at_peak(low_pass(mixed, 2500), -11)
+
+
+def sleigh_bells() -> list[float]:
+    """Santa reaches the house: a quick jingle of bright bell strikes.
+
+    Twelve short strikes, about 22 a second, in the top octave with their
+    pitches nudged around C7, E7 and G7 so the ring is a shimmer rather than a
+    melody. Decays are short, since a sleigh bell is a small piece of metal.
+    A tiny noise tick under each strike, low-passed high, stands in for the
+    rattle of the pea inside it.
+    """
+    pitches = ["C7", "E7", "G7", "E7", "C7", "G7", "E7", "C7", "G7", "E7", "G7",
+               "C7"]
+    voices = []
+    ticks = [0.0] * int(0.6 * SAMPLE_RATE)
+    for i, pitch in enumerate(pitches):
+        start = i * 0.045 + (0.004 if i % 2 else 0.0)
+        gain = 0.7 + 0.3 * ((i * 5) % 4) / 3
+        voices.append(
+            Voice(start, 0.10, pitch, timbre=BELL, attack=0.002, decay=0.035,
+                  gain=gain)
+        )
+        tick = _noise_burst(0.012, seed=6 + i, attack=0.001, decay=0.004)
+        offset = int(start * SAMPLE_RATE)
+        for j, sample in enumerate(tick):
+            ticks[offset + j] += 0.12 * gain * sample
+    bells = render(voices, 0.6)
+    return at_peak([b + t for b, t in zip(bells, ticks)], -11)
+
+
+def pop() -> list[float]:
+    """The snail reaches the pumpkin: a soft, cute bloop.
+
+    A short sine glide down from A5 to E5, then a tiny upward pip on the end,
+    with a fast attack and a short decay. The quietest of the four: the snail
+    is the gentlest of the skins, and a bubble popping is not an event.
+    """
+    voices = [
+        Voice(0.00, 0.12, "A5", bend_to="E5", timbre=SOFT, attack=0.004,
+              decay=0.07),
+        Voice(0.11, 0.09, "E5", bend_to="G5", timbre=SOFT, attack=0.004,
+              decay=0.04, gain=0.6),
+    ]
+    return at_peak(render(voices, 0.21), -14)
+
+
+def gurgle() -> list[float]:
+    """Water reaches the goal: a few bubbles rising.
+
+    Five soft sines, each gliding upward a small interval, at staggered times
+    and pitches so they overlap like bubbles surfacing in no particular order.
+    Fixed times rather than random ones, so `--check` stays exact. Low-passed
+    at 1.6 kHz to read as wet rather than as chirping.
+    """
+    bubbles = [
+        (0.00, "C5", "F5", 0.14, 0.9),
+        (0.12, "E5", "A5", 0.12, 0.7),
+        (0.23, "G4", "C5", 0.16, 1.0),
+        (0.38, "D5", "G5", 0.13, 0.75),
+        (0.50, "A4", "D5", 0.15, 0.85),
+    ]
+    voices = [
+        Voice(start, length, pitch, bend_to=target, timbre=SOFT, attack=0.01,
+              decay=0.06, gain=gain)
+        for start, pitch, target, length, gain in bubbles
+    ]
+    return at_peak(low_pass(render(voices, 0.66), 1600), -12)
+
+
 MOTIFS = {
     "sudoku/place": place,
     "sudoku/correct": correct,
@@ -581,6 +681,10 @@ MOTIFS = {
     "snake/not_yet": not_yet,
     "snake/crash": crash,
     "snake/level_clear": level_clear,
+    "tracks/whistle": whistle,
+    "tracks/sleigh_bells": sleigh_bells,
+    "tracks/pop": pop,
+    "tracks/gurgle": gurgle,
 }
 
 

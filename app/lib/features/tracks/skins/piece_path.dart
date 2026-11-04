@@ -1,4 +1,4 @@
-// Path helpers shared by the train and water skins (`PLAN-phase-9-tracks.md`
+// Path helpers shared by every skin (`PLAN-phase-9-tracks.md`
 // §4.8).
 //
 // Both skins draw a piece as a centre line through one cell, ending at the

@@ -118,6 +118,21 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
   /// Whether the journey is over and the card is up.
   bool _arrived = false;
 
+  /// Whether the theme's arrival motif has sounded. Guards the one-per-puzzle
+  /// rule across the two places it can start: the ticker reaching the goal, and
+  /// `_arrive` when the journey is skipped or never ran. The next puzzle is a
+  /// new screen (`_playNext` replaces the route), so it starts false again.
+  bool _arrivalSounded = false;
+
+  /// The skin's motif and arrival time, taken once in `_finish` so the ticker
+  /// and `_arrive` cannot disagree about which skin the board was solved in.
+  Motif? _arrivalMotif;
+  Duration _arrivalDuration = Duration.zero;
+
+  /// Holds the fanfare and the card back while a motif that had no journey to
+  /// sound in finishes, so the two never overlap.
+  Timer? _arriveTimer;
+
   @override
   void initState() {
     super.initState();
@@ -135,6 +150,7 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
     _spinnerDelay?.cancel();
     _stopClock();
     _journey?.dispose();
+    _arriveTimer?.cancel();
     _lifecycle.dispose();
 
     final session = _session;
@@ -536,19 +552,34 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
     unawaited(_repository.flush());
     ref.read(appHapticsProvider).impact();
 
+    // The skin as it is now: a theme change cannot reach a solved board, and
+    // the motif must be the one the child's traveller arrives with.
+    final skin = _currentSkin(watch: false);
+    final motif = skin.arrivalMotif;
+    _arrivalMotif = motif;
+    _arrivalDuration = skin.arrivalDuration;
+    // Decoded before the traveller gets there, so neither the motif nor the
+    // fanfare pays a first-play delay at the moment it should land.
+    ref.read(appAudioProvider).preload([?motif, Motif.sudokuComplete]);
+
     final route = TrackGeometry.trace(session.clues, session.cells);
     if (MediaQuery.disableAnimationsOf(context) || route == null) {
       _arrive();
       return;
     }
 
-    final skin = _currentSkin(watch: false);
     final total = journeyDuration(skin, route);
+    final travel = travelDuration(skin, route);
     _journey = createTicker((elapsed) {
       if (elapsed >= total) {
+        // A tick can cross the goal and the end together (resuming from the
+        // background); `_arrive` then spaces the motif and the fanfare itself.
         _endJourney();
         return;
       }
+      // At the goal, not at the end: the arrival animation runs while the
+      // motif sounds, and the fanfare follows once it is over.
+      if (elapsed >= travel) _soundArrival();
       _frame.value = journeyFrameAt(skin, route, elapsed);
     })..start();
     // Rebuilt so the board is no longer interactive and a tap can skip.
@@ -567,12 +598,32 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
 
   void _arrive() {
     _frame.value = JourneyFrame.arrived;
-    // PR 9's per-theme arrival motif plays here, before the shared fanfare.
-    //
+    // A skip, `reduceMotion` or an untraceable route gets here before the
+    // motif has sounded. It plays now and the fanfare waits out the arrival
+    // time, as on the normal path: played together the two would blur, and the
+    // fanfare could even start first while the motif is still decoding.
+    final motif = _arrivalMotif;
+    if (!_arrivalSounded && motif != null) {
+      _soundArrival();
+      _arriveTimer = Timer(_arrivalDuration, _celebrate);
+      return;
+    }
+    _celebrate();
+  }
+
+  void _celebrate() {
+    _arriveTimer = null;
     // Under the confetti and unaffected by `reduceMotion`: that setting is about
     // movement, not celebration (`PLAN.md` §3.7).
     ref.read(appAudioProvider).play(Motif.sudokuComplete);
     setState(() => _arrived = true);
+  }
+
+  void _soundArrival() {
+    if (_arrivalSounded) return;
+    _arrivalSounded = true;
+    final motif = _arrivalMotif;
+    if (motif != null) ref.read(appAudioProvider).play(motif);
   }
 
   void _save() {

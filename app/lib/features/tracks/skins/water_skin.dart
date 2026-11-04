@@ -10,6 +10,7 @@ import 'dart:ui';
 
 import 'package:puzzle_engine/puzzle_engine.dart' show TrackSide;
 
+import '../../../core/audio/motif.dart';
 import '../../../core/storage/save_data.dart' show TracksTheme;
 import 'piece_path.dart';
 import 'pixel_sprite.dart';
@@ -243,6 +244,9 @@ class WaterSkin implements TrackSkin {
 
   @override
   Duration get arrivalDuration => const Duration(milliseconds: 900);
+
+  @override
+  Motif? get arrivalMotif => Motif.tracksGurgle;
 
   @override
   void paintGround(Canvas canvas, Rect cell, int row, int column) {

@@ -11,6 +11,7 @@ import 'dart:ui';
 
 import 'package:puzzle_engine/puzzle_engine.dart' show TrackSide;
 
+import '../../../core/audio/motif.dart';
 import '../../../core/storage/save_data.dart' show TracksTheme;
 import 'piece_path.dart';
 import 'pixel_sprite.dart';
@@ -200,6 +201,9 @@ class TrainSkin implements TrackSkin {
   Duration get arrivalDuration => const Duration(milliseconds: 600);
 
   @override
+  Motif? get arrivalMotif => Motif.tracksWhistle;
+
+  @override
   void paintGround(Canvas canvas, Rect cell, int row, int column) {
     final shade = cellNoise(row, column, 1);
     final base = shade > 0.5
@@ -302,6 +306,8 @@ class TrainSkin implements TrackSkin {
     final u = cell.width;
     final end = Offset.lerp(cell.center, sideMidpoint(cell, side), 0.8)!;
     final along = end - cell.center;
+    // A cell with no size has no direction to put the stop across.
+    if (along.distance == 0) return;
     final unit = along / along.distance;
     final across = Offset(-unit.dy, unit.dx) * (u * 0.22);
     canvas.drawLine(

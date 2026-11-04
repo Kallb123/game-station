@@ -1,6 +1,6 @@
 # Phase 9 — Tracks, a themeable path puzzle
 
-**In progress: PRs 1 to 7 have landed.** This file is the design and the pull-request breakdown for a fourth game:
+**In progress: PRs 1 to 9 have landed; PR 10, the device pass and close, remains.** This file is the design and the pull-request breakdown for a fourth game:
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
@@ -459,7 +459,8 @@ goal is painted from an `arrival` value: 0 while waiting, rising to 1 over `arri
 journey ends. The other skins use it too — the station's lamp lights, the house's windows glow and
 smoke rises from the chimney, the pumpkin glows — so the interface has one shape, not one for water and
 one for the rest. The board's animation is then one timeline: journey `t` from 0 to 1, then `arrival`
-from 0 to 1, then the arrival motif and the completion card. With `reduceMotion` on, both jump to 1.
+from 0 to 1, then the fanfare and the completion card; the theme's arrival motif sounds as `arrival`
+starts (§4.10). With `reduceMotion` on, both jump to 1.
 A goal painted at `arrival` 1 on a board that is not solved is a bug, and a widget test asserts the
 flower stays wilted on a board one connection short of solved.
 
@@ -504,11 +505,11 @@ than to whoever drives the animation. `TracksBoardPainter.effectiveFrame` turns 
 an underline under an exceeded one so that colour never carries the state alone (§4.12). Input,
 the toolbar, the ticker and semantics stay PR 7's. (6) The train stops about 0.9 of a cell short of
 the goal port's centre, so it never covers the station lamp that lights on arrival, and the water
-is clipped to the grid so it never runs over the tap or the flower. (7) `santa` and `snail` draw
-with the train skin until PR 9. `trackSkinFor`'s switch has no default, so a fifth theme is a
-compile error there rather than a silent train. (8) Piece geometry shared by both skins — a
+is clipped to the grid so it never runs over the tap or the flower. (7) `santa` and `snail` drew
+with the train skin until PR 9 built theirs. `trackSkinFor`'s switch has no default, so a fifth theme is a
+compile error there rather than a silent train. (8) Piece geometry shared by the skins — a
 centre line with quarter-circle corners, sampling along it, and the per-cell texture noise — is in
-`skins/piece_path.dart`, so a rail and a pipe turn identically.
+`skins/piece_path.dart`, so a rail, a pipe, a line of footprints and a slime trail turn identically.
 
 ### 4.9 Puzzle source
 
@@ -528,6 +529,16 @@ arrival motif per theme — a whistle, sleigh bells, a soft pop, a gurgle — sy
 fanfare. If a synthesised motif does not read as its theme on a device, that theme falls back to the
 fanfare alone rather than shipping a sound that confuses. Haptics: a light tick per connection and
 the completion buzz, through `core/haptics.dart` and so gated by `hapticsLevel` and the platform.
+
+*As built in PR 9:* each skin names its motif as `TrackSkin.arrivalMotif`, so the fallback is that
+getter returning null rather than a branch in the play screen. The motif plays the moment the
+journey's travel ends, while the goal changes over `arrivalDuration`, and the fanfare follows when
+the arrival ends. A skipped journey, `reduceMotion`, or a board whose route cannot be traced shows
+the arrived goal at once, plays the motif, and holds the fanfare and the card for `arrivalDuration`,
+so the two sounds never overlap and the motif never plays twice. `reduceMotion` is about movement,
+not celebration, so it keeps both sounds. Both are preloaded at the moment of solving, so neither
+usually pays a first-play decode on arrival; on the immediate paths the decode may still be in
+flight, which the hold also covers.
 
 ### 4.11 Save fields
 
@@ -832,6 +843,23 @@ from 0.4.6+12 to 0.4.7+13, the first build in which a child can reach Tracks (§
 journey's end in a widget test with a fake `AppAudio`; screenshots of all four themes on the same
 puzzle are attached.
 
+*Built as planned, with these differences.* (1) **Each skin names its motif** as
+`TrackSkin.arrivalMotif`, nullable, so §4.10's fallback to the fanfare alone is one getter returning
+null. Train has the whistle, Santa the sleigh bells, the snail the pop, water the gurgle. (2) **The
+motif plays when travel ends, not when the journey ends**: it sounds while the goal changes over
+`arrivalDuration`, and the fanfare follows. A skip, `reduceMotion` or an untraceable route plays it
+before the fanfare, once, with the fanfare and card held back by `arrivalDuration` so the two never
+overlap (§4.10). (3) **The theme picker is two rows of two**: four
+buttons of a 64 dp picture plus padding do not fit one row on a 360 dp phone. `offeredTracksThemes`
+stays an explicit list, now of all four, as the one place a theme can be withheld. (4) **Speeds**:
+Santa walks at 2.5 cells a second and the snail crawls at 2, the slowest, as §4.8 asks; a test pins
+the snail below every other skin. (5) **A guard test** (`app/test/core/audio/motif_assets_test.dart`)
+fails if any `Motif`'s file is missing, its directory is not declared in `pubspec.yaml`, or it has no
+row in `LICENSE-ASSETS.md`. The first two fail silently at runtime, because `MinisoundAudio` silences
+itself after a load error; the third is the inventory rule `LICENSE-ASSETS.md` states. It found the four snake motifs missing from the licence inventory, which
+this PR adds. (6) The screenshots were rendered under `flutter test` and attached to the pull request
+rather than committed, as in PR 6. (7) The app version moved from 0.4.7+13 to 0.4.8+14.
+
 **PR 10 — smoke test, device pass, close.** `app/integration_test/tracks_smoke_test.dart` drives menu
 to solved; the device checks of §8; this file gets a closed banner, `PLAN.md` §4, §5.2, §6 and §7 are
 reconciled with what was built, and `README.md` names the game.
@@ -872,9 +900,11 @@ theirs.
       ticked when the phase closes.)*
 - [ ] `dart tool/check_determinism.dart` and `dart tool/check_offline.dart` pass; no dependency in
       `app/pubspec.yaml` or `packages/puzzle_engine/pubspec.yaml` changes in this phase (`git diff
-      main -- '*/pubspec.yaml'` shows only the app's `version:` line). *(Both pass after PR 3. PR 8
-      bumped the app from 0.4.6+12 to 0.4.7+13, the first build a child can reach Tracks in, and
-      changed nothing else in either pubspec; ticked at the close.)*
+      main -- '*/pubspec.yaml'` shows only the app's `version:` line and the `assets/audio/tracks/`
+      declaration). *(Both pass after PR 3. PR 8 bumped the app from 0.4.6+12 to 0.4.7+13, the first
+      build a child can reach Tracks in; PR 9 to 0.4.8+14, the first with all four themes and their
+      sounds, and declared the new audio directory. Neither changed a dependency; ticked at the
+      close.)*
 - [x] The import-boundary test fails against a copy of `model/` that imports a skin, and passes
       without it. *(PR 5: `app/test/features/tracks/import_boundary_test.dart` copies `model/` to a
       temporary directory, adds a skin import, and asserts the scan reports it.)*

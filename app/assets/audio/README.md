@@ -103,6 +103,26 @@ already detects one of these four, and `SnakeGame.update` drains them every fram
 the motif above; `crashed` and `levelCleared` also buzz through `AppHaptics` — the two moments in a
 run worth feeling (`PLAN-phase-7-snake.md` §4.10).
 
+## The Tracks set
+
+`PLAN-phase-9-tracks.md` §4.10. Four files, one per skin, named after the theme rather than the
+event: each is an *arrival* sound, played once as the traveller reaches the goal, while the goal
+changes over the skin's `arrivalDuration`. The shared fanfare `sudoku/complete.wav` follows when that
+ends, so each motif is shorter than its skin's `arrivalDuration` (at most 0.66 s) and sits well under
+the fanfare's −3 dBFS. A skipped journey or `reduceMotion` plays the motif and holds the fanfare back
+by the same time, so the two never overlap.
+
+| File | Theme | Plays when | Level |
+|---|---|---|---|
+| `tracks/whistle.wav` | Train | The train reaches the station: a soft steam-whistle chord, a bend up into C5, E5 and G5 with a little vibrato and breath | −11 dBFS peak |
+| `tracks/sleigh_bells.wav` | Santa | Santa reaches the house: twelve short bright bell strikes in about half a second | −11 dBFS |
+| `tracks/pop.wav` | Snail | The snail reaches the pumpkin: a soft glide down and a tiny pip up. The quietest of the four | −14 dBFS |
+| `tracks/gurgle.wav` | Water | The water reaches the goal: five low-passed bubbles gliding upward | −12 dBFS |
+
+Whether each one reads as its theme can only be judged on a device. A motif that does not is dropped
+by making that skin's `arrivalMotif` null, which leaves the fanfare alone rather than playing
+something that sounds like nothing in particular.
+
 ## Not here yet
 
 Drawing-board sounds. Phase 8's pencil has none designed for it yet (`PLAN-phase-8.md`).
@@ -117,7 +137,8 @@ cannot forget to check it. `sudoku/complete.wav` plays under the completion conf
 in `sudoku_play_screen.dart` rather than called from the keypad or the grid (`PLAN-phase-5.md` §3.3,
 §4.3).
 
-`assets/audio/sudoku/`, `assets/audio/arcade/` and `assets/audio/snake/` are all declared in
+`assets/audio/sudoku/`, `assets/audio/arcade/`, `assets/audio/snake/` and `assets/audio/tracks/` are
+all declared in
 [`pubspec.yaml`](../../pubspec.yaml) — an asset directory declared before it has content fails the
-build, which is why the arcade and snake lines each waited for the pull request that gave them
+build, which is why the arcade, snake and Tracks lines each waited for the pull request that gave them
 something to hold.

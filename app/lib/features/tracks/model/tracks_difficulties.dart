@@ -47,11 +47,12 @@ bool _isOffered(TracksSpec spec, Difficulty difficulty) {
 
 /// The themes the picker offers, in the order it draws them.
 ///
-/// Only the two whose skins exist. `trackSkinFor` still draws `santa` and
-/// `snail` with the train until PR 9, so a button for either would show a
-/// locomotive under another name. PR 9 adds them here
-/// (`PLAN-phase-9-tracks.md` §4.8).
+/// Every theme, now that each has its own skin. Kept as an explicit list rather
+/// than `TracksTheme.values` because this is the place a theme can be withheld
+/// again if a skin is ever not ready (`PLAN-phase-9-tracks.md` §4.8).
 const List<TracksTheme> offeredTracksThemes = <TracksTheme>[
   TracksTheme.train,
+  TracksTheme.santa,
+  TracksTheme.snail,
   TracksTheme.water,
 ];

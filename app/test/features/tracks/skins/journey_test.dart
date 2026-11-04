@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/audio/motif.dart';
 import 'package:zibo_games/core/storage/save_data.dart' show TracksTheme;
 import 'package:zibo_games/features/tracks/skins/journey.dart';
 import 'package:zibo_games/features/tracks/skins/track_geometry.dart';
@@ -16,6 +17,9 @@ class _FakeSkin implements TrackSkin {
 
   @override
   final Duration arrivalDuration;
+
+  @override
+  Motif? get arrivalMotif => null;
 
   @override
   double get cellsPerSecond => 2;

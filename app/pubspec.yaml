@@ -5,7 +5,7 @@ description: >-
 publish_to: none
 
 # The build number is bumped per store submission, the version per release.
-version: 0.4.7+13
+version: 0.4.8+14
 
 environment:
   sdk: ^3.12.2
@@ -86,6 +86,7 @@ flutter:
     - assets/audio/sudoku/
     - assets/audio/arcade/
     - assets/audio/snake/
+    - assets/audio/tracks/
 
   # Fonts are bundled rather than fetched: google_fonts downloads at runtime,
   # which the no-network rule rules out. See assets/fonts/README.md.

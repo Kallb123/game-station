@@ -1,4 +1,4 @@
-// The row of picture buttons that chooses how Tracks looks
+// The grid of picture buttons that chooses how Tracks looks
 // (`PLAN-phase-9-tracks.md` §4.8, §4.14).
 //
 // Each button shows the thing the skin starts with, painted by the skin itself,
@@ -34,25 +34,38 @@ class TracksThemePicker extends ConsumerWidget {
       activeProfileProvider.select((profile) => profile.tracksTheme),
     );
 
-    // IntrinsicHeight so a label that wraps to two lines at a large text scale
-    // makes its neighbour as tall rather than ragged; the row is two buttons.
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: AppSpacing.md,
-        children: [
-          for (final theme in offeredTracksThemes)
-            // Expanded so each label has a bounded width to wrap into.
-            Expanded(
-              child: _ThemeButton(
-                skin: trackSkinFor(theme, brightness),
-                selected: theme == chosen,
-                onPressed: () =>
-                    ref.read(progressRepositoryProvider).setTracksTheme(theme),
-              ),
+    // Rows of two: four buttons at 64 dp picture plus padding do not fit one
+    // row on a 360 dp phone. Each row is an IntrinsicHeight so a label that
+    // wraps to two lines at a large text scale makes its neighbour as tall
+    // rather than ragged.
+    final themes = offeredTracksThemes;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      spacing: AppSpacing.md,
+      children: [
+        for (var start = 0; start < themes.length; start += 2)
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: AppSpacing.md,
+              children: [
+                for (final theme in themes.skip(start).take(2))
+                  // Expanded so each label has a bounded width to wrap into.
+                  Expanded(
+                    child: _ThemeButton(
+                      skin: trackSkinFor(theme, brightness),
+                      selected: theme == chosen,
+                      onPressed: () => ref
+                          .read(progressRepositoryProvider)
+                          .setTracksTheme(theme),
+                    ),
+                  ),
+                // An odd last row keeps its button the width of the others.
+                if (themes.length - start == 1) const Spacer(),
+              ],
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

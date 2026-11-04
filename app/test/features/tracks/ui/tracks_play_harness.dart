@@ -141,6 +141,15 @@ Duration journeyOf(WidgetTester tester) {
   return journeyDuration(painterOf(tester).skin, route);
 }
 
+/// Pumps through the journey and the arrival time after it: what a test does to
+/// reach the card. Two steps because a single tick past the journey sounds the
+/// motif and only then starts the arrival time that holds the card back.
+Future<void> pumpToCard(WidgetTester tester) async {
+  final arrival = painterOf(tester).skin.arrivalDuration;
+  await tester.pump(journeyOf(tester) + const Duration(milliseconds: 100));
+  await tester.pump(arrival);
+}
+
 /// Lands the repository's debounced write and takes the tree down, so no timer
 /// is pending when the test ends.
 Future<void> finish(WidgetTester tester, ProviderContainer container) async {

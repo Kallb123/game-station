@@ -36,6 +36,14 @@ or an F-Droid listing.
 | `audio/arcade/ufo_hit.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
 | `audio/arcade/wave_clear.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
 | `audio/arcade/extra_life.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/snake/eat.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/snake/not_yet.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/snake/crash.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/snake/level_clear.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/tracks/whistle.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/tracks/sleigh_bells.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/tracks/pop.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
+| `audio/tracks/gurgle.wav` | Audio | Synthesised by `tool/audio/generate_motifs.py` | MIT, with the rest of the repository | No |
 
 The two images above are the app icon, at the two sizes an Amazon Appstore listing asks for: 512 px
 for the large icon, 114 px for the small one (PLAN.md §9, phase 6). The 512 px one is also the master
@@ -43,7 +51,7 @@ that [`tool/icon/generate_platform_icons.py`](../../tool/icon/generate_platform_
 into the Android mipmaps, the two `AppIcon.appiconset`s and the Windows `.ico`, so replacing it and
 re-running that script is the whole of changing the icon.
 
-The fifteen audio files are the Sudoku and arcade motifs, and they are the licensing-free case on
+The twenty-three audio files are the Sudoku, arcade, snake and Tracks motifs, and they are the licensing-free case on
 purpose: they are generated from arithmetic by a committed script rather than taken from a sample
 library, so there is no third-party licence in the tree to honour and no attribution to carry into
 the about screen. See [`audio/README.md`](audio/README.md) for what each one plays for and how to
