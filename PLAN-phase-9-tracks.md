@@ -1,6 +1,6 @@
 # Phase 9 — Tracks, a themeable path puzzle
 
-**In progress: PRs 1 to 7 have landed.** This file is the design and the pull-request breakdown for a fourth game:
+**In progress: PRs 1 to 9 have landed; PR 10, the device pass and close, remains.** This file is the design and the pull-request breakdown for a fourth game:
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
@@ -504,8 +504,8 @@ than to whoever drives the animation. `TracksBoardPainter.effectiveFrame` turns 
 an underline under an exceeded one so that colour never carries the state alone (§4.12). Input,
 the toolbar, the ticker and semantics stay PR 7's. (6) The train stops about 0.9 of a cell short of
 the goal port's centre, so it never covers the station lamp that lights on arrival, and the water
-is clipped to the grid so it never runs over the tap or the flower. (7) `santa` and `snail` draw
-with the train skin until PR 9. `trackSkinFor`'s switch has no default, so a fifth theme is a
+is clipped to the grid so it never runs over the tap or the flower. (7) `santa` and `snail` drew
+with the train skin until PR 9 built theirs. `trackSkinFor`'s switch has no default, so a fifth theme is a
 compile error there rather than a silent train. (8) Piece geometry shared by both skins — a
 centre line with quarter-circle corners, sampling along it, and the per-cell texture noise — is in
 `skins/piece_path.dart`, so a rail and a pipe turn identically.
@@ -528,6 +528,14 @@ arrival motif per theme — a whistle, sleigh bells, a soft pop, a gurgle — sy
 fanfare. If a synthesised motif does not read as its theme on a device, that theme falls back to the
 fanfare alone rather than shipping a sound that confuses. Haptics: a light tick per connection and
 the completion buzz, through `core/haptics.dart` and so gated by `hapticsLevel` and the platform.
+
+*As built in PR 9:* each skin names its motif as `TrackSkin.arrivalMotif`, so the fallback is that
+getter returning null rather than a branch in the play screen. The motif plays the moment the
+journey's travel ends, while the goal changes over `arrivalDuration`, and the fanfare follows when
+the arrival ends. A skipped journey, `reduceMotion`, or a board whose route cannot be traced plays
+the motif immediately before the fanfare, never twice: `reduceMotion` is about movement, not
+celebration. Both are preloaded at the moment of solving, so neither pays a first-play decode on
+arrival.
 
 ### 4.11 Save fields
 
