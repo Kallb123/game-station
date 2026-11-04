@@ -2,8 +2,8 @@
 
 A local, offline, ad-free games app for children. Sudoku (9x9 and 6x6, deterministic from a date or
 index) and Tracks, a themeable path puzzle generated the same way, plus retro arcade games driven by
-on-screen controls, with progress that persists across sessions. A drawing board and Tracks arrive
-after the release line, as §7's phases 8 and 9.
+on-screen controls, with progress that persists across sessions. A drawing board, Tracks and a quiz
+about children's books, TV and films arrive after the release line, as §7's phases 8, 9 and 10.
 
 ---
 
@@ -1279,6 +1279,31 @@ checks the solve in a real `save.json`. It passes headless under `-d flutter-tes
 evidence and not a device run (`AGENTS.md`), so that line stays open too. Unlike phase 7's close,
 the headless run works here: `libminisound_ffi.so` was built from the pub cache's source with cmake
 and put on `LD_LIBRARY_PATH`, which `AGENTS.md` now describes.
+
+### Phase 10 — Quiz (11–15 days, plus content checking)
+
+A fifth game: a multiple-choice quiz about the stories a child knows. A child ticks the books they
+have read and the shows and films they have watched on a shelf, then plays a ten-question round mixed
+from everything ticked, or picks one title and is quizzed on that alone. Books first — the Magic
+Faraway Tree, Roald Dahl, Rainbow Magic, Narnia and the Kitty series — then CBeebies (Bluey, Topsy
+and Tim, Hey Duggee, Witch Detectives, Waffle the Wonder Dog) and Disney (Mickey, Frozen, the
+Princess films). A third card on the Puzzles menu, subject to the owner's confirmation. Planned as
+eleven pull requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
+
+- **Questions are data, keyed by stable title ids; the save stores only title ids and counters.**
+  One JSON pack per series under `app/assets/quiz/`, validated by a content test in CI. A profile
+  stores its ticked title ids and, per title, a seed and a position in that title's shuffled question
+  order — so questions can be added, corrected or withdrawn in any release with no save migration,
+  and title ids are frozen once shipped, as puzzle ids are. This is the phase's load-bearing decision.
+- **A question reaches a child only once a person has checked it**, and a title is offered only once
+  ten of its questions are. Release builds drop unchecked questions at load. Checking is owner time —
+  roughly 16–24 hours for the launch threshold — and the phase's critical path, so the release line
+  does not wait for it: a title under the threshold is hidden, not a blocker.
+- Text only: no cover art, character pictures, logos, stills, theme tunes or long quotations, because
+  every series is someone else's copyright and trademark. No new package; one optional profile field,
+  `Profile.quiz`, with `schemaVersion` still 1.
+
+Like phases 7, 8 and 9, it is a minor release after phase 6 and does not move the release line.
 
 ---
 
