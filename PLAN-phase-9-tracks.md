@@ -954,14 +954,17 @@ no phone, tablet or desktop display, and the device pass this pull request exist
       through the field-by-field comparison, not the replacement case, which carries none); and the
       line names a second device, which no session had. The two halves agree by construction, but the line stays open
       until someone imports a real file on a real second device.)*
-- [ ] `tool/verify.sh` time before and after the phase recorded here: before ___, after ___.
+- [x] `tool/verify.sh` time before and after the phase recorded here: before 2 m 27 s and 2 m 22 s,
+      after 2 m 42 s and 2 m 31 s — about ten seconds added.
       *(PR 3's share: before PR 3, 5 m 33 s wall with the engine tests at 1 m 26 s, measured on a
       container busy with other work, so an upper bound; after PR 3, 4 m 5 s and 4 m 24 s wall on two
       runs, with the engine tests at 1 m 32 s and the benchmark at 15 s. Tracks added 800 golden puzzles (about 1.3 s to
       generate), 2000 fuzz puzzles (about 6 s, run in parallel with the goldens) and eight benchmark
-      rows (about 1 s); the rest of the difference is the machine. The two figures for the whole
-      phase are filled in from runs of `tool/verify.sh` on the commit before PR 2 and on the PR 10
-      commit, and the box is ticked when they are.)*
+      rows (about 1 s); the rest of the difference is the machine. The whole phase's figures are two
+      runs each, back to back on an otherwise idle container at the close: `tool/verify.sh` on
+      1f28d69, the plan's commit, whose code is the commit before the phase, and on the PR 10
+      branch. Over the phase the engine suite grew from 168 tests to 347 and the app suite from 1340
+      to 1843.)*
 - [ ] *(Device)* `tracks_smoke_test.dart` passes on an Android phone; device named in PR 10.
       **Not done.** It passes headless under `-d flutter-tester` with `libminisound_ffi.so` built from
       the pub cache and on `LD_LIBRARY_PATH` (§6, PR 10), which `AGENTS.md` calls evidence and not a
