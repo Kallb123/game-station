@@ -206,16 +206,14 @@ void main() {
   group('the theme picker', () {
     Finder pictureButton(String name) => find.bySemanticsLabel(name);
 
-    testWidgets('offers exactly the themes with skins, train selected', (
-      tester,
-    ) async {
+    testWidgets('offers all four themes, train selected', (tester) async {
       await openMenu(tester);
 
       expect(find.text('Theme'), findsOneWidget);
       expect(find.text('Train'), findsOneWidget);
       expect(find.text('Water'), findsOneWidget);
-      expect(find.text('Santa'), findsNothing);
-      expect(find.text('Snail'), findsNothing);
+      expect(find.text('Santa'), findsOneWidget);
+      expect(find.text('Snail'), findsOneWidget);
       expect(
         find.descendant(
           of: find.byType(TracksThemePicker),
@@ -230,7 +228,7 @@ void main() {
     ) async {
       await openMenu(tester);
 
-      for (final name in ['Train', 'Water']) {
+      for (final name in ['Train', 'Santa', 'Snail', 'Water']) {
         final size = tester.getSize(
           find
               .ancestor(of: find.text(name), matching: find.byType(InkWell))
@@ -316,6 +314,33 @@ void main() {
       expect(checked, findsOneWidget);
       await finish(tester, container);
     });
+
+    testWidgets(
+      'choosing the snail on one profile leaves another on the train',
+      (tester) async {
+        final container = await openMenu(tester);
+        final repository = repositoryOf(container);
+        final first = repository.activeProfile.id;
+        final second = repository
+            .createProfile(name: 'Bo', avatar: AvatarId.owl)
+            .id;
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Snail'));
+        await tester.pumpAndSettle();
+        expect(repository.activeProfile.tracksTheme, TracksTheme.snail);
+
+        repository.selectProfile(first);
+        await tester.pumpAndSettle();
+
+        expect(repository.activeProfile.tracksTheme, TracksTheme.train);
+        expect(
+          repository.profiles.firstWhere((p) => p.id == second).tracksTheme,
+          TracksTheme.snail,
+        );
+        await finish(tester, container);
+      },
+    );
   });
 
   group('pre-warming', () {

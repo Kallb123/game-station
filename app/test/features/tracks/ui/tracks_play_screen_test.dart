@@ -7,6 +7,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 import 'package:zibo_games/core/audio/motif.dart';
@@ -21,6 +22,7 @@ import 'package:zibo_games/features/tracks/data/tracks_puzzle_record.dart';
 import 'package:zibo_games/features/tracks/data/tracks_puzzle_source.dart';
 import 'package:zibo_games/features/tracks/skins/journey.dart';
 import 'package:zibo_games/features/tracks/skins/track_geometry.dart';
+import 'package:zibo_games/features/tracks/skins/track_skins.dart';
 import 'package:zibo_games/features/tracks/ui/tracks_board.dart';
 import 'package:zibo_games/features/tracks/ui/tracks_play_screen.dart';
 import 'package:zibo_games/routes.dart';
@@ -288,6 +290,129 @@ void main() {
     expect(audio.played.where((m) => m == Motif.sudokuComplete), hasLength(1));
 
     await finish(tester, container);
+  });
+
+  group('the arrival motif', () {
+    Motif? motifOf(TracksTheme theme) =>
+        trackSkinFor(theme, Brightness.light).arrivalMotif;
+
+    Future<(ProviderContainer, RecordingAudio)> open(
+      WidgetTester tester,
+      TracksTheme theme, {
+      bool reduceMotion = false,
+    }) async {
+      final audio = RecordingAudio();
+      final container = await pumpTracks(
+        tester,
+        store: MemorySaveStore(
+          initial: freshSave(settings: AppSettings(reduceMotion: reduceMotion)),
+        ),
+        overrides: [appAudioProvider.overrideWithValue(audio)],
+      );
+      repositoryOf(container).setTracksTheme(theme);
+      await tester.pump();
+      return (container, audio);
+    }
+
+    List<Motif> arrivals(RecordingAudio audio, Motif? motif) => [
+      for (final m in audio.played)
+        if (m == motif || m == Motif.sudokuComplete) m,
+    ];
+
+    for (final theme in TracksTheme.values) {
+      testWidgets('on the ${theme.name} sounds at the goal, then the fanfare', (
+        tester,
+      ) async {
+        final (container, audio) = await open(tester, theme);
+        final motif = motifOf(theme);
+
+        await solveByDrag(tester, smallPuzzle);
+        expect(sessionOf(tester).isSolved, isTrue);
+        expect(audio.preloaded, containsAll([?motif, Motif.sudokuComplete]));
+        expect(audio.played, isNot(contains(motif)));
+
+        final session = sessionOf(tester);
+        final route = TrackGeometry.trace(session.clues, session.cells)!;
+        final skin = painterOf(tester).skin;
+        final travel = travelDuration(skin, route);
+        final total = journeyOf(tester);
+        expect(skin.arrivalMotif, motif);
+
+        await tester.pump();
+        await tester.pump(travel + const Duration(milliseconds: 20));
+        expect(audio.played.where((m) => m == motif), hasLength(1));
+        expect(audio.played, isNot(contains(Motif.sudokuComplete)));
+
+        await tester.pump(total - travel);
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(arrivals(audio, motif), [?motif, Motif.sudokuComplete]);
+        expect(find.text(completionTitle), findsOneWidget);
+
+        await finish(tester, container);
+      });
+    }
+
+    testWidgets('with reduceMotion both sound once, motif first', (
+      tester,
+    ) async {
+      final (container, audio) = await open(
+        tester,
+        TracksTheme.water,
+        reduceMotion: true,
+      );
+      final motif = motifOf(TracksTheme.water);
+
+      await solveByDrag(tester, smallPuzzle);
+      await tester.pump();
+
+      expect(arrivals(audio, motif), [?motif, Motif.sudokuComplete]);
+      await finish(tester, container);
+    });
+
+    testWidgets('a tap mid-travel sounds both once, motif first', (
+      tester,
+    ) async {
+      final (container, audio) = await open(tester, TracksTheme.water);
+      final motif = motifOf(TracksTheme.water);
+      await solveByDrag(tester, smallPuzzle);
+
+      final session = sessionOf(tester);
+      final route = TrackGeometry.trace(session.clues, session.cells)!;
+      final travel = travelDuration(painterOf(tester).skin, route);
+      await tester.pump();
+      await tester.pump(travel ~/ 2);
+      expect(audio.played, isNot(contains(motif)));
+
+      await tester.tapAt(tester.getCenter(find.byType(TracksBoard)));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(arrivals(audio, motif), [?motif, Motif.sudokuComplete]);
+      await finish(tester, container);
+    });
+
+    testWidgets('a tap after the motif sounded does not repeat it', (
+      tester,
+    ) async {
+      final (container, audio) = await open(tester, TracksTheme.water);
+      final motif = motifOf(TracksTheme.water);
+      await solveByDrag(tester, smallPuzzle);
+
+      final session = sessionOf(tester);
+      final route = TrackGeometry.trace(session.clues, session.cells)!;
+      final skin = painterOf(tester).skin;
+      final travel = travelDuration(skin, route);
+      await tester.pump();
+      await tester.pump(travel + const Duration(milliseconds: 20));
+      expect(audio.played.where((m) => m == motif), hasLength(1));
+
+      await tester.tapAt(tester.getCenter(find.byType(TracksBoard)));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(arrivals(audio, motif), [?motif, Motif.sudokuComplete]);
+      await finish(tester, container);
+    });
   });
 
   testWidgets('next puzzle replaces the route with the next index', (

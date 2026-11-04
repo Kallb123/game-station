@@ -37,8 +37,9 @@ void main() {
     }
   });
 
-  test('the picker offers distinct themes, train first', () {
+  test('the picker offers every theme once, in enum order, train first', () {
     expect(offeredTracksThemes.first, TracksTheme.train);
     expect(offeredTracksThemes.toSet(), hasLength(offeredTracksThemes.length));
+    expect(offeredTracksThemes, TracksTheme.values);
   });
 }

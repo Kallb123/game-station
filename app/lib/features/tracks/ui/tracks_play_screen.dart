@@ -118,6 +118,12 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
   /// Whether the journey is over and the card is up.
   bool _arrived = false;
 
+  /// Whether the theme's arrival motif has sounded. Guards the one-per-puzzle
+  /// rule across the two places it can start: the ticker reaching the goal, and
+  /// `_arrive` when the journey is skipped or never ran. The next puzzle is a
+  /// new screen (`_playNext` replaces the route), so it starts false again.
+  bool _arrivalSounded = false;
+
   @override
   void initState() {
     super.initState();
@@ -536,15 +542,26 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
     unawaited(_repository.flush());
     ref.read(appHapticsProvider).impact();
 
+    // The skin as it is now: a theme change cannot reach a solved board, and
+    // the motif must be the one the child's traveller arrives with.
+    final skin = _currentSkin(watch: false);
+    final motif = skin.arrivalMotif;
+    // Decoded before the traveller gets there, so neither the motif nor the
+    // fanfare pays a first-play delay at the moment it should land.
+    ref.read(appAudioProvider).preload([?motif, Motif.sudokuComplete]);
+
     final route = TrackGeometry.trace(session.clues, session.cells);
     if (MediaQuery.disableAnimationsOf(context) || route == null) {
       _arrive();
       return;
     }
 
-    final skin = _currentSkin(watch: false);
     final total = journeyDuration(skin, route);
+    final travel = travelDuration(skin, route);
     _journey = createTicker((elapsed) {
+      // At the goal, not at the end: the arrival animation runs while the
+      // motif sounds, and the fanfare follows once it is over.
+      if (elapsed >= travel) _soundArrival(skin);
       if (elapsed >= total) {
         _endJourney();
         return;
@@ -567,12 +584,21 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
 
   void _arrive() {
     _frame.value = JourneyFrame.arrived;
-    // PR 9's per-theme arrival motif plays here, before the shared fanfare.
-    //
+    // A skip, `reduceMotion` or an untraceable route gets here without the
+    // ticker having reached the goal; the motif still sounds, just before the
+    // fanfare rather than ahead of the arrival animation.
+    _soundArrival(_currentSkin(watch: false));
     // Under the confetti and unaffected by `reduceMotion`: that setting is about
     // movement, not celebration (`PLAN.md` §3.7).
     ref.read(appAudioProvider).play(Motif.sudokuComplete);
     setState(() => _arrived = true);
+  }
+
+  void _soundArrival(TrackSkin skin) {
+    if (_arrivalSounded) return;
+    _arrivalSounded = true;
+    final motif = skin.arrivalMotif;
+    if (motif != null) ref.read(appAudioProvider).play(motif);
   }
 
   void _save() {
