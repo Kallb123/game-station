@@ -840,6 +840,22 @@ from 0.4.6+12 to 0.4.7+13, the first build in which a child can reach Tracks (§
 journey's end in a widget test with a fake `AppAudio`; screenshots of all four themes on the same
 puzzle are attached.
 
+*Built as planned, with these differences.* (1) **Each skin names its motif** as
+`TrackSkin.arrivalMotif`, nullable, so §4.10's fallback to the fanfare alone is one getter returning
+null. Train has the whistle, Santa the sleigh bells, the snail the pop, water the gurgle. (2) **The
+motif plays when travel ends, not when the journey ends**: it sounds while the goal changes over
+`arrivalDuration`, and the fanfare follows. A skip, `reduceMotion` or an untraceable route plays it
+immediately before the fanfare, once (§4.10). (3) **The theme picker is two rows of two**: four
+buttons of a 64 dp picture plus padding do not fit one row on a 360 dp phone. `offeredTracksThemes`
+stays an explicit list, now of all four, as the one place a theme can be withheld. (4) **Speeds**:
+Santa walks at 2.5 cells a second and the snail crawls at 2, the slowest, as §4.8 asks; a test pins
+the snail below every other skin. (5) **A guard test** (`app/test/core/audio/motif_assets_test.dart`)
+fails if any `Motif`'s file is missing, its directory is not declared in `pubspec.yaml`, or it has no
+row in `LICENSE-ASSETS.md`. All three fail silently at runtime, because `MinisoundAudio` silences
+itself after a load error. It found the four snake motifs missing from the licence inventory, which
+this PR adds. (6) The screenshots were rendered under `flutter test` and attached to the pull request
+rather than committed, as in PR 6. (7) The app version moved from 0.4.7+13 to 0.4.8+14.
+
 **PR 10 — smoke test, device pass, close.** `app/integration_test/tracks_smoke_test.dart` drives menu
 to solved; the device checks of §8; this file gets a closed banner, `PLAN.md` §4, §5.2, §6 and §7 are
 reconciled with what was built, and `README.md` names the game.
@@ -880,9 +896,11 @@ theirs.
       ticked when the phase closes.)*
 - [ ] `dart tool/check_determinism.dart` and `dart tool/check_offline.dart` pass; no dependency in
       `app/pubspec.yaml` or `packages/puzzle_engine/pubspec.yaml` changes in this phase (`git diff
-      main -- '*/pubspec.yaml'` shows only the app's `version:` line). *(Both pass after PR 3. PR 8
-      bumped the app from 0.4.6+12 to 0.4.7+13, the first build a child can reach Tracks in, and
-      changed nothing else in either pubspec; ticked at the close.)*
+      main -- '*/pubspec.yaml'` shows only the app's `version:` line and the `assets/audio/tracks/`
+      declaration). *(Both pass after PR 3. PR 8 bumped the app from 0.4.6+12 to 0.4.7+13, the first
+      build a child can reach Tracks in; PR 9 to 0.4.8+14, the first with all four themes and their
+      sounds, and declared the new audio directory. Neither changed a dependency; ticked at the
+      close.)*
 - [x] The import-boundary test fails against a copy of `model/` that imports a skin, and passes
       without it. *(PR 5: `app/test/features/tracks/import_boundary_test.dart` copies `model/` to a
       temporary directory, adds a skin import, and asserts the scan reports it.)*
