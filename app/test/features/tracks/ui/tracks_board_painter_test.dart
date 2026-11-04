@@ -151,6 +151,31 @@ void main() {
     }
   }
 
+  for (final theme in TracksTheme.values) {
+    testWidgets('${theme.name}: a 5 px board paints without throwing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: SizedBox.square(
+              dimension: 5,
+              child: CustomPaint(
+                painter: TracksBoardPainter(
+                  session: _session(complete: true),
+                  skin: trackSkinFor(theme, Brightness.light),
+                  frame: JourneyFrame.arrived,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   test('an unsolved board shows a waiting goal and no journey', () {
     final skin = _RecordingSkin(WaterSkin(Brightness.light));
     _paintOnce(

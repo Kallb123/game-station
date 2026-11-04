@@ -124,6 +124,15 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
   /// new screen (`_playNext` replaces the route), so it starts false again.
   bool _arrivalSounded = false;
 
+  /// The skin's motif and arrival time, taken once in `_finish` so the ticker
+  /// and `_arrive` cannot disagree about which skin the board was solved in.
+  Motif? _arrivalMotif;
+  Duration _arrivalDuration = Duration.zero;
+
+  /// Holds the fanfare and the card back while a motif that had no journey to
+  /// sound in finishes, so the two never overlap.
+  Timer? _arriveTimer;
+
   @override
   void initState() {
     super.initState();
@@ -141,6 +150,7 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
     _spinnerDelay?.cancel();
     _stopClock();
     _journey?.dispose();
+    _arriveTimer?.cancel();
     _lifecycle.dispose();
 
     final session = _session;
@@ -546,6 +556,8 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
     // the motif must be the one the child's traveller arrives with.
     final skin = _currentSkin(watch: false);
     final motif = skin.arrivalMotif;
+    _arrivalMotif = motif;
+    _arrivalDuration = skin.arrivalDuration;
     // Decoded before the traveller gets there, so neither the motif nor the
     // fanfare pays a first-play delay at the moment it should land.
     ref.read(appAudioProvider).preload([?motif, Motif.sudokuComplete]);
@@ -559,13 +571,15 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
     final total = journeyDuration(skin, route);
     final travel = travelDuration(skin, route);
     _journey = createTicker((elapsed) {
-      // At the goal, not at the end: the arrival animation runs while the
-      // motif sounds, and the fanfare follows once it is over.
-      if (elapsed >= travel) _soundArrival(skin);
       if (elapsed >= total) {
+        // A tick can cross the goal and the end together (resuming from the
+        // background); `_arrive` then spaces the motif and the fanfare itself.
         _endJourney();
         return;
       }
+      // At the goal, not at the end: the arrival animation runs while the
+      // motif sounds, and the fanfare follows once it is over.
+      if (elapsed >= travel) _soundArrival();
       _frame.value = journeyFrameAt(skin, route, elapsed);
     })..start();
     // Rebuilt so the board is no longer interactive and a tap can skip.
@@ -584,20 +598,31 @@ class _TracksPlayScreenState extends ConsumerState<TracksPlayScreen>
 
   void _arrive() {
     _frame.value = JourneyFrame.arrived;
-    // A skip, `reduceMotion` or an untraceable route gets here without the
-    // ticker having reached the goal; the motif still sounds, just before the
-    // fanfare rather than ahead of the arrival animation.
-    _soundArrival(_currentSkin(watch: false));
+    // A skip, `reduceMotion` or an untraceable route gets here before the
+    // motif has sounded. It plays now and the fanfare waits out the arrival
+    // time, as on the normal path: played together the two would blur, and the
+    // fanfare could even start first while the motif is still decoding.
+    final motif = _arrivalMotif;
+    if (!_arrivalSounded && motif != null) {
+      _soundArrival();
+      _arriveTimer = Timer(_arrivalDuration, _celebrate);
+      return;
+    }
+    _celebrate();
+  }
+
+  void _celebrate() {
+    _arriveTimer = null;
     // Under the confetti and unaffected by `reduceMotion`: that setting is about
     // movement, not celebration (`PLAN.md` §3.7).
     ref.read(appAudioProvider).play(Motif.sudokuComplete);
     setState(() => _arrived = true);
   }
 
-  void _soundArrival(TrackSkin skin) {
+  void _soundArrival() {
     if (_arrivalSounded) return;
     _arrivalSounded = true;
-    final motif = skin.arrivalMotif;
+    final motif = _arrivalMotif;
     if (motif != null) ref.read(appAudioProvider).play(motif);
   }
 

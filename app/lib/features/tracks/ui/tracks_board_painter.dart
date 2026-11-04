@@ -50,6 +50,8 @@ class TracksBoardPainter extends CustomPainter {
     final spec = session.spec;
     final side = spec.side;
     final layout = BoardLayout.fit(size, side);
+    // `fit` floors to nothing on a tiny box, and skins divide by the cell.
+    if (layout.cellSize <= 0) return;
     final colours = skin.colours;
     final shown = effectiveFrame(session, frame);
     final solved = session.isSolved;

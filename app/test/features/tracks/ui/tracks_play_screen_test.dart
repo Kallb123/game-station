@@ -59,40 +59,45 @@ void main() {
       expect(find.text(completionTitle), findsNothing);
 
       await tester.pump();
-      await tester.pump(journeyOf(tester) + const Duration(milliseconds: 100));
+      await pumpToCard(tester);
       expect(find.text(completionTitle), findsOneWidget);
 
       await finish(tester, container);
     });
   }
 
-  testWidgets('with reduceMotion the card shows at once and no frame is '
-      'scheduled', (tester) async {
-    final container = await pumpTracks(
-      tester,
-      store: MemorySaveStore(
-        initial: freshSave(settings: const AppSettings(reduceMotion: true)),
-      ),
-    );
+  testWidgets(
+    'with reduceMotion the card follows the arrival time and no frame is '
+    'scheduled',
+    (tester) async {
+      final container = await pumpTracks(
+        tester,
+        store: MemorySaveStore(
+          initial: freshSave(settings: const AppSettings(reduceMotion: true)),
+        ),
+      );
 
-    await solveByDrag(tester, smallPuzzle);
-    await tester.pump();
+      await solveByDrag(tester, smallPuzzle);
+      await tester.pump();
+      // The card waits for the arrival motif to sound out, on a timer.
+      await tester.pump(painterOf(tester).skin.arrivalDuration);
 
-    expect(find.text(completionTitle), findsOneWidget);
-    expect(painterOf(tester).frame, JourneyFrame.arrived);
-    // A further pump, then nothing left to draw: no ticker is running. The
-    // clock is a timer, not a frame.
-    await tester.pump();
-    expect(tester.binding.hasScheduledFrame, isFalse);
+      expect(find.text(completionTitle), findsOneWidget);
+      expect(painterOf(tester).frame, JourneyFrame.arrived);
+      // A further pump, then nothing left to draw: no ticker is running. The
+      // clock and the arrival delay are timers, not frames.
+      await tester.pump();
+      expect(tester.binding.hasScheduledFrame, isFalse);
 
-    final confetti = find.descendant(
-      of: find.byType(Confetti),
-      matching: find.byType(CustomPaint),
-    );
-    expect(confetti, findsNothing);
+      final confetti = find.descendant(
+        of: find.byType(Confetti),
+        matching: find.byType(CustomPaint),
+      );
+      expect(confetti, findsNothing);
 
-    await finish(tester, container);
-  });
+      await finish(tester, container);
+    },
+  );
 
   testWidgets('mid-journey the traveller is part-way and a tap skips to the '
       'card', (tester) async {
@@ -112,8 +117,11 @@ void main() {
 
     await tester.tapAt(tester.getCenter(find.byType(TracksBoard)));
     await tester.pump();
-    expect(find.text(completionTitle), findsOneWidget);
     expect(painterOf(tester).frame, JourneyFrame.arrived);
+    // The motif has the arrival time to itself before the card.
+    expect(find.text(completionTitle), findsNothing);
+    await tester.pump(painterOf(tester).skin.arrivalDuration);
+    expect(find.text(completionTitle), findsOneWidget);
 
     await finish(tester, container);
   });
@@ -161,8 +169,7 @@ void main() {
       expect(button.onPressed, isNull, reason: tooltip);
     }
 
-    await tester.pump(journeyOf(tester));
-    await tester.pump();
+    await pumpToCard(tester);
     expect(session.isSolved, isTrue);
     expect(find.text(completionTitle), findsOneWidget);
 
@@ -286,7 +293,7 @@ void main() {
     );
 
     await tester.pump();
-    await tester.pump(journeyOf(tester) + const Duration(milliseconds: 100));
+    await pumpToCard(tester);
     expect(audio.played.where((m) => m == Motif.sudokuComplete), hasLength(1));
 
     await finish(tester, container);
@@ -352,7 +359,7 @@ void main() {
       });
     }
 
-    testWidgets('with reduceMotion both sound once, motif first', (
+    testWidgets('with reduceMotion the fanfare and card wait for the motif', (
       tester,
     ) async {
       final (container, audio) = await open(
@@ -365,29 +372,60 @@ void main() {
       await solveByDrag(tester, smallPuzzle);
       await tester.pump();
 
+      expect(arrivals(audio, motif), [?motif]);
+      expect(find.text(completionTitle), findsNothing);
+
+      await tester.pump(painterOf(tester).skin.arrivalDuration);
       expect(arrivals(audio, motif), [?motif, Motif.sudokuComplete]);
+      expect(find.text(completionTitle), findsOneWidget);
       await finish(tester, container);
     });
 
-    testWidgets('a tap mid-travel sounds both once, motif first', (
-      tester,
-    ) async {
+    testWidgets('a tap mid-travel sounds the motif, then the fanfare after '
+        'the arrival time', (tester) async {
       final (container, audio) = await open(tester, TracksTheme.water);
       final motif = motifOf(TracksTheme.water);
       await solveByDrag(tester, smallPuzzle);
 
       final session = sessionOf(tester);
       final route = TrackGeometry.trace(session.clues, session.cells)!;
-      final travel = travelDuration(painterOf(tester).skin, route);
+      final skin = painterOf(tester).skin;
       await tester.pump();
-      await tester.pump(travel ~/ 2);
+      await tester.pump(travelDuration(skin, route) ~/ 2);
       expect(audio.played, isNot(contains(motif)));
 
       await tester.tapAt(tester.getCenter(find.byType(TracksBoard)));
       await tester.pump();
-      await tester.pump(const Duration(seconds: 3));
+      expect(arrivals(audio, motif), [?motif]);
+      expect(find.text(completionTitle), findsNothing);
 
+      // A second tap while the arrival time runs changes nothing.
+      await tester.tapAt(tester.getCenter(find.byType(TracksBoard)));
+      await tester.pump();
+      expect(arrivals(audio, motif), [?motif]);
+
+      await tester.pump(skin.arrivalDuration);
       expect(arrivals(audio, motif), [?motif, Motif.sudokuComplete]);
+      expect(find.text(completionTitle), findsOneWidget);
+      await finish(tester, container);
+    });
+
+    testWidgets('one tick past the whole journey still spaces the motif and '
+        'the fanfare', (tester) async {
+      final (container, audio) = await open(tester, TracksTheme.water);
+      final motif = motifOf(TracksTheme.water);
+      await solveByDrag(tester, smallPuzzle);
+      final skin = painterOf(tester).skin;
+      final total = journeyOf(tester);
+
+      await tester.pump();
+      await tester.pump(total + const Duration(seconds: 1));
+      expect(arrivals(audio, motif), [?motif]);
+      expect(find.text(completionTitle), findsNothing);
+
+      await tester.pump(skin.arrivalDuration);
+      expect(arrivals(audio, motif), [?motif, Motif.sudokuComplete]);
+      expect(find.text(completionTitle), findsOneWidget);
       await finish(tester, container);
     });
 
@@ -408,9 +446,10 @@ void main() {
 
       await tester.tapAt(tester.getCenter(find.byType(TracksBoard)));
       await tester.pump();
-      await tester.pump(const Duration(seconds: 3));
 
+      // Already sounded: the fanfare and card follow at once.
       expect(arrivals(audio, motif), [?motif, Motif.sudokuComplete]);
+      expect(find.text(completionTitle), findsOneWidget);
       await finish(tester, container);
     });
   });
@@ -422,7 +461,7 @@ void main() {
     final container = await pumpTracks(tester, source: source);
     await solveByDrag(tester, smallPuzzle);
     await tester.pump();
-    await tester.pump(journeyOf(tester) + const Duration(milliseconds: 100));
+    await pumpToCard(tester);
 
     await tester.tap(find.text(nextPuzzleLabel));
     // Past the replacement transition, in which the finished screen is still

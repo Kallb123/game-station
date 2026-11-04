@@ -32,28 +32,40 @@ void main() {
 
   for (final theme in TracksTheme.values) {
     for (final brightness in Brightness.values) {
-      test('${theme.name} ${brightness.name}: every paint method runs', () {
-        final skin = trackSkinFor(theme, brightness);
-        expect(skin.theme, theme);
-        expect(skin.brightness, brightness);
-        final canvas = Canvas(PictureRecorder());
-        const cell = Rect.fromLTWH(20, 20, 48, 48);
-
-        skin.paintGround(canvas, cell, 0, 0);
-        skin.paintGround(canvas, cell, 3, 5);
-        skin.paintMark(canvas, cell);
-        for (final mask in _masks) {
-          for (final style in PieceStyle.values) {
-            skin.paintPiece(canvas, cell, mask, style);
+      for (final cell in const [
+        Rect.fromLTWH(20, 20, 48, 48),
+        Rect.fromLTWH(0, 0, 1, 1),
+        Rect.fromLTWH(0, 0, 0, 0),
+      ]) {
+        test('${theme.name} ${brightness.name}: every paint method runs on '
+            '${cell.width}px cells and leaves the canvas saved evenly', () {
+          final skin = trackSkinFor(theme, brightness);
+          expect(skin.theme, theme);
+          expect(skin.brightness, brightness);
+          final canvas = Canvas(PictureRecorder());
+          // A call that saves without restoring would shift every later paint.
+          void balanced(void Function() paint) {
+            final before = canvas.getSaveCount();
+            paint();
+            expect(canvas.getSaveCount(), before);
           }
-        }
-        for (final departed in [false, true]) {
-          skin.paintStart(canvas, cell, departed: departed);
-        }
-        for (final arrival in [0.0, 0.25, 0.5, 0.75, 1.0]) {
-          skin.paintGoal(canvas, cell, arrival);
-        }
-      });
+
+          balanced(() => skin.paintGround(canvas, cell, 0, 0));
+          balanced(() => skin.paintGround(canvas, cell, 3, 5));
+          balanced(() => skin.paintMark(canvas, cell));
+          for (final mask in _masks) {
+            for (final style in PieceStyle.values) {
+              balanced(() => skin.paintPiece(canvas, cell, mask, style));
+            }
+          }
+          for (final departed in [false, true]) {
+            balanced(() => skin.paintStart(canvas, cell, departed: departed));
+          }
+          for (final arrival in [0.0, 0.25, 0.5, 0.75, 1.0]) {
+            balanced(() => skin.paintGoal(canvas, cell, arrival));
+          }
+        });
+      }
 
       test('${theme.name} ${brightness.name}: the journey runs', () {
         if (route == null) {
@@ -67,7 +79,9 @@ void main() {
         );
         final canvas = Canvas(PictureRecorder());
         for (final t in [0.0, 0.1, 0.5, 0.99, 1.0]) {
+          final before = canvas.getSaveCount();
           skin.paintJourney(canvas, layout, route, t);
+          expect(canvas.getSaveCount(), before);
         }
       });
     }
