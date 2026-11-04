@@ -106,14 +106,16 @@ run worth feeling (`PLAN-phase-7-snake.md` §4.10).
 ## The Tracks set
 
 `PLAN-phase-9-tracks.md` §4.10. Four files, one per skin, named after the theme rather than the
-event: each is an *arrival* sound, played once as the traveller reaches the goal and immediately
-before the shared fanfare `sudoku/complete.wav`, which is why they are short (at most 0.7 s) and sit
-well under its −3 dBFS.
+event: each is an *arrival* sound, played once as the traveller reaches the goal, while the goal
+changes over the skin's `arrivalDuration`. The shared fanfare `sudoku/complete.wav` follows when that
+ends, so each motif is shorter than its skin's `arrivalDuration` (at most 0.66 s) and sits well under
+the fanfare's −3 dBFS. A skipped journey or `reduceMotion` plays the motif and holds the fanfare back
+by the same time, so the two never overlap.
 
 | File | Theme | Plays when | Level |
 |---|---|---|---|
 | `tracks/whistle.wav` | Train | The train reaches the station: a soft steam-whistle chord, a bend up into C5, E5 and G5 with a little vibrato and breath | −11 dBFS peak |
-| `tracks/sleigh_bells.wav` | Santa | The sleigh arrives: twelve short bright bell strikes in about half a second | −11 dBFS |
+| `tracks/sleigh_bells.wav` | Santa | Santa reaches the house: twelve short bright bell strikes in about half a second | −11 dBFS |
 | `tracks/pop.wav` | Snail | The snail reaches the pumpkin: a soft glide down and a tiny pip up. The quietest of the four | −14 dBFS |
 | `tracks/gurgle.wav` | Water | The water reaches the goal: five low-passed bubbles gliding upward | −12 dBFS |
 

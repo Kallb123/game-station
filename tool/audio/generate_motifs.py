@@ -564,17 +564,19 @@ def level_clear() -> list[float]:
 # --- The Tracks set (`PLAN-phase-9-tracks.md` §4.10) ------------------------
 #
 # Four arrival sounds, one per skin, each played once as the traveller reaches
-# the goal and immediately before `sudoku/complete.wav` (-3 dBFS). They are
-# short and sit well under the fanfare so that they lead into it rather than
-# compete with it.
+# the goal. The fanfare, `sudoku/complete.wav` (-3 dBFS), follows once the
+# goal has finished changing, so each is shorter than its skin's
+# `arrivalDuration` and sits well under the fanfare: it leads into it rather
+# than competing with it.
 
 
 def whistle() -> list[float]:
     """The train reaches the station: a friendly steam whistle.
 
-    A C major triad's lower three notes, C5, E5 and G5, close enough together
-    to blend into one chord, with a small upward bend at the start (the whistle
-    "catching" its pressure), a slow-ish attack and a gentle vibrato. A little
+    A C major triad, C5, E5 and G5, close enough together to blend into one
+    chord, each bending up a semitone into its note at the start (the whistle
+    "catching" its pressure; the starting pitches are outside the key only for
+    that instant), a slow-ish attack and a gentle vibrato. A little
     low-passed noise under it is the breath of the steam. No harsh partials: it
     is a toy train, not a locomotive, so the timbre stays near-sine and the
     whole thing is low-passed at 2.5 kHz.
@@ -593,9 +595,9 @@ def whistle() -> list[float]:
 
 
 def sleigh_bells() -> list[float]:
-    """Santa's sleigh arrives: a quick jingle of bright bell strikes.
+    """Santa reaches the house: a quick jingle of bright bell strikes.
 
-    Twelve short strikes, about 12 a second, in the top octave with their
+    Twelve short strikes, about 22 a second, in the top octave with their
     pitches nudged around C7, E7 and G7 so the ring is a shimmer rather than a
     melody. Decays are short, since a sleigh bell is a small piece of metal.
     A tiny noise tick under each strike, low-passed high, stands in for the

@@ -459,7 +459,8 @@ goal is painted from an `arrival` value: 0 while waiting, rising to 1 over `arri
 journey ends. The other skins use it too — the station's lamp lights, the house's windows glow and
 smoke rises from the chimney, the pumpkin glows — so the interface has one shape, not one for water and
 one for the rest. The board's animation is then one timeline: journey `t` from 0 to 1, then `arrival`
-from 0 to 1, then the arrival motif and the completion card. With `reduceMotion` on, both jump to 1.
+from 0 to 1, then the fanfare and the completion card; the theme's arrival motif sounds as `arrival`
+starts (§4.10). With `reduceMotion` on, both jump to 1.
 A goal painted at `arrival` 1 on a board that is not solved is a bug, and a widget test asserts the
 flower stays wilted on a board one connection short of solved.
 
@@ -506,9 +507,9 @@ the toolbar, the ticker and semantics stay PR 7's. (6) The train stops about 0.9
 the goal port's centre, so it never covers the station lamp that lights on arrival, and the water
 is clipped to the grid so it never runs over the tap or the flower. (7) `santa` and `snail` drew
 with the train skin until PR 9 built theirs. `trackSkinFor`'s switch has no default, so a fifth theme is a
-compile error there rather than a silent train. (8) Piece geometry shared by both skins — a
+compile error there rather than a silent train. (8) Piece geometry shared by the skins — a
 centre line with quarter-circle corners, sampling along it, and the per-cell texture noise — is in
-`skins/piece_path.dart`, so a rail and a pipe turn identically.
+`skins/piece_path.dart`, so a rail, a pipe, a line of footprints and a slime trail turn identically.
 
 ### 4.9 Puzzle source
 
@@ -532,10 +533,12 @@ the completion buzz, through `core/haptics.dart` and so gated by `hapticsLevel` 
 *As built in PR 9:* each skin names its motif as `TrackSkin.arrivalMotif`, so the fallback is that
 getter returning null rather than a branch in the play screen. The motif plays the moment the
 journey's travel ends, while the goal changes over `arrivalDuration`, and the fanfare follows when
-the arrival ends. A skipped journey, `reduceMotion`, or a board whose route cannot be traced plays
-the motif immediately before the fanfare, never twice: `reduceMotion` is about movement, not
-celebration. Both are preloaded at the moment of solving, so neither pays a first-play decode on
-arrival.
+the arrival ends. A skipped journey, `reduceMotion`, or a board whose route cannot be traced shows
+the arrived goal at once, plays the motif, and holds the fanfare and the card for `arrivalDuration`,
+so the two sounds never overlap and the motif never plays twice. `reduceMotion` is about movement,
+not celebration, so it keeps both sounds. Both are preloaded at the moment of solving, so neither
+usually pays a first-play decode on arrival; on the immediate paths the decode may still be in
+flight, which the hold also covers.
 
 ### 4.11 Save fields
 
@@ -845,14 +848,15 @@ puzzle are attached.
 null. Train has the whistle, Santa the sleigh bells, the snail the pop, water the gurgle. (2) **The
 motif plays when travel ends, not when the journey ends**: it sounds while the goal changes over
 `arrivalDuration`, and the fanfare follows. A skip, `reduceMotion` or an untraceable route plays it
-immediately before the fanfare, once (§4.10). (3) **The theme picker is two rows of two**: four
+before the fanfare, once, with the fanfare and card held back by `arrivalDuration` so the two never
+overlap (§4.10). (3) **The theme picker is two rows of two**: four
 buttons of a 64 dp picture plus padding do not fit one row on a 360 dp phone. `offeredTracksThemes`
 stays an explicit list, now of all four, as the one place a theme can be withheld. (4) **Speeds**:
 Santa walks at 2.5 cells a second and the snail crawls at 2, the slowest, as §4.8 asks; a test pins
 the snail below every other skin. (5) **A guard test** (`app/test/core/audio/motif_assets_test.dart`)
 fails if any `Motif`'s file is missing, its directory is not declared in `pubspec.yaml`, or it has no
-row in `LICENSE-ASSETS.md`. All three fail silently at runtime, because `MinisoundAudio` silences
-itself after a load error. It found the four snake motifs missing from the licence inventory, which
+row in `LICENSE-ASSETS.md`. The first two fail silently at runtime, because `MinisoundAudio` silences
+itself after a load error; the third is the inventory rule `LICENSE-ASSETS.md` states. It found the four snake motifs missing from the licence inventory, which
 this PR adds. (6) The screenshots were rendered under `flutter test` and attached to the pull request
 rather than committed, as in PR 6. (7) The app version moved from 0.4.7+13 to 0.4.8+14.
 

@@ -4,20 +4,16 @@
 // A missing asset or an undeclared directory fails silently at runtime:
 // `MinisoundAudio` latches `_failed` on any load error and logs "silenced"
 // once (`lib/core/audio/app_audio.dart`), after which the whole app is mute.
-// No other test notices, since they all run over a recording fake. This is the
-// one that does.
+// No other test notices, since they all run over a recording fake. A missing
+// licence row costs nothing at runtime; it is checked here because
+// `LICENSE-ASSETS.md` asks for a row in the same commit as the file.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/audio/motif.dart';
 
 void main() {
-  final pubspec = File('pubspec.yaml').readAsLinesSync();
-  final declared = {
-    for (final line in pubspec)
-      if (RegExp(r'^\s*-\s+assets/audio/').hasMatch(line))
-        line.trim().substring(1).trim(),
-  };
+  final declared = _declaredAssets(File('pubspec.yaml').readAsLinesSync());
   final licences = File('assets/LICENSE-ASSETS.md').readAsStringSync();
 
   for (final motif in Motif.values) {
@@ -54,4 +50,20 @@ void main() {
     final assets = Motif.values.map((m) => m.asset).toList();
     expect(assets.toSet().length, assets.length);
   });
+}
+
+/// The entries of the `assets:` list under `flutter:`, and nothing else: a
+/// commented-out line or an `- assets/...` under another key is not a
+/// declaration.
+Set<String> _declaredAssets(List<String> pubspec) {
+  final start = pubspec.indexWhere((line) => line == '  assets:');
+  if (start == -1) throw StateError('pubspec.yaml has no flutter: assets:');
+  final entries = <String>{};
+  for (final line in pubspec.skip(start + 1)) {
+    if (line.trim().isEmpty || line.trimLeft().startsWith('#')) continue;
+    final entry = RegExp(r'^    - (\S+)\s*$').firstMatch(line);
+    if (entry == null) break;
+    entries.add(entry.group(1)!);
+  }
+  return entries;
 }
