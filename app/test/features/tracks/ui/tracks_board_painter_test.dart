@@ -6,6 +6,7 @@ import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/audio/motif.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/features/tracks/model/tracks_session.dart';
 import 'package:zibo_games/features/tracks/skins/journey.dart';
@@ -39,6 +40,9 @@ class _RecordingSkin implements TrackSkin {
   String get goalLabel => inner.goalLabel;
   @override
   SkinColours get colours => inner.colours;
+  @override
+  Motif? get arrivalMotif => null;
+
   @override
   double get cellsPerSecond => inner.cellsPerSecond;
   @override
