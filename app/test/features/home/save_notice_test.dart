@@ -28,7 +28,11 @@ void main() {
       // Leaving the screen and coming back must not bring it back: the state
       // lives in a provider rather than in the screen for exactly this
       // (`providers.dart`).
+      await tester.tap(find.text('Puzzles'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Sudoku'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
@@ -65,7 +69,7 @@ void main() {
     await pumpApp(tester, store: recovered(SaveRecovery.corrupt));
 
     expect(find.text(saveNoticeText), findsOneWidget);
-    expect(find.text('Sudoku'), findsOneWidget);
+    expect(find.text('Puzzles'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
   });
 }

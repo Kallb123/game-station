@@ -537,6 +537,41 @@ void main() {
         reason: 'the pin skips to the next-oldest unpinned entry',
       );
     });
+
+    test(
+      'setTracksTheme changes only the active profile, and is saved',
+      () async {
+        final store = MemorySaveStore(initial: freshSave());
+        final repository = repositoryOver(store);
+        repository.createProfile(name: 'Bo', avatar: AvatarId.owl);
+
+        repository.setTracksTheme(TracksTheme.water);
+
+        expect(repository.activeProfile.tracksTheme, TracksTheme.water);
+        expect(
+          repository.profiles.firstWhere((p) => p.id == 'p1').tracksTheme,
+          TracksTheme.train,
+        );
+
+        await repository.flush();
+        final reloaded = (await store.load()).data;
+        expect(reloaded.activeProfile.tracksTheme, TracksTheme.water);
+        expect(
+          reloaded.profiles.firstWhere((p) => p.id == 'p1').tracksTheme,
+          TracksTheme.train,
+        );
+      },
+    );
+
+    test('setTracksTheme to the current theme writes nothing', () async {
+      final store = MemorySaveStore(initial: freshSave());
+      final repository = repositoryOver(store);
+
+      repository.setTracksTheme(TracksTheme.train);
+      await repository.flush();
+
+      expect(store.writes, 0);
+    });
   });
 
   group('daily streak', () {

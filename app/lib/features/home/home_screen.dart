@@ -10,10 +10,11 @@ import '../../core/ui/screen_scaffold.dart';
 import '../../core/ui/theme.dart';
 import '../../core/ui/tokens.dart';
 import '../../routes.dart';
+import '../puzzles/puzzles_menu_screen.dart' show puzzlesMenuTitle;
 
-/// The glyph for Sudoku, here rather than at each use so that the home card
-/// and the screen it opens cannot drift apart.
-const IconData homeSudokuIcon = Icons.grid_on;
+/// The glyph for the Puzzles card (Sudoku and Tracks), here rather than at
+/// each use so that the home card and the screen it opens cannot drift apart.
+const IconData homePuzzlesIcon = Icons.extension;
 
 /// The glyph for the arcade.
 const IconData homeArcadeIcon = Icons.sports_esports;
@@ -33,7 +34,7 @@ const String saveNoticeText =
 /// settings.
 ///
 /// Three cards and nothing else on purpose. The child who opens this app is
-/// choosing between Sudoku, the arcade and drawing; anything else on the
+/// choosing between puzzles, the arcade and drawing; anything else on the
 /// screen is something to read before they can play.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -96,8 +97,9 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-/// Which palette role a card takes its colour from.
-enum _Role { sudoku, arcade, draw }
+/// Which palette role a card takes its colour from. `puzzles` reads the
+/// palette's `sudoku` token, which keeps its name.
+enum _Role { puzzles, arcade, draw }
 
 /// The three cards, stacked full-width — unchanged from before this screen
 /// knew about orientation, aside from the third card phase 8 adds.
@@ -111,10 +113,10 @@ class _PortraitCards extends StatelessWidget {
       children: [
         Expanded(
           child: _GameCard(
-            icon: homeSudokuIcon,
-            label: 'Sudoku',
-            route: AppRoutes.sudoku,
-            role: _Role.sudoku,
+            icon: homePuzzlesIcon,
+            label: puzzlesMenuTitle,
+            route: AppRoutes.puzzles,
+            role: _Role.puzzles,
           ),
         ),
         SizedBox(height: AppSpacing.lg),
@@ -171,10 +173,10 @@ class _LandscapeCards extends StatelessWidget {
       children: [
         cell(
           const _GameCard(
-            icon: homeSudokuIcon,
-            label: 'Sudoku',
-            route: AppRoutes.sudoku,
-            role: _Role.sudoku,
+            icon: homePuzzlesIcon,
+            label: puzzlesMenuTitle,
+            route: AppRoutes.puzzles,
+            role: _Role.puzzles,
           ),
         ),
         const SizedBox(width: AppSpacing.lg),
@@ -259,7 +261,7 @@ class _SaveNotice extends StatelessWidget {
   }
 }
 
-/// One of the two things there are to play.
+/// One of the three things there are to do.
 ///
 /// The colour is the role's, not the theme's, so the two halves of the app are
 /// told apart at a glance. It is never the only difference: the icon and the
@@ -283,7 +285,7 @@ class _GameCard extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = AppPalette.of(theme.brightness);
     final seed = switch (role) {
-      _Role.sudoku => palette.sudoku,
+      _Role.puzzles => palette.sudoku,
       _Role.arcade => palette.arcade,
       _Role.draw => palette.draw,
     };

@@ -214,6 +214,8 @@ Future<ProviderContainer> _launch(WidgetTester tester, SaveStore store) async {
 /// `pumpAndSettle`: settling stops when no frame is scheduled, and a screen
 /// waiting on an isolate schedules none.
 Future<SudokuSession> _openARealPuzzle(WidgetTester tester) async {
+  await tester.tap(find.text('Puzzles'));
+  await tester.pumpAndSettle();
   await tester.tap(find.text(sudokuMenuTitle));
   await tester.pumpAndSettle();
   // Tapped even though a fresh save opens on it already: the toggle is what a

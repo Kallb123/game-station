@@ -16,6 +16,10 @@ import 'tokens.dart';
 /// or an `Expanded` — rather than a bare `Row`, where the flexible label has
 /// no width to wrap into.
 ///
+/// A label of one word never wraps: a word split across lines reads as two
+/// words to a child learning to read ("Puzzle" / "s" at 200% text on a 360 dp
+/// phone), so it shrinks to fit instead. A label with spaces wraps at them.
+///
 /// [selected] is drawn as a border and a check icon as well as a colour
 /// change, because a player who cannot tell the two colours apart still has to
 /// be able to tell which profile is theirs.
@@ -71,7 +75,7 @@ class BigButton extends StatelessWidget {
           children: [
             Icon(icon, size: AppIconSizes.large),
             const SizedBox(width: AppSpacing.md),
-            Flexible(child: Text(label)),
+            Flexible(child: _Label(label)),
             if (selected) ...[
               const SizedBox(width: AppSpacing.md),
               const Icon(Icons.check_circle, size: AppIconSizes.standard),
@@ -79,6 +83,24 @@ class BigButton extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// [BigButton]'s label: wrapped at its spaces, or scaled down when it is one
+/// word too wide to fit.
+class _Label extends StatelessWidget {
+  const _Label(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.trim().contains(' ')) return Text(text);
+
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(text, maxLines: 1, softWrap: false),
     );
   }
 }

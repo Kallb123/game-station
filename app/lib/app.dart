@@ -15,9 +15,11 @@ import 'features/draw/ui/draw_gallery_screen.dart';
 import 'features/draw/ui/draw_sheet_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profiles/profile_screen.dart';
+import 'features/puzzles/puzzles_menu_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/sudoku/ui/sudoku_menu_screen.dart';
 import 'features/sudoku/ui/sudoku_play_screen.dart';
+import 'features/tracks/ui/tracks_menu_screen.dart';
 import 'features/tracks/ui/tracks_play_screen.dart';
 import 'features/transfer/ui/transfer_screen.dart';
 import 'routes.dart';
@@ -201,8 +203,10 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.home => (context) => const HomeScreen(),
   AppRoutes.profiles => (context) => const ProfileScreen(),
   AppRoutes.settings => (context) => const SettingsScreen(),
+  AppRoutes.puzzles => (context) => const PuzzlesMenuScreen(),
   AppRoutes.sudoku => (context) => const SudokuMenuScreen(),
   AppRoutes.sudokuPlay => _playScreen(settings.arguments),
+  AppRoutes.tracks => (context) => const TracksMenuScreen(),
   AppRoutes.tracksPlay => _tracksPlayScreen(settings.arguments),
   AppRoutes.arcade => (context) => const ArcadeMenuScreen(),
   AppRoutes.arcadeInvaders => (context) => const InvadersScreen(),

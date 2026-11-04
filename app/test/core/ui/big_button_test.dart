@@ -145,4 +145,35 @@ void main() {
       greaterThan(AppTapTargets.primary),
     );
   });
+
+  testWidgets('shrinks a single word that does not fit rather than splitting '
+      'it', (tester) async {
+    await usePhoneSurface(tester);
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 220,
+            child: BigButton(
+              icon: Icons.extension,
+              label: 'Puzzles',
+              onPressed: () {},
+            ),
+          ),
+        ),
+      ),
+      theme: AppTheme.day(),
+      textScale: 2,
+    );
+
+    expect(tester.takeException(), isNull);
+    // One line: the button stays at its floor. Split by characters, the word
+    // would have made it a line taller.
+    expect(
+      tester.getSize(find.byType(BigButton)).height,
+      AppTapTargets.primary,
+    );
+    expect(find.byType(FittedBox), findsOneWidget);
+  });
 }

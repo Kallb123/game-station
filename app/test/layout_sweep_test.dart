@@ -69,7 +69,9 @@ Map<String, Object?> _sweepRoutes(PuzzleId puzzleId) => {
   AppRoutes.home: null,
   AppRoutes.profiles: null,
   AppRoutes.settings: null,
+  AppRoutes.puzzles: null,
   AppRoutes.sudoku: null,
+  AppRoutes.tracks: null,
   AppRoutes.sudokuPlay: SudokuPlayArgs(puzzleId),
   // The largest board, which is the one a narrow window squeezes hardest.
   AppRoutes.tracksPlay: TracksPlayArgs(

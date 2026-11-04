@@ -9,6 +9,7 @@ import 'package:zibo_games/core/storage/save_store.dart';
 import 'package:zibo_games/features/arcade/arcade_menu_screen.dart';
 import 'package:zibo_games/features/sudoku/data/providers.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_menu_screen.dart';
+import 'package:zibo_games/features/tracks/model/tracks_difficulties.dart';
 import 'package:zibo_games/routes.dart';
 
 import 'app_harness.dart';
@@ -19,7 +20,7 @@ void main() {
     await pumpApp(tester, store: MemorySaveStore(initial: freshSave()));
 
     expect(find.text('Zibo Games'), findsOneWidget);
-    expect(find.text('Sudoku'), findsOneWidget);
+    expect(find.text('Puzzles'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
     expect(find.text('Draw'), findsOneWidget);
   });
@@ -37,7 +38,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    expect(find.text('Sudoku'), findsOneWidget);
+    expect(find.text('Puzzles'), findsOneWidget);
     expect(find.text('Draw'), findsOneWidget);
     expect(find.bySemanticsLabel('New sheet'), findsNothing);
   });
@@ -58,12 +59,14 @@ void main() {
 
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
-    expect(find.text('Sudoku'), findsOneWidget);
+    expect(find.text('Puzzles'), findsOneWidget);
     expect(find.text('Arcade'), findsOneWidget);
     expect(find.text(invadersTitle), findsNothing);
   });
 
-  testWidgets('Sudoku opens its menu and comes back', (tester) async {
+  testWidgets('Puzzles leads to Sudoku, and back twice returns home', (
+    tester,
+  ) async {
     // The source is a fake because the menu pre-warms today's puzzle the moment
     // it opens (`sudoku_menu_screen.dart`), and the real one would generate a
     // 9x9 on an isolate in a widget test.
@@ -73,14 +76,23 @@ void main() {
       overrides: [puzzleSourceProvider.overrideWithValue(FakePuzzleSource())],
     );
 
+    await tester.tap(find.text('Puzzles'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Sudoku'));
     await tester.pumpAndSettle();
     expect(find.text(dailyPuzzleTitle), findsOneWidget);
 
+    // Back lands on the Puzzles menu, and once more on the home screen.
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text(dailyPuzzleTitle), findsNothing);
+    expect(find.text(tracksMenuTitle), findsOneWidget);
+
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Arcade'), findsOneWidget);
-    expect(find.text(dailyPuzzleTitle), findsNothing);
+    expect(find.text('Zibo Games'), findsOneWidget);
+    expect(find.byTooltip('Back'), findsNothing);
   });
 
   testWidgets('the play route without a puzzle to play fails loudly', (

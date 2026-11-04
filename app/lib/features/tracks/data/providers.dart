@@ -7,6 +7,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/providers.dart';
+import '../model/tracks_menu.dart';
 import 'tracks_puzzle_source.dart';
 
 /// Where the Tracks screens get their puzzles.
@@ -25,3 +26,11 @@ final Provider<TracksPuzzleSource> tracksPuzzleSourceProvider =
       ref.onDispose(source.dispose);
       return source;
     });
+
+/// The Tracks menu's numbers for the active profile.
+///
+/// Watches the profile, so a switch or a solved puzzle rebuilds the menu from
+/// the new history.
+final Provider<TracksMenu> tracksMenuProvider = Provider<TracksMenu>(
+  (ref) => TracksMenu.of(ref.watch(activeProfileProvider).tracks),
+);
