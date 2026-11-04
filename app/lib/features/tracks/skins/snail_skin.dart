@@ -26,12 +26,12 @@ class SnailSkin implements TrackSkin {
   /// The snail, facing east. `paintJourney` flips it to go west.
   static const PixelSprite snail = PixelSprite(
     rows: [
-      '.........kkk.kkk',
-      '.........wpk.wpk',
-      '.........kbk.kbk',
-      '..kkkkk..kbk.kbk',
-      '.kssssskk.kbkkbk',
-      'kssSSSssk.kbbbbk',
+      '..........pw.pw.',
+      '..........pp.pp.',
+      '..........bB.bB.',
+      '..kkkkk...bB.bB.',
+      '.kssssskk.bB.bB.',
+      'kssSSSssk.bbbbbk',
       'ksSsssSsk.bbbbbk',
       'ksSsSsSskbbbbbbk',
       'ksSssSssbbbwpbbk',
@@ -51,6 +51,7 @@ class SnailSkin implements TrackSkin {
       'w': Color(0xFFFFFFFF),
       'p': Color(0xFF2A1A10),
       'm': Color(0xFFB5703F),
+      'B': Color(0xFFCFA766),
     },
     night: {
       'k': Color(0xFFC4A57F),
@@ -60,6 +61,7 @@ class SnailSkin implements TrackSkin {
       'w': Color(0xFFFFFFFF),
       'p': Color(0xFF2A1A10),
       'm': Color(0xFFB5703F),
+      'B': Color(0xFFCFA766),
     },
   );
 
@@ -210,8 +212,8 @@ class SnailSkin implements TrackSkin {
     margin: Color(0xFFEBDCC4),
     ground: Color(0xFF8B6A4A),
     gridLine: Color(0xFF6E5038),
-    track: Color(0xFFDCE6EE),
-    fixedTrack: Color(0xFFA9BDD0),
+    track: Color(0xFFF4F0E6),
+    fixedTrack: Color(0xFFFFFBEE),
     wrong: Color(0xFFD32F2F),
     mark: Color(0xFFEBDCC4),
     clue: Color(0xFF3A2616),
@@ -221,8 +223,8 @@ class SnailSkin implements TrackSkin {
     margin: Color(0xFF17110C),
     ground: Color(0xFF3D2E22),
     gridLine: Color(0xFF2B2018),
-    track: Color(0xFFB4C4D6),
-    fixedTrack: Color(0xFFE4EEF8),
+    track: Color(0xFFD6D0C4),
+    fixedTrack: Color(0xFFF6F0E0),
     wrong: Color(0xFFFF7A7A),
     mark: Color(0xFFD8C4A8),
     clue: Color(0xFFEFE2CE),
@@ -330,6 +332,38 @@ class SnailSkin implements TrackSkin {
     canvas.restore();
   }
 
+  /// A filled band along [centre], [width] wide where [bulge] is 0 and
+  /// `width * (1 + bulge)` at the fullest. Built as a polygon so its edges can
+  /// wander; [bulge] must be 0 at both ends of the cell, so the bands of two
+  /// neighbouring cells meet at the same width and the trail has no seam.
+  Path _ribbon(Path centre, double width, double bulge, {double shift = 0}) {
+    final metrics = centre.computeMetrics().toList();
+    final band = Path();
+    if (metrics.isEmpty) return band;
+    final metric = metrics.first;
+    const steps = 16;
+    final left = <Offset>[];
+    final right = <Offset>[];
+    for (var i = 0; i <= steps; i++) {
+      final s = i / steps;
+      final tangent = metric.getTangentForOffset(metric.length * s);
+      if (tangent == null) continue;
+      final normal = Offset(-tangent.vector.dy, tangent.vector.dx);
+      final half = width * (1 + bulge * math.sin(math.pi * s)) / 2;
+      final mid = tangent.position + normal * shift;
+      left.add(mid + normal * half);
+      right.add(mid - normal * half);
+    }
+    band.moveTo(left.first.dx, left.first.dy);
+    for (final point in left.skip(1)) {
+      band.lineTo(point.dx, point.dy);
+    }
+    for (final point in right.reversed) {
+      band.lineTo(point.dx, point.dy);
+    }
+    return band..close();
+  }
+
   void _drawTrail(
     Canvas canvas,
     Rect cell,
@@ -340,65 +374,89 @@ class SnailSkin implements TrackSkin {
     final u = cell.width;
     final fixed = style == PieceStyle.fixed;
     final wrong = style == PieceStyle.wrong;
-    final fill = wrong
-        ? colours.wrong
-        : (fixed ? colours.fixedTrack : colours.track);
-    // A laid trail is wet and see-through, so the soil shows a little; a fixed
-    // one is wider, solid and edged, and a wrong one is broken into dashes.
-    final opaque = fixed || wrong;
-    final bodyColour = opaque ? fill : fill.withAlpha(0xD0);
-    final outline = Color.lerp(fill, const Color(0xFF000000), 0.55)!;
-    final bodyWidth = u * (fixed ? 0.36 : 0.3);
-    final sheen = Color.lerp(fill, const Color(0xFFFFFFFF), 0.8)!;
+    // Position-keyed noise, so the same cell always glistens the same way.
+    final a = cell.left.round();
+    final b = cell.top.round();
+    double noise(int salt) => cellNoise(a, b, salt);
+    final wobble = (noise(1) - 0.5) * 0.5;
 
-    final path = wrong ? dashed(centre, u * 0.2, u * 0.09) : centre;
-    Paint stroke(Color colour, double width, {bool round = false}) => Paint()
-      ..color = colour
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = width
-      ..strokeCap = (round || blob) ? StrokeCap.round : StrokeCap.butt
-      ..strokeJoin = StrokeJoin.round;
-
-    if (opaque) {
-      canvas.drawPath(path, stroke(outline, bodyWidth + u * 0.09));
-    } else {
-      // A soft, wider edge of the same slime.
-      canvas.drawPath(path, stroke(fill.withAlpha(0x38), bodyWidth + u * 0.1));
+    if (wrong) {
+      // A smear of blobs, not a tube: the slime has gone wrong and lumpy.
+      final paint = Paint()..color = colours.wrong;
+      final samples = samplesAlong(centre, 5);
+      for (var i = 0; i < samples.length; i++) {
+        final s = samples[i];
+        final across = Offset(-s.tangent.dy, s.tangent.dx);
+        final off = across * ((noise(10 + i) - 0.5) * u * 0.1);
+        canvas.drawCircle(
+          s.point + off,
+          u * (0.07 + 0.06 * noise(20 + i)),
+          paint,
+        );
+      }
+      return;
     }
-    canvas.drawPath(path, stroke(bodyColour, bodyWidth));
+
+    final slime = colours.track;
+    final pearl = colours.fixedTrack;
+    final width = u * (fixed ? 0.36 : 0.22);
+    final main = fixed ? pearl.withAlpha(0xE6) : slime.withAlpha(0x90);
+
+    if (fixed) {
+      // A soft shadow of dark soil under it, not an outline.
+      canvas.drawPath(
+        _ribbon(centre, width * 1.4, wobble).shift(Offset(0, u * 0.03)),
+        Paint()..color = const Color(0x40000000),
+      );
+    } else {
+      // A wetter, fainter fringe, so the edge fades instead of ending.
+      canvas.drawPath(
+        _ribbon(centre, width * 1.3, -wobble),
+        Paint()..color = slime.withAlpha(0x34),
+      );
+    }
+    canvas.drawPath(_ribbon(centre, width, wobble), Paint()..color = main);
+    // A second, thinner, slightly off-centre layer, so the thickness varies.
     canvas.drawPath(
-      path,
-      stroke(
-        wrong ? fill.withAlpha(0xFF) : sheen.withAlpha(0xE0),
-        u * (wrong ? 0.0 : 0.05),
-      ),
+      _ribbon(centre, width * 0.55, -wobble, shift: u * 0.03),
+      Paint()..color = const Color(0xFFFFFFFF).withAlpha(fixed ? 0x80 : 0x55),
     );
 
-    if (!wrong) {
-      final glint = Paint()..color = const Color(0xF2FFFFFF);
-      for (final s in samplesAlong(centre, 2)) {
-        final across = Offset(-s.tangent.dy, s.tangent.dx) * (u * 0.07);
-        canvas.drawCircle(s.point + across, u * 0.028, glint);
+    final glint = Paint()..color = const Color(0xF2FFFFFF);
+    final glints = samplesAlong(centre, fixed ? 5 : 3);
+    for (var i = 0; i < glints.length; i++) {
+      final s = glints[i];
+      if (!fixed && noise(30 + i) < 0.25) continue;
+      final across = Offset(-s.tangent.dy, s.tangent.dx);
+      final at = s.point + across * ((noise(40 + i) - 0.5) * width * 0.7);
+      if (noise(50 + i) > 0.5) {
+        canvas.drawCircle(at, math.max(0.8, u * 0.024), glint);
+      } else {
+        canvas.drawLine(
+          at - s.tangent * (u * 0.035),
+          at + s.tangent * (u * 0.035),
+          Paint()
+            ..color = const Color(0xF2FFFFFF)
+            ..strokeWidth = math.max(1, u * 0.025)
+            ..strokeCap = StrokeCap.round,
+        );
       }
     }
 
     if (blob) {
-      final end = centre.computeMetrics().first.getTangentForOffset(
-        centre.computeMetrics().first.length,
-      )!;
-      final radius = bodyWidth * 0.78;
-      if (opaque) {
-        canvas.drawCircle(
-          end.position,
-          radius + u * 0.045,
-          Paint()..color = outline,
-        );
-      }
-      canvas.drawCircle(end.position, radius, Paint()..color = bodyColour);
+      final metric = centre.computeMetrics().first;
+      final end = metric.getTangentForOffset(metric.length)!.position;
+      final radius = width * 0.78;
       canvas.drawCircle(
-        end.position + Offset(-radius * 0.3, -radius * 0.3),
+        end,
+        radius * 1.25,
+        Paint()..color = slime.withAlpha(0x34),
+      );
+      canvas.drawCircle(end, radius, Paint()..color = main);
+      canvas.drawCircle(
+        end + Offset(-radius * 0.3, -radius * 0.3),
         radius * 0.32,
-        Paint()..color = const Color(0xF2FFFFFF),
+        glint,
       );
     }
   }
