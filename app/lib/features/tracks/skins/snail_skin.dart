@@ -322,12 +322,13 @@ class SnailSkin implements TrackSkin {
       _drawTrail(
         canvas,
         cell,
-        centreline(cell, mask, stubReach: 0.8),
+        centreline(cell, mask, stubReach: 0.55),
         style,
+        seed: mask,
         blob: true,
       );
     } else {
-      _drawTrail(canvas, cell, centreline(cell, mask), style);
+      _drawTrail(canvas, cell, centreline(cell, mask), style, seed: mask);
     }
     canvas.restore();
   }
@@ -339,7 +340,7 @@ class SnailSkin implements TrackSkin {
   Path _ribbon(Path centre, double width, double bulge, {double shift = 0}) {
     final metrics = centre.computeMetrics().toList();
     final band = Path();
-    if (metrics.isEmpty) return band;
+    if (metrics.isEmpty || metrics.first.length <= 0) return band;
     final metric = metrics.first;
     const steps = 16;
     final left = <Offset>[];
@@ -354,6 +355,7 @@ class SnailSkin implements TrackSkin {
       left.add(mid + normal * half);
       right.add(mid - normal * half);
     }
+    if (left.isEmpty) return band;
     band.moveTo(left.first.dx, left.first.dy);
     for (final point in left.skip(1)) {
       band.lineTo(point.dx, point.dy);
@@ -369,15 +371,16 @@ class SnailSkin implements TrackSkin {
     Rect cell,
     Path centre,
     PieceStyle style, {
+    int seed = 0,
     bool blob = false,
   }) {
     final u = cell.width;
     final fixed = style == PieceStyle.fixed;
     final wrong = style == PieceStyle.wrong;
-    // Position-keyed noise, so the same cell always glistens the same way.
-    final a = cell.left.round();
-    final b = cell.top.round();
-    double noise(int salt) => cellNoise(a, b, salt);
+    if (!(u > 0)) return;
+    // Keyed on the piece, not on where it is drawn, so the glints stay put
+    // when the board is resized.
+    double noise(int salt) => cellNoise(seed, style.index, salt);
     final wobble = (noise(1) - 0.5) * 0.5;
 
     if (wrong) {
@@ -418,7 +421,7 @@ class SnailSkin implements TrackSkin {
     canvas.drawPath(_ribbon(centre, width, wobble), Paint()..color = main);
     // A second, thinner, slightly off-centre layer, so the thickness varies.
     canvas.drawPath(
-      _ribbon(centre, width * 0.55, -wobble, shift: u * 0.03),
+      _ribbon(centre, width * 0.55, -wobble),
       Paint()..color = const Color(0xFFFFFFFF).withAlpha(fixed ? 0x80 : 0x55),
     );
 
@@ -444,12 +447,17 @@ class SnailSkin implements TrackSkin {
     }
 
     if (blob) {
-      final metric = centre.computeMetrics().first;
-      final end = metric.getTangentForOffset(metric.length)!.position;
-      final radius = width * 0.78;
+      final metrics = centre.computeMetrics().toList();
+      final end = metrics.isEmpty
+          ? null
+          : metrics.first.getTangentForOffset(metrics.first.length)?.position;
+      if (end == null) return;
+      // Small enough that blob and fringe stay inside the cell at the stub's
+      // reach, so the end visibly stops short of the edge.
+      final radius = u * (fixed ? 0.17 : 0.15);
       canvas.drawCircle(
         end,
-        radius * 1.25,
+        radius * 1.2,
         Paint()..color = slime.withAlpha(0x34),
       );
       canvas.drawCircle(end, radius, Paint()..color = main);
@@ -476,7 +484,7 @@ class SnailSkin implements TrackSkin {
   /// The rectangle a snail is drawn into when centred on [centre]: a little
   /// above centre, so its foot rests on the trail rather than straddling it.
   Rect _snailRect(Offset centre, double size) => Rect.fromCenter(
-    center: centre - Offset(0, size * 0.08),
+    center: centre - Offset(0, size * 0.05),
     width: size,
     height: size,
   );
@@ -487,7 +495,13 @@ class SnailSkin implements TrackSkin {
     canvas.clipRect(port);
     // The trail from the port's middle to the grid stays behind when the snail
     // goes.
-    _drawTrail(canvas, port, centreline(port, TrackSide.east), PieceStyle.laid);
+    _drawTrail(
+      canvas,
+      port,
+      centreline(port, TrackSide.east),
+      PieceStyle.laid,
+      seed: 100,
+    );
     if (!departed) {
       snail.paint(
         canvas,
@@ -508,7 +522,7 @@ class SnailSkin implements TrackSkin {
     final stub = Path()
       ..moveTo(top.dx, top.dy)
       ..lineTo(top.dx, port.top + port.height * 0.3);
-    _drawTrail(canvas, port, stub, PieceStyle.laid);
+    _drawTrail(canvas, port, stub, PieceStyle.laid, seed: 101);
     final size = port.width * 0.84;
     final rect = Rect.fromLTWH(
       port.left + (port.width - size) / 2,
