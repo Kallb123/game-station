@@ -1,5 +1,8 @@
 # Best times that say how they were set
 
+**Built: Phases A–C are in, in one pull request. Kept as the record of why `bestSolve` is shaped the
+way it is; [`PLAN.md`](PLAN.md) §5.2 documents the field. §8's question is still open.**
+
 A best time on the Sudoku and Tracks menus is the fastest solve of a size and difficulty, and nothing
 else. A two-minute solve with five hints and a dozen wrong digits reads the same as a two-minute solve
 with neither, so the number cannot tell a child — or the parent beside them — whether it was earned by

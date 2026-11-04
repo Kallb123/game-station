@@ -303,14 +303,61 @@ void main() {
       );
 
       expect(
-        find.text(tierProgressLabel(solved: 2, bestTimeMs: 245000)),
+        find.text(
+          tierProgressLabel(
+            solved: 2,
+            bestTimeMs: 245000,
+            bestAssists: (hints: 0, mistakes: 0),
+          ),
+        ),
         findsOneWidget,
       );
-      expect(find.text('Solved 2 · Best 4:05'), findsOneWidget);
+      // A save with no `bestSolve` takes the detail from the solved entry at
+      // the best time (`PLAN-best-time-assists.md` §4.3), here a clean one.
+      expect(
+        find.text('Solved 2 · Best 4:05 · No hints, no mistakes'),
+        findsOneWidget,
+      );
       expect(
         find.text(tierProgressLabel(solved: 0, bestTimeMs: null)),
         findsNWidgets(difficultiesFor(SudokuSpec.s9x9).length - 1),
       );
+    });
+  });
+
+  group('what the best time cost', () {
+    const progress = SudokuProgress(
+      solved: {
+        'sudoku:9x9:easy:0': SolvedPuzzle(
+          timeMs: 245000,
+          hints: 2,
+          mistakes: 1,
+        ),
+      },
+      bestTimeMs: {'9x9:easy': 245000},
+      bestSolve: {
+        '9x9:easy': SolvedPuzzle(timeMs: 245000, hints: 2, mistakes: 1),
+      },
+    );
+    final label = tierProgressLabel(
+      solved: 1,
+      bestTimeMs: 245000,
+      bestAssists: (hints: 2, mistakes: 1),
+    );
+
+    testWidgets('is shown on the row', (tester) async {
+      await pumpMenu(tester, save: saveWith(progress));
+
+      expect(find.text(label), findsOneWidget);
+      expect(label, 'Solved 1 · Best 4:05 · 2 hints, 1 mistake');
+    });
+
+    testWidgets('fits a small phone at 200% text', (tester) async {
+      await usePhoneSurface(tester);
+      await pumpMenu(tester, save: saveWith(progress), textScale: 2);
+
+      expect(find.text(label), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 
@@ -346,7 +393,13 @@ void main() {
 
     expect(find.text(streakLabel(3)), findsOneWidget);
     expect(
-      find.text(tierProgressLabel(solved: 1, bestTimeMs: 245000)),
+      find.text(
+        tierProgressLabel(
+          solved: 1,
+          bestTimeMs: 245000,
+          bestAssists: (hints: 0, mistakes: 0),
+        ),
+      ),
       findsOneWidget,
     );
 
@@ -361,7 +414,13 @@ void main() {
     expect(find.text(streakLabel(9)), findsOneWidget);
     expect(find.text(streakLabel(3)), findsNothing);
     expect(
-      find.text(tierProgressLabel(solved: 1, bestTimeMs: 245000)),
+      find.text(
+        tierProgressLabel(
+          solved: 1,
+          bestTimeMs: 245000,
+          bestAssists: (hints: 0, mistakes: 0),
+        ),
+      ),
       findsNothing,
     );
     expect(

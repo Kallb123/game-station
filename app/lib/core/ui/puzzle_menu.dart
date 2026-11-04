@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 
+import 'completion_card.dart';
 import 'puzzle_clock.dart';
 import 'tokens.dart';
 
@@ -29,12 +30,32 @@ const Map<Difficulty, ({String label, IconData icon})> difficultyChoices =
     };
 
 /// The line under a difficulty, saying how it has gone so far.
-String tierProgressLabel({required int solved, required int? bestTimeMs}) {
+///
+/// [bestAssists] is what the best solve cost in hints and mistakes, or null
+/// where that is unknown; it is ignored when there is no [bestTimeMs], because
+/// a detail about a solve that has no time would describe nothing
+/// (`PLAN-best-time-assists.md` §4.6). A count of zero is left out, and the
+/// all-zero case reuses [completionCleanLabel] so the menu and the completion
+/// card say one thing one way.
+String tierProgressLabel({
+  required int solved,
+  required int? bestTimeMs,
+  ({int hints, int mistakes})? bestAssists,
+}) {
   if (solved == 0) return 'Not solved yet';
-  final best = bestTimeMs == null
-      ? ''
-      : ' · Best ${formatElapsed(Duration(milliseconds: bestTimeMs))}';
-  return 'Solved $solved$best';
+  if (bestTimeMs == null) return 'Solved $solved';
+  final base =
+      'Solved $solved · Best ${formatElapsed(Duration(milliseconds: bestTimeMs))}';
+  if (bestAssists == null) return base;
+
+  final hints = bestAssists.hints;
+  final mistakes = bestAssists.mistakes;
+  if (hints == 0 && mistakes == 0) return '$base · $completionCleanLabel';
+  final parts = <String>[
+    if (hints > 0) '$hints ${hints == 1 ? 'hint' : 'hints'}',
+    if (mistakes > 0) '$mistakes ${mistakes == 1 ? 'mistake' : 'mistakes'}',
+  ];
+  return '$base · ${parts.join(', ')}';
 }
 
 /// One difficulty: what it is called, how it has gone, and a way into it.
@@ -48,6 +69,7 @@ class DifficultyRow extends StatelessWidget {
     required this.solved,
     required this.bestTimeMs,
     required this.onPlay,
+    this.bestAssists,
     super.key,
   });
 
@@ -59,6 +81,10 @@ class DifficultyRow extends StatelessWidget {
 
   /// The best time in milliseconds, or null where none has been set.
   final int? bestTimeMs;
+
+  /// What the best solve cost, or null where that is unknown
+  /// (`PLAN-best-time-assists.md` §4.6).
+  final ({int hints, int mistakes})? bestAssists;
 
   /// Called on a tap anywhere on the row.
   final VoidCallback onPlay;
@@ -84,7 +110,11 @@ class DifficultyRow extends StatelessWidget {
       leading: Icon(choice.icon, size: AppIconSizes.large),
       title: Text(choice.label, style: theme.textTheme.titleMedium),
       subtitle: Text(
-        tierProgressLabel(solved: solved, bestTimeMs: bestTimeMs),
+        tierProgressLabel(
+          solved: solved,
+          bestTimeMs: bestTimeMs,
+          bestAssists: bestAssists,
+        ),
         style: theme.textTheme.bodySmall,
       ),
       trailing: const Icon(Icons.chevron_right, size: AppIconSizes.large),
