@@ -3,23 +3,29 @@
 A local, offline, ad-free games app for kids. Android, iOS, Windows, macOS, and Linux from one
 codebase.
 
-**Status:** phases 1 and 2 done. The app shell runs: home screen, local profiles, settings,
-day/night/system theme, and progress saved to an atomically written JSON file that survives a
-force-quit and recovers from a corrupt one. The Sudoku engine is finished behind it — 9x9 and 6x6
-generated deterministically from an ID, four difficulty tiers judged by technique, hints, and 700
-golden puzzles that turn CI red if any of it drifts.
+**Status:** phases 1 to 5, 7 (Snake), 8 (the drawing board) and 9 (Tracks) are built; phase 6, the
+store release, is not. A home screen with three cards leads to **Puzzles**,
+which holds Sudoku and Tracks, to the **Arcade**, which holds Space Invaders and Snake, and to
+**Draw**. Progress, high scores and best times save per local profile to an atomically written JSON
+file that survives a force-quit and recovers from a corrupt one, and players can be moved between
+devices as a file. The engine generates every puzzle deterministically from an ID, and golden files
+turn CI red if any of it drifts.
 
-Still no games to play: nothing in the app imports the engine yet, so the Sudoku and Arcade cards open
-"coming soon" screens. Next is phase 3, which draws the grid and wires generation into an isolate.
-Checked by hand on Android; the other four targets build in CI but have not been run on a device. See
-[PLAN.md](PLAN.md) §7 for the phase order.
+Phases 1 and 4 were checked by hand on Android; most later hardware checks have not been run, and
+each phase plan's verification checklist says which are open. The other four targets build in CI but
+have not been run on a device. See [PLAN.md](PLAN.md) §7 for the phase order.
 
 ## What it is
 
-- **Sudoku** — 9x9 and 6x6, four difficulty tiers, puzzles generated deterministically from a date
-  or an index, so the same puzzle appears on every device with nothing stored and nothing fetched.
-- **Retro arcade** — Space Invaders first, driven by large on-screen left/right/fire buttons (plus
-  keyboard on desktop). More simple games later.
+- **Puzzles** — one home-screen card that opens two games:
+  - **Sudoku** — 9x9 and 6x6, four difficulty tiers, puzzles generated deterministically from a date
+    or an index, so the same puzzle appears on every device with nothing stored and nothing fetched.
+  - **Tracks** — lay one track from a start to a goal so every row and column holds the number of
+    pieces its clue says, on 5x5, 7x7 or 9x9 grids. The same puzzle is drawn as a train, Santa, a
+    snail or water running to a wilted flower, chosen per profile; the theme is a skin, never a rule.
+- **Retro arcade** — Space Invaders and Snake (which can count with the child), driven by large
+  on-screen buttons (plus keyboard on desktop).
+- **Draw** — a blank sheet and a finger, with four pencil sizes.
 - **Progress that sticks** — solved puzzles, best times, daily streaks and high scores persist
   across sessions, per local profile.
 
@@ -33,19 +39,19 @@ Checked by hand on Android; the other four targets build in CI but have not been
 | No purchases | No IAP, no timers, no gated content. |
 | Kid-first UI | Big touch targets, minimal reading, no pressure, no scary failure states. |
 
-## Planned stack
+## Stack
 
 Flutter + [Flame](https://flamengine.org) (Dart) for all six targets, with a pure-Dart
-`puzzle_engine` package for Sudoku generation and solving, and progress saved to an atomically
-written local JSON file.
+`puzzle_engine` package for Sudoku and Tracks generation and solving, and progress saved to an
+atomically written local JSON file.
 
 See [PLAN.md](PLAN.md) for the reasoning, alternatives considered, phase breakdown, and risks.
 
 ## Layout
 
 ```
-app/                    # the Flutter application (UI, storage, audio, arcade games)
-packages/puzzle_engine/ # pure-Dart Sudoku generation and solving
+app/                    # the Flutter application (UI, storage, audio, games, drawing)
+packages/puzzle_engine/ # pure-Dart Sudoku and Tracks generation and solving
 tool/check_offline.dart # enforces no network, no ads, no tracking
 tool/check_determinism.dart # enforces the engine's no-clock, no-dart:math rules
 tool/verify.sh          # everything CI runs, in the same order

@@ -1,6 +1,16 @@
 # Phase 9 — Tracks, a themeable path puzzle
 
-**In progress: PRs 1 to 9 have landed; PR 10, the device pass and close, remains.** This file is the design and the pull-request breakdown for a fourth game:
+**Closed, with hardware criteria unmet and named. Kept as the record of a finished phase, not as
+current plan.** [`PLAN.md`](PLAN.md) is the source of truth for what the project is doing now; §7
+there carries the phase-9 outcome and everything that differed from this file, and its summary, §5.2,
+§5.3 and §6 have been reconciled with what was built (§4 is the arcade and needed no change). The unmet criteria are every *(Device)* line in §8 below —
+no Android phone, tablet or desktop display was available in this or any session that built this
+game, the same gap phases 3, 4, 5 and 7 each recorded rather than assumed shut — and the
+players-file line, which needs two devices. Read this file for *why* a piece of
+`packages/puzzle_engine/lib/src/tracks`, `app/lib/features/tracks` and `app/lib/features/puzzles` is
+shaped the way it is — the code cites these section numbers.
+
+This file is the design and the pull-request breakdown for a fourth game:
 a grid puzzle in which the player lays a single track from a start to a goal so that every row and
 column holds exactly the number of track pieces its clue says. The same puzzle is drawn as a train
 running to a station, Santa walking to a house, a snail crawling to a pumpkin, or water running
@@ -867,6 +877,20 @@ reconciled with what was built, and `README.md` names the game.
 hardware line in §8 is ticked or recorded as unmet with the reason, as phases 3, 4, 5 and 7 recorded
 theirs.
 
+*Built as planned, with these differences.* (1) **The smoke test ran headless, not on a device.** It
+drives home, Puzzles, Tracks and a puzzle to solved with simulated drags, and checks that the solve
+is in a real `save.json`. It passes under `flutter test -d flutter-tester`, which `AGENTS.md` says is
+evidence and not a substitute, so the first *(Device)* line of §8 stays open and no device is named
+here. Unlike phase 7's close, the headless run works in this container: `libminisound_ffi.so` was
+built from the pub cache's `minisound_ffi/src` with cmake and put on `LD_LIBRARY_PATH`, and with it
+all four smoke tests pass (`AGENTS.md` says how). (2) **The app version moved from 0.4.8+14 to
+0.5.0+15.** `PLAN.md` §7 calls the phase a minor release after phase 6, so closing it moves the minor
+version, as PRs 8 and 9 moved only the patch while Tracks was still being built. (3) **The
+players-file line of §8 is left open.** The codec round trip, the import and the replacement are each
+covered by an automated test, but no test carries one file through export and import into a second
+repository, and a second device is what the line names. (4) **No hardware line was ticked**: there was
+no phone, tablet or desktop display, and the device pass this pull request exists for did not happen.
+
 ---
 
 ## 7. Risks
@@ -895,32 +919,55 @@ theirs.
       within three times its target; the measured medians are copied into §4.5. *(PR 3: every
       median is under 5 ms against ceilings of 30, 150 and 600 ms; the benchmark takes about
       15 s in all.)*
-- [ ] `git log -p -- packages/puzzle_engine/test/golden/sudoku_*` shows no commit from this phase.
-      *(PR 3 leaves them byte-identical: `regen_goldens.dart` rewrites them with no diff; the box is
-      ticked when the phase closes.)*
-- [ ] `dart tool/check_determinism.dart` and `dart tool/check_offline.dart` pass; no dependency in
+- [x] `git log -p -- packages/puzzle_engine/test/golden/sudoku_*` shows no commit from this phase.
+      *(PR 3 leaves them byte-identical: `regen_goldens.dart` rewrites them with no diff. At the
+      close, `git log --oneline 1f28d69^..HEAD -- 'packages/puzzle_engine/test/golden/sudoku_*'`, over
+      the whole phase from the plan's own commit, prints nothing.)*
+- [x] `dart tool/check_determinism.dart` and `dart tool/check_offline.dart` pass; no dependency in
       `app/pubspec.yaml` or `packages/puzzle_engine/pubspec.yaml` changes in this phase (`git diff
       main -- '*/pubspec.yaml'` shows only the app's `version:` line and the `assets/audio/tracks/`
       declaration). *(Both pass after PR 3. PR 8 bumped the app from 0.4.6+12 to 0.4.7+13, the first
       build a child can reach Tracks in; PR 9 to 0.4.8+14, the first with all four themes and their
-      sounds, and declared the new audio directory. Neither changed a dependency; ticked at the
-      close.)*
+      sounds, and declared the new audio directory; PR 10 to 0.5.0+15, the minor version the close
+      moves. At the close: `dart tool/check_determinism.dart` reports 29 files clean and `dart
+      tool/check_offline.dart` reports clean, and `git diff 06dcdac -- '*/pubspec.yaml'`, with
+      06dcdac the last commit before the phase, shows exactly two hunks, both in `app/pubspec.yaml`:
+      `version: 0.4.6+12` to `version: 0.5.0+15`, and the added line `- assets/audio/tracks/`.
+      `packages/puzzle_engine/pubspec.yaml` does not appear, and no dependency line changed.)*
 - [x] The import-boundary test fails against a copy of `model/` that imports a skin, and passes
       without it. *(PR 5: `app/test/features/tracks/import_boundary_test.dart` copies `model/` to a
       temporary directory, adds a skin import, and asserts the scan reports it.)*
-- [ ] A save from before PR 4 loads on the PR 10 build with Tracks at defaults (fixture test).
+- [x] A save from before PR 4 loads on the PR 10 build with Tracks at defaults (fixture test).
       *(PR 4: `preTracksSaveJson` in `save_fixtures.dart` is the pre-PR encoder's output, frozen as
-      text; ticked at the close, once it still passes on the PR 10 build.)*
+      text. At the close, `cd app && flutter test test/core/storage/save_codec_test.dart` passes with
+      it, including "a file written before Tracks decodes with every Tracks field at its default"
+      and the unknown-theme and wrong-type cases beside it.)*
 - [ ] A players file exported with Tracks progress imports on a second device with the same solved
-      list, in-progress board and theme.
+      list, in-progress board and theme. **Not ticked.** *(Covered automatically, and passing at the
+      close: `transfer_codec_test.dart` encodes a profile with a non-default theme, solved puzzles,
+      best times and an in-progress board to a players file and decodes it back equal, and asserts
+      the board is still there rather than dropped; `profile_import_test.dart` asserts the import
+      result carries every profile field, Tracks included, and that a replacement lands the theme,
+      solved list and best times in a repository. Together, 97 tests across those two files and
+      `save_codec_test.dart`, run as one command. Not covered: a single test that carries one file
+      through export and into a second repository (the in-progress board reaches the import only
+      through the field-by-field comparison, not the replacement case, which carries none); and the
+      line names a second device, which no session had. The two halves agree by construction, but the line stays open
+      until someone imports a real file on a real second device.)*
 - [ ] `tool/verify.sh` time before and after the phase recorded here: before ___, after ___.
       *(PR 3's share: before PR 3, 5 m 33 s wall with the engine tests at 1 m 26 s, measured on a
       container busy with other work, so an upper bound; after PR 3, 4 m 5 s and 4 m 24 s wall on two
       runs, with the engine tests at 1 m 32 s and the benchmark at 15 s. Tracks added 800 golden puzzles (about 1.3 s to
       generate), 2000 fuzz puzzles (about 6 s, run in parallel with the goldens) and eight benchmark
-      rows (about 1 s); the rest of the difference is the machine. Left unticked until the phase
-      closes.)*
+      rows (about 1 s); the rest of the difference is the machine. The two figures for the whole
+      phase are filled in from runs of `tool/verify.sh` on the commit before PR 2 and on the PR 10
+      commit, and the box is ticked when they are.)*
 - [ ] *(Device)* `tracks_smoke_test.dart` passes on an Android phone; device named in PR 10.
+      **Not done.** It passes headless under `-d flutter-tester` with `libminisound_ffi.so` built from
+      the pub cache and on `LD_LIBRARY_PATH` (§6, PR 10), which `AGENTS.md` calls evidence and not a
+      substitute. No Android phone, tablet or desktop display was available in this or any session
+      that built this phase — the gap phases 3, 4, 5 and 7 each recorded — so no device is named.
+      Every *(Device)* line below is open for the same reason, and `PLAN.md` §7 records the gap.
 - [ ] *(Device)* On a 360 dp-wide phone, a 9x9 puzzle can be solved by dragging alone without a
       misplaced connection in three attempts.
 - [ ] *(Device)* All four themes' start and goal sprites are recognisable at arm's length — asked of
