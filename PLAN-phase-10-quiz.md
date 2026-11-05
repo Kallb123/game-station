@@ -4,8 +4,9 @@ This file is the design and the pull-request breakdown for a fifth game: a multi
 the stories a child knows. A child ticks the books they have read and the shows and films they have
 watched on a shelf, then either plays a mixed round drawn from everything ticked or picks one title
 and is quizzed on that alone. Books come first — Enid Blyton's Magic Faraway Tree, Roald Dahl,
-Rainbow Magic, Narnia and the Kitty series — then CBeebies (Bluey, Topsy and Tim, Hey Duggee, Witch
-Detectives, Waffle the Wonder Dog) and Disney (Mickey, Frozen, the Princess films).
+Rainbow Magic, Narnia and Paula Harrison's Kitty — then CBeebies (Bluey, Topsy and Tim, Hey Duggee,
+Waffle the Wonder Dog) and Disney (Mickey and friends, Disney films, Pixar films). It is a third
+card on the Arcade menu, after Invaders and Snake.
 
 **Two builds, two audiences.** Every pack is either *store* or *private*, decided by which directory
 it sits in. A store build — any build not made with the private flavour — carries only store packs; a private
@@ -18,8 +19,8 @@ both (§4.4, §4.9).
 [`PLAN.md`](PLAN.md) is the source of truth for the project; §7 there carries a one-paragraph entry
 for this phase pointing here. Where this file and `PLAN.md` disagree, the reason is stated here and
 the closing pull request reconciles `PLAN.md`. Read [`PLAN-phase-9-tracks.md`](PLAN-phase-9-tracks.md)
-§4.11 and §4.14 first: this phase adds save fields the way Tracks did and sits on the Puzzles menu
-Tracks created.
+§4.11 first: this phase adds save fields the way Tracks did. Its card on the Arcade menu takes the
+shape [`PLAN-phase-7-snake.md`](PLAN-phase-7-snake.md) §4.9 gave that menu's cards.
 
 **Named `PLAN-phase-10-quiz.md`, at the repository root**, beside the other phase plans, because code
 comments cite these files by path (`AGENTS.md`).
@@ -66,7 +67,7 @@ right. There is no timer and no way to lose.
 | No quotation longer than a short phrase | Same reason. A question may name a character, place or object; it may not reproduce a sentence of the book or a line of a script. The content test refuses a question or answer over its length cap (below), which bounds the damage mechanically; whether a short phrase is a quotation is the reviewer's check. |
 | Minimal reading, as far as a quiz allows | `AGENTS.md` asks for minimal reading, and a quiz is reading. This is the one game in the app built for readers, roughly six and over, or a grown-up reading aloud. It reads as little as it can: three options, not four; a question of at most 100 characters and an answer of at most 30, enforced by the content test; and every question and answer exposed as semantics, so TalkBack and VoiceOver read them aloud with no new dependency. The caps are provisional until PR 6 measures them at 200 % text (§4.8). |
 | No time pressure, no scary failure | `PLAN.md` §1 and `AGENTS.md`. No timer, no lives, no streak to break. A wrong answer is shown gently — the right answer is highlighted and the child taps Next when ready — and every finished round ends on the same celebration, whatever the score. |
-| A question never spoils a title the child has not ticked | Narnia, Faraway Tree and Rainbow Magic are series, and a question about book four answered on the strength of book one gives book four away. Every question belongs to exactly one title — the earliest a reader would need to answer it — and a mixed round draws only from ticked titles (§4.1, §4.6). |
+| A question never spoils a title the child has not ticked | Narnia, Faraway Tree and Rainbow Magic are series, and a question about book four answered on the strength of book one gives book four away. Every question belongs to exactly one title — the earliest a reader would need to answer it — and a mixed round draws only from ticked titles (§4.1, §4.6). Disney's three titles each span many films, so they ask only what a film's opening shows, never how it ends (§4.4). |
 | No network, no new package | `PLAN.md` §1. Questions are bundled assets parsed with `dart:convert`. `app/pubspec.yaml` gains one asset directory and no dependency, so `tool/check_offline.dart` has no new graph to audit. `check_offline.dart` scans `app/lib` for URLs and not `assets/`, so the content test refuses `://` in any question, answer or source itself (§4.3). |
 | No ambient randomness | `app/test/no_random_test.dart`. Question order and answer order come from `GameRng`, moved from `features/arcade/shared/` to `core/` unchanged (§4.6). |
 | The save stays additive | `PLAN.md` §5.2. One optional profile field with an empty default; `schemaVersion` stays 1 and an old save loads unchanged (§4.7). |
@@ -88,10 +89,12 @@ right. There is no timer and no way to lose.
 | Resuming a round after a force-quit | A round is ten questions and about two minutes. Persisting one means an in-progress record, a codec and a resume path for a loss of at most nine answers. Progress is written at the end of each round (§4.7). |
 | Questions written or edited by a parent in the app | An editor, a validation UI and a second content source. The content format is plain JSON, so a parent who wants their own pack can have one added as a file. |
 | New questions downloaded after install | No network, ever (`PLAN.md` §1). New questions arrive with an app update. |
-| One tick per Rainbow Magic book | Rainbow Magic has more than two hundred books in sets, mostly of seven. A tick per book is a shelf of hundreds and a content job of thousands of questions. The set is the title (§4.1); §9 keeps per-book ticks open. |
+| One tick per Rainbow Magic book | Rainbow Magic has more than two hundred books in sets, mostly of seven. A tick per book is a shelf of hundreds and a content job of thousands of questions. The set is the title (§4.1), as the owner confirmed. |
+| One tick per Disney or Pixar film | The owner asked for general questions. Three broad titles keep the shelf short; a film-by-film list is dozens of titles to tick and to fill. A film that earns its own title later is a content-only addition (§4.4). |
+| *Witch Detectives* | Left out by the owner: it may be too new to have much to ask about. A content-only addition later, as `cbeebies-witch-detectives`, if wanted. |
 | One tick per TV episode | The same arithmetic for Bluey and Hey Duggee. A show is one title. |
-| Every Roald Dahl book, every Rainbow Magic set, every Disney film | §4.4 names the launch list. More titles are content-only pull requests later, needing no code. |
-| Adaptive difficulty or a per-profile age setting | Questions are tagged with a level now, because tagging nine hundred later is the expensive part, and a round orders easier questions first (§4.6). A per-profile *harder questions* switch is §9's. |
+| Every Roald Dahl book, every Narnia book, every Rainbow Magic set | §4.4 names the owner's launch list. More titles are content-only pull requests later, needing no code. |
+| Adaptive difficulty or a per-profile age setting | Questions are tagged with a level now, because tagging hundreds later is the expensive part, and a round orders easier questions first (§4.6). A per-profile *harder questions* switch is §9's. |
 | Naming any series in the store listing | Trademark rules on Amazon and Apple apply to listing metadata. §7 and §9. |
 | A private build on iOS, Linux or Windows | `flutter build linux` and `flutter build windows` take no `--flavor` in Flutter 3.44, and iOS flavours need per-flavour Xcode schemes and build configurations for a platform the owner does not install from source. Those builds are always store builds (§4.9). macOS could take one later; nothing in the design prevents it. |
 | Marking single questions private inside a store pack | The audience is a file's directory because a file is the unit a build can leave out. A question-level flag could only be filtered at runtime, leaving the text in the store binary. A series that needs both splits into two packs. |
@@ -108,7 +111,7 @@ books before screens: the order the ask gives.
 2. **The save field**, before anything can write it.
 3. **The round model** — question selection, option order, scoring — as plain Dart.
 4. **The screens** — the Quiz menu, the shelf, the title list, the play screen and the end of round —
-   and the Quiz card on the Puzzles menu.
+   and the Quiz card on the Arcade menu.
 5. **Content**, one pull request per group: Narnia; Roald Dahl; Rainbow Magic and Kitty; CBeebies;
    Disney.
 6. **The device pass and the close.**
@@ -134,12 +137,14 @@ Alternatives considered:
 
 | Option | Rejected because |
 |---|---|
-| Questions as Dart `const` tables, as the sprites are | Type-checked and needing no parse, but nine hundred multi-line literals are what `dart format` reflows on every edit, so a one-word correction becomes a noisy diff. Content would also be reviewable only by someone reading Dart. The parse failure JSON allows is covered instead by the content test in CI and a loader that skips a bad pack (§4.2). |
+| Questions as Dart `const` tables, as the sprites are | Type-checked and needing no parse, but several hundred multi-line literals are what `dart format` reflows on every edit, so a one-word correction becomes a noisy diff. Content would also be reviewable only by someone reading Dart. The parse failure JSON allows is covered instead by the content test in CI and a loader that skips a bad pack (§4.2). |
 | YAML packs (`package:yaml`) | Kinder to hand-edit, but a dependency to add and audit for a format JSON already covers. |
 | `drift` or SQLite for the questions | A database for under a megabyte of read-only text that is read once at startup. |
 | Generating questions on the device with a language model | No network (`PLAN.md` §1), a model too large to bundle, and an unchecked fact on every screen — the opposite of §1's first constraint. |
 | Remembering every asked question id in the save | §3's load-bearing decision; replaced by a per-title shuffled order and a position in it (§4.6), two integers per title. |
-| A fourth card on the home screen | The owner chose a Puzzles menu in phase 9 to keep the home screen at three cards, because a fourth forces the landscape row into a 2 x 2 grid (`PLAN-phase-9-tracks.md` §3). The quiz is a third card there instead, one tap further from home. §9 asks the owner to confirm, since a quiz is not a puzzle. |
+| A fourth card on the home screen | The owner chose a Puzzles menu in phase 9 to keep the home screen at three cards, because a fourth forces the landscape row into a 2 x 2 grid (`PLAN-phase-9-tracks.md` §3). |
+| A third card on the Puzzles menu | This plan's first default. A quiz is not a puzzle, and the owner put it on the Arcade menu instead (§4.5), whose cards already stack in a scrolling column, so a third needs no new layout. |
+| The quiz's code under `features/arcade/` | The card is on the Arcade menu, but the quiz shares none of the arcade's machinery — no fixed step, no `GameShell`, no control pad, no `HighScore` table — except `GameRng`, which moves to `core/` (§4.6). It is its own feature, `features/quiz/`, and the card is the one arcade file it touches. |
 | Four answer options | More reading per question for no gain at this age; three already makes guessing the worse strategy. |
 | A tick per Rainbow Magic book or per TV episode | §2. |
 | Separate quiz modes for books, TV and films | One shelf with three groups does it, and a mixed round crosses them freely: a child who has read *Matilda* and watched *Bluey* wants one quiz, not two. The group only changes the word on the tick and the icon. |
@@ -157,28 +162,29 @@ Alternatives considered:
 
 ```
 collection   book | tv | film | topic     fixed in code; sets the tick's word and the icon
-  series     dahl, narnia, cbeebies.bluey …   one JSON file each, in shelf order
-    title    dahl.bfg, narnia.silver-chair …  what a child ticks and what a question belongs to
+  series     dahl, narnia, cbeebies-bluey …    one JSON file each, in shelf order
+    title    dahl.bfg, narnia.prince-caspian … what a child ticks and what a question belongs to
 ```
 
 - A **title** is the unit a child ticks and picks: one book (*Matilda*), one Rainbow Magic set (*the
-  Rainbow Fairies*), one show (*Bluey*), one film (*Frozen II*), or one general-knowledge topic
-  (*Animals*). For a show, the series and the title are the same thing, and the series file holds
-  one title.
+  Rainbow Fairies*), one show (*Bluey*), one group of films (*Pixar films*), or one
+  general-knowledge topic (*Animals*). For a show, the series and the title are the same thing, and
+  the series file holds one title.
 - A **topic** is a title with no story behind it. It is ticked like any other — the tick reads *quiz
   me on this* rather than *read* or *watched* — so a mixed round draws from it only if the child
   chose it. Reading order and §1's spoiler rule do not apply to topics.
 - A **title id** is `<series>.<slug>`, lowercase ASCII letters, digits and hyphens, matching
-  `^[a-z0-9-]+\.[a-z0-9-]+$` (CBeebies and Disney series are named `cbeebies-bluey`,
-  `disney-frozen`, so the id keeps one dot). Frozen once shipped (§3). A title that must go is
-  **withdrawn**, by listing its id in `withdrawnTitles` in the catalog, never by deleting or renaming
-  it: a withdrawn title stays ticked in saves and is simply not shown, so restoring it later restores
-  every child's tick.
-- Titles in a series are in **reading order**, and the series' shelf order is the catalog's. Narnia
-  uses the numbering of current editions, with *The Magician's Nephew* first; §9 notes the
-  alternative. Order matters for one rule: a question that needs more than one title belongs to the
-  latest of them, so it is asked only of a child who has reached it; a question about the series as a
-  whole ("Who made Narnia?") belongs to the earliest title that answers it.
+  `^[a-z0-9-]+\.[a-z0-9-]+$` (CBeebies series are named `cbeebies-bluey`, so the id keeps one
+  dot). Frozen once shipped (§3). A title that must go is **withdrawn**, by listing its id in
+  `withdrawnTitles` in the catalog, never by deleting or renaming it: a withdrawn title stays ticked
+  in saves and is simply not shown, so restoring it later restores every child's tick.
+- Titles in a series are in **reading order**, and the series' shelf order is the catalog's. Narnia's
+  two launch books, *The Lion, the Witch and the Wardrobe* then *Prince Caspian*, are in that order
+  under both the current numbering and publication order; the choice between them is §9's, and
+  matters only once *The Magician's Nephew* or *The Horse and His Boy* joins. Order matters for one
+  rule: a question that needs more than one title belongs to the latest of them, so it is asked only
+  of a child who has reached it; a question about the series as a whole ("Who made Narnia?") belongs
+  to the earliest title that answers it.
 
 ### 4.2 Pack format and loading
 
@@ -190,8 +196,7 @@ index in each directory listing its packs in shelf order:
 { "format": 1,
   "series": ["faraway-tree", "narnia", "dahl", "rainbow-magic", "kitty",
              "cbeebies-bluey", "cbeebies-topsy-and-tim", "cbeebies-hey-duggee",
-             "cbeebies-witch-detectives", "cbeebies-waffle",
-             "disney-mickey", "disney-frozen", "disney-princesses"],
+             "cbeebies-waffle", "disney"],
   "withdrawnTitles": [] }
 ```
 
@@ -230,7 +235,7 @@ The shelf shows store series first, then private ones, each in its index's order
 
 **Loading.** `QuizCatalogLoader` reads `store/index.json`, then `private/index.json` if the build
 carries it, and each listed pack through `rootBundle`, once, during app start beside the save, so the
-Puzzles menu knows whether to show the Quiz card (§4.5). It parses with `dart:convert` and builds an immutable `QuizCatalog`. A
+Arcade menu knows whether to show the Quiz card (§4.5). It parses with `dart:convert` and builds an immutable `QuizCatalog`. A
 pack that fails to parse or validate is skipped and logged with `debugPrint`, never shown to a child
 (`AGENTS.md`); the content test makes that a CI failure long before a device sees it. Release builds
 (`kReleaseMode`) drop every question with `checked: false` at load; debug and profile builds keep
@@ -238,7 +243,8 @@ them and mark them with a small *unchecked* chip on the play screen, so the owne
 draft pack. `offeredTitles` returns the titles with at least `minQuestionsPerTitle` (10) loaded
 questions that are not withdrawn.
 
-The whole bank at the launch target (§4.4) is about nine hundred questions, under 300 KB of JSON.
+The whole bank at the launch target (§4.4) is about six hundred questions with the store packs, plus
+twenty per Kitty book — well under 300 KB of JSON.
 Parsing it is a few tens of milliseconds; PR 2 measures it, and if it exceeds 100 ms on the CI runner
 the parse moves to `compute`.
 
@@ -272,25 +278,43 @@ fails, not only that the real bank passes.
 
 ### 4.4 The launch list
 
-Content targets: **20 questions per title, at least 10 checked to be offered.** The list is the
-ask's, with the gaps the ask leaves marked; §9 holds what the owner decides. **Every series in this
-table starts private** (§4.9): moving one to the store is a deliberate `git mv` by the owner, never a
-default.
+Content targets: **20 questions per title, 40 for a broad title, at least 10 checked to be
+offered.** The list is the owner's. **Every series in this table starts private** (§4.9): moving one
+to the store is a deliberate `git mv` by the owner, never a default.
 
-| Collection | Series | Titles | Count |
-|---|---|---|---|
-| Book | The Magic Faraway Tree (Enid Blyton) | *The Enchanted Wood*, *The Magic Faraway Tree*, *The Folk of the Faraway Tree*, *Up the Faraway Tree* | 4 |
-| Book | The Chronicles of Narnia (C. S. Lewis) | *The Magician's Nephew*, *The Lion, the Witch and the Wardrobe*, *The Horse and His Boy*, *Prince Caspian*, *The Voyage of the Dawn Treader*, *The Silver Chair*, *The Last Battle* | 7 |
-| Book | Roald Dahl | *The Magic Finger*, *James and the Giant Peach*, *Charlie and the Chocolate Factory*, *Fantastic Mr Fox*, *Danny the Champion of the World*, *The Enormous Crocodile*, *The Twits*, *George's Marvellous Medicine*, *The BFG*, *The Witches*, *The Giraffe and the Pelly and Me*, *Matilda*, *Esio Trot* — in publication order; the owner trims | 13 |
-| Book | Rainbow Magic | The first sets, one title each: *the Rainbow Fairies*, *the Weather Fairies*, *the Jewel Fairies*. Which further sets is §9's | 3 |
-| Book | Kitty | **Unresolved** — which series is meant is §9's first question | — |
-| TV | CBeebies | *Bluey*, *Topsy and Tim*, *Hey Duggee*, *Witch Detectives*, *Waffle the Wonder Dog* (the ask's *Waffle the Dog*) — one title each; *Witch Detectives* to be confirmed (§9) | 5 |
-| Film | Disney | *Mickey Mouse and friends* (one title; which shows it covers is §9's), *Frozen*, *Frozen II*, and the Princess films — *Snow White and the Seven Dwarfs*, *Cinderella*, *Sleeping Beauty*, *The Little Mermaid*, *Beauty and the Beast*, *Aladdin*, *Pocahontas*, *Mulan*, *The Princess and the Frog*, *Tangled*, *Brave*, *Moana* | 15 |
+| Collection | Series | Titles | Count | Target |
+|---|---|---|---|---|
+| Book | The Magic Faraway Tree (Enid Blyton) | *The Enchanted Wood*, *The Magic Faraway Tree*, *The Folk of the Faraway Tree*, *Up the Faraway Tree* | 4 | 20 each |
+| Book | The Chronicles of Narnia (C. S. Lewis) | *The Lion, the Witch and the Wardrobe*, *Prince Caspian* — for now; the other five are later content | 2 | 20 each |
+| Book | Roald Dahl | *James and the Giant Peach*, *Charlie and the Chocolate Factory*, *The BFG*, *Matilda* — in publication order | 4 | 20 each |
+| Book | Rainbow Magic | *The Rainbow Fairies* (the colour fairies) and *the Weather Fairies*, one title per set of seven | 2 | 20 each |
+| Book | Kitty (Paula Harrison) | One title per book, in publication order from *Kitty and the Moonlight Rescue* (2019). A dozen or more are out; PR 9 takes the list from Oxford University Press's and the owner trims it to the books the family has | per PR 9 | 20 each |
+| TV | CBeebies | *Bluey*, *Topsy and Tim*, *Hey Duggee*, *Waffle the Wonder Dog* (the ask's *Waffle the Dog*) — one title each | 4 | 20 each |
+| Film | Disney | *Mickey and friends*, *Disney films*, *Pixar films* — general questions, three broad titles | 3 | 40 each |
 
-About 47 titles before Kitty: 940 questions at target and 470 checked to offer them all.
+That is 19 titles before Kitty: 440 questions at target and 190 checked to offer them all, plus 20
+to draft and 10 to check per Kitty book.
 
-Mickey is a TV and short-film character rather than one film; it sits under Disney because that is
-where the ask put it, as one title.
+*Wonka* is read as *Charlie and the Chocolate Factory*, the Dahl book Willy Wonka is from; *Charlie
+and the Great Glass Elevator*, and the 2023 film *Wonka*, which is not Dahl's, are content-only
+additions if wanted. *Topsy and Tim* is TV only, as the ask lists it.
+
+**Disney's titles are broad.** The owner asked for general questions about Mickey and friends and
+about other Disney titles, Pixar's included, rather than a title per film:
+
+- *Mickey and friends* covers Mickey, Minnie, Donald, Daisy, Goofy and Pluto across the classic
+  shorts and the current shows, asking only what holds across them — who is whose friend, Pluto is
+  a dog — never an episode's plot.
+- *Disney films* covers Walt Disney Animation's films, starting with the ones the ask named: *Frozen*,
+  *Frozen II* and the Princess films. *Pixar films* covers Pixar's: *Toy Story*, *Finding Nemo*,
+  *Monsters, Inc.*, *Cars*, *Inside Out* and the like.
+- A broad title spans films a child may not have seen, so §1's spoiler rule becomes a reviewer's rule
+  for it: **a question asks only what a film's opening shows** — who the characters are, where it is
+  set, what they want — never a twist or an ending. `source` names the film.
+- Broad titles target 40 questions, as topics do, for the same reason (below): a child plays them
+  far more often than a single book.
+- A film that later earns its own title — the child wants *Frozen* alone — is a new title in
+  `disney.json`, with the questions about it moved into it under new ids. The broad title's id stays.
 
 **Store packs.** The owner's choice: Peter Rabbit, and general knowledge about the world, the UK and
 animals.
@@ -310,17 +334,23 @@ More Potter tales are content-only additions to `store/beatrix-potter.json` late
 ### 4.5 Screens and navigation
 
 ```
-Home ─ Puzzles ─┬─ Sudoku
-                ├─ Tracks
-                └─ Quiz ─┬─ Quiz me ───────────────► Play ─► Round end
-                         ├─ Pick one ─ title list ─► Play ─► Round end
-                         └─ My shelf
+Home ─ Arcade ─┬─ Invaders
+               ├─ Snake
+               └─ Quiz ─┬─ Quiz me ───────────────► Play ─► Round end
+                        ├─ Pick one ─ title list ─► Play ─► Round end
+                        └─ My shelf
 ```
 
-- **The Puzzles menu gains a third card, Quiz** (`Icons.quiz`), laid out as its two cards are: a
-  column in portrait, a row in landscape. The card appears only when the loaded catalog offers at
-  least one title, so a store build made before any store pack is ready has no quiz rather than an
-  empty one.
+- **The Arcade menu gains a third card, Quiz** (`Icons.quiz`), after Snake and above the arcade's
+  Options, in the shape `_GameCard` gives Invaders and Snake (`PLAN-phase-7-snake.md` §4.9): the
+  title, a best line — the best mixed round, *Best 8 out of 10*, or *Not played yet* — and a
+  *Play Quiz* button that opens the Quiz menu. It has no top-five table, because a quiz has no
+  `HighScore` list, so `_GameCard`'s `scores` becomes optional and a card without one draws none.
+  It has no toggles either; if §9's *harder questions* switch is ever built, it goes on this card,
+  as auto-fire sits on Invaders'. The arcade-wide *Easy mode* and *Buttons on the left* below the
+  cards do not touch the quiz. The card appears only when the loaded catalog offers at least one
+  title, so a store build made before any store pack is ready has no quiz rather than an empty one.
+  The quiz's own screens take the arcade's role colour, as the menu that opens them does.
 - **The Quiz menu** is three `BigButton`s. *Quiz me* is disabled with a one-line hint — *Tick what
   you've read on your shelf* — when nothing offered is ticked, and the shelf button is then
   highlighted; a disabled button that leads nowhere would otherwise be a dead end.
@@ -366,8 +396,8 @@ equal to the round length, a round never repeats a question within itself.
 
 **A mixed round** takes ten questions from ticked, offered titles, rotating **by series first, then
 by title within a series**, each series and each title order shuffled per round. Rotating by series
-stops a child who has ticked thirteen Dahl books and one Narnia book getting thirteen Dahl questions
-in fourteen; rotating by title within a series spreads a round across the books. Each draw advances
+stops a child who has ticked four Dahl books and one Narnia book getting four Dahl questions in
+five; rotating by title within a series spreads a round across the books. Each draw advances
 that title's `next`, so mixed and single-title rounds share one order per title and neither repeats
 what the other just asked.
 
@@ -516,8 +546,7 @@ app/assets/quiz/
     index.json
     faraway-tree.json, narnia.json, dahl.json, rainbow-magic.json, kitty.json
     cbeebies-bluey.json, cbeebies-topsy-and-tim.json, cbeebies-hey-duggee.json,
-    cbeebies-witch-detectives.json, cbeebies-waffle.json
-    disney-mickey.json, disney-frozen.json, disney-princesses.json
+    cbeebies-waffle.json, disney.json
 app/android/app/build.gradle.kts  # the `audience` dimension: store and private flavours
 tool/check_quiz_audience.sh       # no private pack in a store APK; some in a private one
 app/lib/core/game_rng.dart        # moved from features/arcade/shared/ (§4.6)
@@ -532,8 +561,9 @@ app/integration_test/quiz_smoke_test.dart
 ```
 
 Packs are one per series rather than one file per collection so a content pull request touches only
-its own series' file, and two can be written in parallel without conflicting. CBeebies and Disney
-series get a file each for the same reason, and because Disney is three unrelated series. `model/`
+its own series' file, and two can be written in parallel without conflicting. CBeebies shows get a
+file each for the same reason; Disney's three broad titles share one, because they are drafted
+together and a film moving into a title of its own stays inside it (§4.4). `model/`
 imports nothing from Flutter so the round logic is tested in plain `test()` and runs in milliseconds;
 the loader, which needs `rootBundle`, is the only part of the catalog in `data/`.
 
@@ -544,8 +574,8 @@ the loader, which needs `rootBundle`, is the only part of the catalog in `data/`
 Estimates assume one developer, or one agent session with review, working on this full time, as
 phase 9's did. **Checking content is separate and is the owner's time**: verifying a question, its
 answer and its three wrong answers against the book or episode takes about two to three minutes with
-the source to hand, so the launch threshold of 470 checked questions is roughly 16–24 hours, and the
-full target of 940 twice that. The store packs need 40 checked questions to offer all four titles,
+the source to hand, so the launch threshold of 190 checked questions is roughly 6–10 hours, plus
+about half an hour per Kitty book, and the full target of 440 a little over twice that. The store packs need 40 checked questions to offer all four titles,
 about two hours, and 140 at target. That is the phase's real critical path, and why the release line does
 not wait for it.
 
@@ -557,21 +587,22 @@ not wait for it.
 | 4 | Save field and transfer round trip | 0.5–1 day |
 | 5 | The round model, and `GameRng` moved to `core/` | 1–1.5 days |
 | 6 | The screens and the Quiz card | 2–3 days |
-| 7 | Narnia | 1 day drafting |
-| 8 | Roald Dahl | 1.5 days drafting |
-| 9 | Rainbow Magic and Kitty | 1 day drafting, after §9's Kitty question |
+| 7 | Narnia | 0.5 day drafting |
+| 8 | Roald Dahl | 1 day drafting |
+| 9 | Rainbow Magic and Kitty | 1–1.5 days drafting, by the number of Kitty books |
 | 10 | CBeebies | 1 day drafting |
 | 11 | Disney | 1.5 days drafting |
 | 12 | Store packs: Peter Rabbit and general knowledge | 1.5 days drafting |
 | 13 | Smoke test, device pass and close | 0.5–1 day, plus device time |
 
-Total 13–18 working days of building and drafting, plus checking. PR 6 is the widest because §4.8's
+Total 13–17 working days of building and drafting, plus checking. PR 6 is the widest because §4.8's
 measurement may move the caps and the shelf is the first screen in the app that scrolls a long list.
 Content pull requests 7–12 depend only on PR 2 and can be built in any order or in parallel; their
 order here is the ask's, books before screens.
 
 **PR 1 — this plan.** `PLAN-phase-10-quiz.md`, and a phase 10 entry in `PLAN.md` §7.
-**Done when:** both are on `main`, and §9's placement question is answered before PR 6 starts.
+**Done when:** both are on `main`, with the owner's answers to placement and the launch list
+recorded in §4.4, §4.5 and §9.
 
 **PR 2 — format, loader, content test, first pack.** `QuizCatalog`, `QuizQuestion`,
 `QuizCatalogLoader`, both `index.json` files, `private/faraway-tree.json` with 20 drafted questions
@@ -581,7 +612,7 @@ untagged, even before PR 3 gives Android the flavour that can bundle it.
 **Done when:** `flutter test test/features/quiz` passes; each content rule of §4.3 fails against its
 fixture (shown in the PR description); a loader test in release mode drops an unchecked question and
 hides a title with nine checked; a pack with a syntax error is skipped and the others still load;
-the coverage table is in the PR description; the parse time of the bank, scaled to 940 questions, is
+the coverage table is in the PR description; the parse time of the bank, scaled to 1,000 questions, is
 recorded in §8.
 
 **PR 3 — store and private builds.** The two Android product flavours, `--flavor store` in CI and
@@ -607,38 +638,41 @@ before `quiz` is added to the import and passes after; `schemaVersion` is still 
 **PR 5 — the round.** `QuizPicker`, `QuizRound`, and `game_rng.dart` moved to `core/`.
 **Done when:** plain `test()` cases show that a title of 24 questions asks all 24 before any repeats,
 over three cycles; a changed `pool` restarts the order; a single-title round never repeats a question
-within itself; a mixed round over one ticked Narnia book and thirteen ticked Dahl books draws at
-exactly five Narnia questions out of ten, the series alternating; every level-1 question in a round precedes every level-2 one;
+within itself; a mixed round over one ticked Narnia book and four ticked Dahl books draws exactly
+five Narnia questions out of ten, the series alternating; every level-1 question in a round precedes every level-2 one;
 each question's three options are distinct and include the answer; `game_rng_test.dart` passes with
 its literals unchanged; `no_random_test.dart` still passes.
 
-**PR 6 — the screens.** The Quiz menu, shelf, title list and play screen, the Quiz card on the Puzzles
+**PR 6 — the screens.** The Quiz menu, shelf, title list and play screen, the Quiz card on the Arcade
 menu, routes, sounds and haptics.
 **Done when:** a widget test plays a ten-question round to the round-end card and sees the score
 written to the save; ticking a title on one profile leaves another profile's shelf unchanged; *Quiz
 me* is disabled with nothing ticked and enabled after one tick; `layout_sweep_test.dart` passes with
-the four new routes; §4.8's longest-content test passes at 200 % text on 360 x 640 dp; the Puzzles
-menu shows three cards in portrait and landscape; screenshots of the shelf and a question, day and
+the four new routes; §4.8's longest-content test passes at 200 % text on 360 x 640 dp; the Arcade
+menu shows the Quiz card after Snake with *Not played yet*, then the best mixed score once a round is
+played, and no Quiz card over a catalog that offers nothing; the Invaders and Snake cards and their
+tests are unchanged; screenshots of the shelf and a question, day and
 night, are attached to the PR rather than committed. The app version moves to 0.5.1, the first build
 in which a child can reach the quiz.
 
-**PRs 7–12 — content.** Each adds its series' packs at 20 drafted questions per title, with
-`checked: false` on everything not yet verified, and pastes the coverage table. A follow-up commit or
-pull request by the owner flips `checked` as questions are verified; corrections go in the same
-commit as the flip.
-**Done when (each):** the content test passes; every title in the pull request has 20 questions with
-at least 6 at level 1; the coverage table is in the description; no title id outside the pull
-request's series changed (`git diff --stat` touches only its own files and `index.json`).
+**PRs 7–11 — content.** Each adds its series' packs at 20 drafted questions per title — 40 per
+Disney title — with `checked: false` on everything not yet verified, and pastes the coverage table.
+A follow-up commit or pull request by the owner flips `checked` as questions are verified;
+corrections go in the same commit as the flip.
+**Done when (each):** the content test passes; every title in the pull request has its target of
+questions (§4.4), at least 30 % of them at level 1; the coverage table is in the description; no
+title id outside the pull request's series changed (`git diff --stat` touches only its own files and
+`index.json`).
 
 **PR 12 — store packs.** `store/beatrix-potter.json` with *The Tale of Peter Rabbit* at 20 drafted
 questions, and `store/general-knowledge.json` with *Animals*, *The UK* and *The world* at 40 each,
 every topic question keeping to facts that do not change (§4.2). The same done-when as PRs 7–11
 (with 40 per topic in place of 20), plus a loader test over the real store directory: with every question
-unchecked the store catalog offers nothing and the Puzzles menu shows no Quiz card (§4.5); with ten
+unchecked the store catalog offers nothing and the Arcade menu shows no Quiz card (§4.5); with ten
 of one title's questions checked, it offers that title and the card appears.
 
 **PR 13 — smoke test, device pass, close.** `app/integration_test/quiz_smoke_test.dart` drives home,
-Puzzles, Quiz, the shelf, a tick, *Quiz me* and a full round to the round-end card, and checks the
+Arcade, Quiz, the shelf, a tick, *Quiz me* and a full round to the round-end card, and checks the
 round in a real `save.json`. The device checks of §8. This file gets a closed banner; `PLAN.md` §5.2,
 §6 and §7 are reconciled with what was built; `README.md` names the game. The app version moves to
 0.6.0.
@@ -666,8 +700,9 @@ copied into §8, with every title under the threshold named — those are hidden
 | Questions repeat so often a child is bored | Low | §4.6's per-title order asks every question before any repeat; PR 5's test proves it over three cycles. |
 | A pack ships malformed and the quiz breaks on a device | Low | The content test in CI; the loader skips a bad pack and keeps the rest (PR 2's test). |
 | Renaming a title id unticks it on every shelf | Medium | Ids are frozen once shipped (§3); withdrawal is the only removal (§4.1). The content test cannot know what shipped, so PR 13 adds a test pinning every title id that exists at the close: removing or renaming one then fails the build. |
-| An ambiguous series is drafted wrongly (Kitty, *Witch Detectives*) | Medium | Both are open questions in §9 that block only their own content pull requests. Nothing is drafted for either until the owner names the series. |
-| The shelf is too long to scroll comfortably on a phone | Low | Grouped by collection behind a three-way switch, so the longest list is Books at about 27 titles; *I've read them all* per series. Checked in §8. |
+| A broad Disney title spoils a film the child has not seen | Medium | Ticking *Pixar films* does not mean every Pixar film has been watched, so the per-title rule of §1 cannot protect it. §4.4's reviewer rule — a question asks only what a film's opening shows — is checked with every `checked` flip, and `source` names the film. A film a child wants asked about in depth becomes its own title. |
+| Kitty is drafted against books the family does not have | Low | PR 9 takes the list from the publisher's and the owner trims it before drafting; a book left out is a content-only addition later. |
+| The shelf is too long to scroll comfortably on a phone | Low | Grouped by collection behind a four-way switch, so the longest list is Books at 13 titles plus Kitty's; *I've read them all* per series. Checked in §8. |
 
 ---
 
@@ -677,7 +712,7 @@ copied into §8, with every title under the threshold named — those are hidden
       bank; each content rule fails against its broken fixture. *(PR 2.)*
 - [ ] The loader in release mode drops every unchecked question and hides a title below ten checked
       (loader test). *(PR 2.)*
-- [ ] Bank parse time, scaled to 940 questions, recorded here: ___ ms on the CI runner. *(PR 2.)*
+- [ ] Bank parse time, scaled to 1,000 questions, recorded here: ___ ms on the CI runner. *(PR 2.)*
 - [ ] `tool/check_quiz_audience.sh store` passes on CI's store APK and fails on its private APK, the
       reverse holds in `private` mode, and `--self-test` passes. *(PR 3, and every CI run after.)*
 - [ ] `grep -rn 'app-release.apk' .github tool README.md` prints nothing. *(PR 3.)*
@@ -714,16 +749,14 @@ copied into §8, with every title under the threshold named — those are hidden
 
 | Question | What resolves it |
 |---|---|
-| **Which "Kitty detective" series?** Paula Harrison's *Kitty* books, the best-known match, are about a girl with cat-like superpowers rather than a detective; other candidates exist. The plan will not guess. | The owner names the author and titles. Blocks Kitty's half of PR 9 only. |
-| ***Witch Detectives*** — confirm the exact title and channel, and which series of it. | The owner. Blocks that title in PR 10 only. |
-| **Placement.** A third card on the Puzzles menu (this plan's default, §3) or a fourth card on the home screen. A quiz is not a puzzle, which argues for home; three cards is the owner's phase-9 choice, which argues for Puzzles. | The owner, before PR 6. A fourth home card means redesigning the landscape row as a 2 x 2 grid in PR 6, about a day more. |
 | The game's label. "Quiz" is the working name and the route prefix; the label is not frozen. | The owner. Held in one constant, as `tracksMenuTitle` is. |
-| Which Rainbow Magic sets beyond the first three, and whether per-book ticks are wanted after all (§2). | The owner; per-book ticks multiply that series' content by seven. |
-| Which Roald Dahl books stay in the thirteen, which Disney films, and what *Mickey* covers (*Mickey Mouse Clubhouse*, *Mickey Mouse Funhouse*, the classic shorts). | The owner, before PRs 8 and 11. |
-| *Topsy and Tim* began as Jean and Gareth Adamson's books. TV only, as the ask lists it, or a book series too? | The owner. TV only until told otherwise. |
-| Narnia's order: current numbering (*The Magician's Nephew* first) or publication order (*The Lion, the Witch and the Wardrobe* first). It decides which title a series-wide question belongs to (§4.1). | The owner, before PR 7. |
 | Which series, if any, move from private to the store. All start private (§4.4). | The owner, per series, at any time: a `git mv` between the two directories, keeping title ids and every child's ticks. Advice is the owner's to seek; the plan does not claim naming a series in a store build is legally safe. |
 | Which other Beatrix Potter tales, and which further topics (the sea, space, the body), join the store packs. | The owner, any time; each is a content-only change. |
+| Narnia's order once *The Magician's Nephew* or *The Horse and His Boy* joins: current numbering (*The Magician's Nephew* first) or publication order. It decides which title a series-wide question belongs to (§4.1). The two launch books are in the same order either way. | The owner, before either book is drafted. |
+| Which Kitty books, from Oxford University Press's list. | The owner, in PR 9. |
+| *Wonka* is read as *Charlie and the Chocolate Factory* (§4.4). Is that right, and is *Charlie and the Great Glass Elevator* wanted too? | The owner, before PR 8. |
+| *Topsy and Tim* began as Jean and Gareth Adamson's books. TV only, as the ask lists it, or a book series too? | The owner. TV only until told otherwise. |
+| Further Narnia, Dahl and Rainbow Magic books, Disney or Pixar films as titles of their own, and *Witch Detectives*. | The owner, any time; each is a content-only change. |
 | Who checks the questions, and are 10 to offer and 20 as the target the right numbers? | The owner. Both are constants. |
 | Built-in read-aloud for non-readers (§2). | Deferred; the device pass shows whether the screen reader is enough. |
 | A per-profile *harder questions* switch using `level` (§2). | Deferred; the device pass shows whether one level mix suits both a five- and a nine-year-old. |
@@ -732,14 +765,26 @@ copied into §8, with every title under the threshold named — those are hidden
 **Answered by the owner:** the private build is the same app as the store build, delivered to the
 family's tablets through the Amazon Appstore's Live App Testing track (§4.9); the private questions
 stay in this public repository (§4.9); the store packs are Peter Rabbit and general knowledge about
-the world, the UK and animals (§4.4).
+the world, the UK and animals (§4.4). And, closing the planning (§4.4, §4.5):
+
+- **Placement:** a third card on the Arcade menu, not the Puzzles menu or the home screen.
+- **Kitty:** Paula Harrison's series. The plan's earlier doubt — that her Kitty is a girl with
+  cat-like powers rather than a detective — is settled by the owner naming it.
+- ***Witch Detectives*** is left out for now; it may be too new.
+- **Roald Dahl:** *The BFG*, *Matilda*, *Wonka* — read here as *Charlie and the Chocolate Factory*
+  — and *James and the Giant Peach*.
+- **Disney:** general questions about Mickey and friends and about other Disney titles, Pixar's
+  included — three broad titles, not a title per film or per Mickey show.
+- **Rainbow Magic:** the colour fairies (*the Rainbow Fairies*) and *the Weather Fairies*, one tick
+  per set.
+- **Narnia:** *The Lion, the Witch and the Wardrobe* and *Prince Caspian*, for now.
 
 ---
 
 ## 10. Starting order
 
-1. Answer §9's Kitty and placement questions; they are the only ones that block a pull
-   request in the first half of the phase.
+1. Nothing in §9 blocks a pull request: placement and the launch list are answered (§4.4, §4.5),
+   and Kitty's book list is settled inside PR 9.
 2. PR 2: the content test and its broken fixtures **before** the loader, so the format is enforced
    before any pack depends on it; then the Faraway Tree pack, which is the first real input.
 3. PR 4 and PR 5 in either order, then PR 6. Start content drafting (PRs 7–12) as soon as PR 2 is

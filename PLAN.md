@@ -1280,15 +1280,16 @@ evidence and not a device run (`AGENTS.md`), so that line stays open too. Unlike
 the headless run works here: `libminisound_ffi.so` was built from the pub cache's source with cmake
 and put on `LD_LIBRARY_PATH`, which `AGENTS.md` now describes.
 
-### Phase 10 — Quiz (13–18 days, plus content checking)
+### Phase 10 — Quiz (13–17 days, plus content checking)
 
 A fifth game: a multiple-choice quiz about the stories a child knows. A child ticks the books they
 have read and the shows and films they have watched on a shelf, then plays a ten-question round mixed
 from everything ticked, or picks one title and is quizzed on that alone. Books first — the Magic
-Faraway Tree, Roald Dahl, Rainbow Magic, Narnia and the Kitty series — then CBeebies (Bluey, Topsy
-and Tim, Hey Duggee, Witch Detectives, Waffle the Wonder Dog) and Disney (Mickey, Frozen, the
-Princess films). A third card on the Puzzles menu, subject to the owner's confirmation. Planned as
-thirteen pull requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
+Faraway Tree, four Roald Dahl books, two Rainbow Magic sets, two Narnia books and Paula Harrison's
+Kitty — then CBeebies (Bluey, Topsy and Tim, Hey Duggee, Waffle the Wonder Dog) and Disney (general
+questions on Mickey and friends, Disney films and Pixar films). A third card on the Arcade menu,
+after Invaders and Snake. Planned as thirteen pull requests in
+[`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
 
 - **Questions are data, keyed by stable title ids; the save stores only title ids and counters.**
   One JSON pack per series under `app/assets/quiz/`, validated by a content test in CI. A profile
@@ -1297,7 +1298,7 @@ thirteen pull requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
   and title ids are frozen once shipped, as puzzle ids are. This is the phase's load-bearing decision.
 - **A question reaches a child only once a person has checked it**, and a title is offered only once
   ten of its questions are. Release builds drop unchecked questions at load. Checking is owner time —
-  roughly 16–24 hours for the launch threshold — and the phase's critical path, so the release line
+  roughly 6–10 hours for the launch threshold — and the phase's critical path, so the release line
   does not wait for it: a title under the threshold is hidden, not a blocker.
 - **Store and private builds.** A pack's directory, `assets/quiz/store/` or `assets/quiz/private/`,
   is its audience. The private directory is declared for the `private` flavour only, so it is
