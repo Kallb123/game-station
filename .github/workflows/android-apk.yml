@@ -430,20 +430,3 @@ jobs:
           path: ${{ steps.apk.outputs.private_path }}
           if-no-files-found: error
           retention-days: 14
-
-      # TEMPORARY — PLAN-phase-10-quiz.md §4.9 asks PR 3 to record what an
-      # unflagged Android build does. Reverted in the next commit.
-      - name: Probe an unflagged build
-        working-directory: app
-        run: |
-          set +e
-          rm -f build/app/outputs/flutter-apk/*.apk
-          flutter build apk --release
-          echo "PROBE exit status: $?"
-          echo 'PROBE flutter-apk outputs:'
-          ls -la build/app/outputs/flutter-apk/
-          for f in build/app/outputs/flutter-apk/*.apk; do
-            [ -e "$f" ] || continue
-            echo "PROBE $f private entries: $(unzip -Z1 "$f" | grep -c 'flutter_assets/assets/quiz/private/')"
-          done
-          exit 0
