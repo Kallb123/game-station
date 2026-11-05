@@ -492,6 +492,18 @@ Two consequences of one app id, both checked in PR 3 rather than assumed:
   build as an update over it. The cost is one-way: Android will not install a lower version code
   over a higher one, so a tablet leaves the testing track for the public build only by uninstalling,
   after exporting its players. The rule and the choice are recorded here.
+
+  *Recorded in PR 3:* Amazon's Live App Testing documentation requires a test build promoted to
+  live to carry a version code at least the live build's (its *Understanding Live App Testing* page
+  says strictly greater), and its console warns when a test's devices are on version codes below the
+  live version's. Nothing requires a test build to differ from live while it stays a test, but the
+  private build is never promoted: the store build is the public release, so the first store
+  release after a test build would put the live version code above the test's, which is the warned
+  case and the update this rule exists to prevent. So the codes differ: the private flavour sets
+  `versionCode` to the store's plus 50,000, in `build.gradle.kts`, and `android-apk.yml` fails if
+  the two APKs it builds are not exactly 50,000 apart. developer.amazon.com was not reachable from
+  the session that built PR 3, so the rule was read from search results quoting those pages; §8's
+  device line on a real testing-track tablet is what confirms it.
 - **Signing.** An app installed from the Amazon Appstore carries Amazon's signature, and an APK
   sideloaded from CI carries the repository's key. Android will not replace one with the other
   without an uninstall, which deletes the save. So a tablet changes route only after exporting its
