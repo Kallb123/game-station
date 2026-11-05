@@ -1280,7 +1280,7 @@ evidence and not a device run (`AGENTS.md`), so that line stays open too. Unlike
 the headless run works here: `libminisound_ffi.so` was built from the pub cache's source with cmake
 and put on `LD_LIBRARY_PATH`, which `AGENTS.md` now describes.
 
-### Phase 10 — Quiz (11–15 days, plus content checking)
+### Phase 10 — Quiz (13–18 days, plus content checking)
 
 A fifth game: a multiple-choice quiz about the stories a child knows. A child ticks the books they
 have read and the shows and films they have watched on a shelf, then plays a ten-question round mixed
@@ -1288,7 +1288,7 @@ from everything ticked, or picks one title and is quizzed on that alone. Books f
 Faraway Tree, Roald Dahl, Rainbow Magic, Narnia and the Kitty series — then CBeebies (Bluey, Topsy
 and Tim, Hey Duggee, Witch Detectives, Waffle the Wonder Dog) and Disney (Mickey, Frozen, the
 Princess films). A third card on the Puzzles menu, subject to the owner's confirmation. Planned as
-eleven pull requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
+thirteen pull requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
 
 - **Questions are data, keyed by stable title ids; the save stores only title ids and counters.**
   One JSON pack per series under `app/assets/quiz/`, validated by a content test in CI. A profile
@@ -1299,9 +1299,16 @@ eleven pull requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
   ten of its questions are. Release builds drop unchecked questions at load. Checking is owner time —
   roughly 16–24 hours for the launch threshold — and the phase's critical path, so the release line
   does not wait for it: a title under the threshold is hidden, not a blocker.
+- **Store and private builds.** A pack's directory, `assets/quiz/store/` or `assets/quiz/private/`,
+  is its audience. The private directory is declared for the `private` flavour only, so it is
+  bundled only by `flutter build apk --flavor private`; every other build, on every platform, is a
+  store build. Every named series starts private; the store gets public-domain stories (fairy tales,
+  Aesop, three classics) unless the owner moves a pack. CI unzips the store APK and fails on any
+  private pack. Private packs are kept off the store, not secret: this repository is public.
 - Text only: no cover art, character pictures, logos, stills, theme tunes or long quotations, because
   every series is someone else's copyright and trademark. No new package; one optional profile field,
-  `Profile.quiz`, with `schemaVersion` still 1.
+  `Profile.quiz`, with `schemaVersion` still 1. Android gains two product flavours and the store APK
+  becomes `app-store-release.apk`.
 
 Like phases 7, 8 and 9, it is a minor release after phase 6 and does not move the release line.
 
