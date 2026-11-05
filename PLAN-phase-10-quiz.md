@@ -9,9 +9,11 @@ Detectives, Waffle the Wonder Dog) and Disney (Mickey, Frozen, the Princess film
 
 **Two builds, two audiences.** Every pack is either *store* or *private*, decided by which directory
 it sits in. A store build — any build not made with the private flavour — carries only store packs; a private
-build, made with `flutter build apk --flavor private`, carries both. So the named series can be
-played at home without being shipped to a store, while general questions on public-domain stories
-go to both (§4.9).
+build, made with `flutter build apk --flavor private`, carries both. Both are the same app: the
+private build reaches the family's own tablets through the Amazon Appstore's testing track, and the
+store build through the public listing. So the named series can be played at home without being
+released to the public, while Peter Rabbit and general knowledge — the world, the UK, animals — go to
+both (§4.4, §4.9).
 
 [`PLAN.md`](PLAN.md) is the source of truth for the project; §7 there carries a one-paragraph entry
 for this phase pointing here. Where this file and `PLAN.md` disagree, the reason is stated here and
@@ -154,14 +156,18 @@ Alternatives considered:
 ### 4.1 Collections, series and titles
 
 ```
-collection   book | tv | film            fixed in code; sets the tick's word and the icon
+collection   book | tv | film | topic     fixed in code; sets the tick's word and the icon
   series     dahl, narnia, cbeebies.bluey …   one JSON file each, in shelf order
     title    dahl.bfg, narnia.silver-chair …  what a child ticks and what a question belongs to
 ```
 
 - A **title** is the unit a child ticks and picks: one book (*Matilda*), one Rainbow Magic set (*the
-  Rainbow Fairies*), one show (*Bluey*), or one film (*Frozen II*). For a show, the series and the
-  title are the same thing, and the series file holds one title.
+  Rainbow Fairies*), one show (*Bluey*), one film (*Frozen II*), or one general-knowledge topic
+  (*Animals*). For a show, the series and the title are the same thing, and the series file holds
+  one title.
+- A **topic** is a title with no story behind it. It is ticked like any other — the tick reads *quiz
+  me on this* rather than *read* or *watched* — so a mixed round draws from it only if the child
+  chose it. Reading order and §1's spoiler rule do not apply to topics.
 - A **title id** is `<series>.<slug>`, lowercase ASCII letters, digits and hyphens, matching
   `^[a-z0-9-]+\.[a-z0-9-]+$` (CBeebies and Disney series are named `cbeebies-bluey`,
   `disney-frozen`, so the id keeps one dot). Frozen once shipped (§3). A title that must go is
@@ -212,8 +218,13 @@ The shelf shows store series first, then private ones, each in its index's order
 - `checked` is set to `true` only by someone who has verified the question, the answer and every
   wrong answer against the source; a wrong answer that is arguably right is as bad as a wrong right
   answer. Drafts land with `false`.
-- `source` says where the answer is — a chapter, or an episode or scene — so a checker can find it
-  and a later reader can recheck it. Text only; no URL (§1).
+- `source` says where the answer is — a chapter, an episode or scene, or for a topic a named
+  reference work such as an atlas or encyclopedia — so a checker can find it and a later reader can
+  recheck it. Text only; no URL (§1).
+- A topic question asks only for facts that do not change: a capital city, a continent, what a
+  hedgehog eats — never a population, a record, a ruler or an office holder. A fact that changes
+  turns a checked question wrong with no edit to the pack. This is the reviewer's rule; the content
+  test cannot judge it.
 - Question ids are `<title id>.<three digits>`, unique across the bank, never reused. They exist for
   review and for the content test, not for the save (§3).
 
@@ -240,7 +251,7 @@ the parse moves to `compute`.
   file, a non-`.json` file, or anything in `app/assets/quiz/` outside the two directories;
 - a series in both directories;
 - a pack that does not parse, a missing or mistyped field, or a `format` other than 1;
-- a series id that is not its file name, or a `collection` other than `book`, `tv` or `film`;
+- a series id that is not its file name, or a `collection` other than `book`, `tv`, `film` or `topic`;
 - a title or question id that breaks §4.1's or §4.2's shape, does not start with its parent's id, or
   is duplicated anywhere in the bank;
 - a question over 100 characters or an answer over 30, or empty text;
@@ -278,20 +289,23 @@ default.
 
 About 47 titles before Kitty: 940 questions at target and 470 checked to offer them all.
 
-**General packs, for the store.** Stories old enough to be out of copyright carry no one's trademark
-in their titles, so they are the natural store content. The proposal, for the owner to trim (§9):
+Mickey is a TV and short-film character rather than one film; it sits under Disney because that is
+where the ask put it, as one title.
 
-| Collection | Series | Titles | Count |
-|---|---|---|---|
-| Book | Fairy tales | *Little Red Riding Hood*, *Hansel and Gretel*, *Goldilocks and the Three Bears*, *Jack and the Beanstalk*, *The Three Little Pigs*, *The Gingerbread Man* | 6 |
-| Book | Aesop's fables | One title for the collection | 1 |
-| Book | Classic stories | *Alice's Adventures in Wonderland*, *The Tale of Peter Rabbit*, *The Wind in the Willows* | 3 |
+**Store packs.** The owner's choice: Peter Rabbit, and general knowledge about the world, the UK and
+animals.
 
-Ten titles: 200 questions at target, 100 checked to offer them. A fairy tale exists in many versions,
-so its questions keep to what the common versions share, and `source` names the version checked
-against. Questions are about the original texts, never a film of them. Mickey is a
-TV and short-film character rather than one film; it sits under Disney because that is where the ask
-put it, as one title.
+| Collection | Series | Titles | Count | Target |
+|---|---|---|---|---|
+| Book | Beatrix Potter | *The Tale of Peter Rabbit* | 1 | 20 |
+| Topic | General knowledge | *Animals*, *The UK*, *The world* | 3 | 40 each |
+
+Topics target 40 questions rather than 20 because they have no spoiler limit and no book to finish,
+so a child can play them far more often, and a larger pool goes longer before it repeats (§4.6).
+That is 140 questions at target and 40 checked to offer all four titles. The text of *The Tale of
+Peter Rabbit* is out of copyright, but Frederick Warne & Co holds trademarks in the name: questions
+are about the original 1902 text, never a film or series of it, and text only, as every pack is.
+More Potter tales are content-only additions to `store/beatrix-potter.json` later.
 
 ### 4.5 Screens and navigation
 
@@ -310,7 +324,7 @@ Home ─ Puzzles ─┬─ Sudoku
 - **The Quiz menu** is three `BigButton`s. *Quiz me* is disabled with a one-line hint — *Tick what
   you've read on your shelf* — when nothing offered is ticked, and the shelf button is then
   highlighted; a disabled button that leads nowhere would otherwise be a dead end.
-- **My shelf** has a three-way switch — Books, TV, Films — built as three stacked `BigButton`s, the
+- **My shelf** has a four-way switch — Books, TV, Films, Topics — built as stacked `BigButton`s, the
   shape the Tracks size toggle settled on (`PLAN-phase-9-tracks.md` §6, PR 8). Below it, each series
   is a heading with an *I've read them all* (or *watched*) button, and each title a full-width tile
   carrying a tick, the series' icon and colour, and the title's name. A tick toggles on tap and is
@@ -432,10 +446,26 @@ build (`app/pubspec.yaml`).
 `audience`, with two product flavours:
 
 - `store`, changing nothing — the application id, label and signing stay as they are.
-- `private`, with `applicationIdSuffix = ".home"` and the label *Zibo Games (home)*, so it installs
-  beside the store build rather than over it and is never mistaken for it. The cost is a separate
-  save on the same device; a players file moves a child between them (`PLAN-transfer.md`). §9 asks
-  whether the owner wants that or one shared app id.
+- `private`, with **the same application id, label and signing** — the owner's decision. Both are
+  one app, `net.nawt.zibo_games`, with one save. The private build reaches the family's tablets as an
+  APK uploaded to the Amazon Appstore's Live App Testing track, and the store build as the public
+  release; a tablet moving between the two keeps its save, because the save does not depend on the
+  flavour and a ticked title the build does not carry is kept rather than dropped (§4.7).
+
+Two consequences of one app id, both checked in PR 3 rather than assumed:
+
+- **Version codes.** A private and a store APK built from the same commit have the same
+  `versionCode` (the `+N` in `pubspec.yaml`). PR 3 reads Amazon's current rule for version codes
+  across a Live App Testing upload and a live release. If they must differ, the private flavour
+  sets `versionCode` to the store's plus 50,000, so a private build always outranks the store
+  build of the same and every earlier release, and a tester's tablet is not offered the public
+  build as an update over it. The cost is one-way: Android will not install a lower version code
+  over a higher one, so a tablet leaves the testing track for the public build only by uninstalling,
+  after exporting its players. The rule and the choice are recorded here.
+- **Signing.** An app installed from the Amazon Appstore carries Amazon's signature, and an APK
+  sideloaded from CI carries the repository's key. Android will not replace one with the other
+  without an uninstall, which deletes the save. So a tablet changes route only after exporting its
+  players to a file (`PLAN-transfer.md`); `README.md` says so beside the private build command.
 
 Once Android has product flavours, a `flutter build apk` with no `--flavor` no longer finds a single
 APK, so CI and `README.md` pass `--flavor store` and the artifact becomes `app-store-release.apk`.
@@ -454,22 +484,24 @@ exist (§3).
 **What the app knows.** Content is decided by what is bundled, not by a flag the code reads, so
 there is one mechanism rather than two that could disagree. The one runtime use of the flavour is
 the settings footer, which appends *home build* when `appFlavor` (`package:flutter/services.dart`)
-is `private`, so the owner can tell which build a tablet has.
+is `private`. With one app id and one label, the footer is the only way to tell which build a tablet
+has.
 
 **The check.** `tool/check_quiz_audience.sh <apk> store|private` lists the APK with `unzip -l`. In
 `store` mode it fails on any `flutter_assets/assets/quiz/private/` entry; in `private` mode it fails
 if there is none, which proves the flavour mechanism bundled them rather than letting the store check
 pass vacuously. Its `--self-test` runs both modes against canned listings, per `AGENTS.md`'s rule
 that a guard needs its own test. `android-apk.yml` builds both flavours and checks both; it uploads
-the store APK as now, and the private APK only on a `workflow_dispatch` run that asks for it.
-`android-release.yml` attaches only the store APK to a release.
+the store APK as now, and the private APK only on a `workflow_dispatch` run that asks for it — that
+artifact is what the owner uploads to Live App Testing. `android-release.yml` attaches only the store
+APK to a release.
 
-**What this does not do.** It keeps private packs out of the store's binary; it does not make them
+**What this does not do.** It keeps private packs out of the public release; it does not make them
 secret. This repository is public, so the private packs' JSON is readable on GitHub, and an Actions
-artifact on a public repository can be downloaded by any signed-in GitHub user. If the owner wants
-the content itself private, the private directory's *source* moves — a gitignored local directory,
-or a private repository checked out into it — and nothing in the app or the build changes, because
-the build reads a path. §9 holds the choice.
+artifact on a public repository can be downloaded by any signed-in GitHub user. The owner has
+accepted that: the private questions stay in this repository. If that changes, the private
+directory's *source* moves — a gitignored local directory, or a private repository checked out into
+it — and nothing in the app or the build changes, because the build reads a path.
 
 ---
 
@@ -479,7 +511,7 @@ the build reads a path. §9 holds the choice.
 app/assets/quiz/
   store/                          # in every build (§4.9)
     index.json                    # series in shelf order, withdrawn titles
-    fairy-tales.json, aesop.json, classic-stories.json
+    beatrix-potter.json, general-knowledge.json
   private/                        # only in `--flavor private` builds
     index.json
     faraway-tree.json, narnia.json, dahl.json, rainbow-magic.json, kitty.json
@@ -513,7 +545,8 @@ Estimates assume one developer, or one agent session with review, working on thi
 phase 9's did. **Checking content is separate and is the owner's time**: verifying a question, its
 answer and its three wrong answers against the book or episode takes about two to three minutes with
 the source to hand, so the launch threshold of 470 checked questions is roughly 16–24 hours, and the
-full target of 940 twice that. The general packs add 100 checked questions, about four hours. That is the phase's real critical path, and why the release line does
+full target of 940 twice that. The store packs need 40 checked questions to offer all four titles,
+about two hours, and 140 at target. That is the phase's real critical path, and why the release line does
 not wait for it.
 
 | PR | Title | Estimate |
@@ -529,7 +562,7 @@ not wait for it.
 | 9 | Rainbow Magic and Kitty | 1 day drafting, after §9's Kitty question |
 | 10 | CBeebies | 1 day drafting |
 | 11 | Disney | 1.5 days drafting |
-| 12 | General packs for the store | 1 day drafting |
+| 12 | Store packs: Peter Rabbit and general knowledge | 1.5 days drafting |
 | 13 | Smoke test, device pass and close | 0.5–1 day, plus device time |
 
 Total 13–18 working days of building and drafting, plus checking. PR 6 is the widest because §4.8's
@@ -558,7 +591,8 @@ self-test, the private build and check in `android-apk.yml`, and the footer's *h
 `check_quiz_audience.sh private`; each fails the other's mode (shown in the PR description);
 `--self-test` passes; `grep -rn 'app-release.apk' .github tool README.md` prints nothing; CI's
 iOS, macOS, Linux and Windows legs are green with no change to their commands; the private APK's
-`aapt dump badging` shows the `.home` id and the *Zibo Games (home)* label; what an unflagged
+`aapt dump badging` shows the same package name and label as the store APK's; Amazon's version-code
+rule and the resulting choice are recorded in §4.9; what an unflagged
 `flutter build apk` does is recorded in §4.9; a footer widget test shows *home build* for `private`
 and nothing for `store` or no flavour.
 
@@ -596,9 +630,10 @@ commit as the flip.
 at least 6 at level 1; the coverage table is in the description; no title id outside the pull
 request's series changed (`git diff --stat` touches only its own files and `index.json`).
 
-**PR 12 — general packs for the store.** `store/fairy-tales.json`, `store/aesop.json` and
-`store/classic-stories.json` with the titles §9 settles, at 20 drafted questions each. The same
-done-when as PRs 7–11, plus a loader test over the real store directory: with every question
+**PR 12 — store packs.** `store/beatrix-potter.json` with *The Tale of Peter Rabbit* at 20 drafted
+questions, and `store/general-knowledge.json` with *Animals*, *The UK* and *The world* at 40 each,
+every topic question keeping to facts that do not change (§4.2). The same done-when as PRs 7–11
+(with 40 per topic in place of 20), plus a loader test over the real store directory: with every question
 unchecked the store catalog offers nothing and the Puzzles menu shows no Quiz card (§4.5); with ten
 of one title's questions checked, it offers that title and the card appears.
 
@@ -619,9 +654,12 @@ copied into §8, with every title under the threshold named — those are hidden
 |---|---|---|
 | A wrong fact reaches a child as a "right answer" | High | §1's gate: release builds load only `checked` questions, the loader test proves it, and `checked` is flipped only with the source to hand. `source` names where each answer is, so a reported error is rechecked in minutes. A wrong answer found after release is fixed by correcting or unchecking the question in the next build; no save holds a question (§3). |
 | Content volume stalls the phase | High | The release line is PR 13 regardless of coverage; a title under ten checked questions is hidden, not a blocker. Content PRs depend only on PR 2 and can run in parallel. §6 states the checking hours so the owner can plan them rather than discover them. |
-| A trademark or copyright complaint, or a store rejecting the listing | Medium | Every named series starts private and is not in a store build (§4.4, §4.9); the store gets public-domain stories unless the owner moves a pack. Text only, original wording, no art, logos, stills, tunes or long quotations (§1); the content test bounds text length and refuses non-JSON assets. The store listing names no series. This plan does not claim any of it is legally safe (§9). |
+| A trademark or copyright complaint, or a store rejecting the listing | Medium | Every named series starts private and is not in a store build (§4.4, §4.9); the store gets Peter Rabbit and general knowledge unless the owner moves a pack. Peter Rabbit's name is a Frederick Warne trademark even though the 1902 text is out of copyright, so it is held to the same text-only rule. Text only, original wording, no art, logos, stills, tunes or long quotations (§1); the content test bounds text length and refuses non-JSON assets. The store listing names no series. This plan does not claim any of it is legally safe (§9). |
 | A private pack ships in a store build | High | The directory is the audience and is flavour-tagged from its first commit (PR 2); only `--flavor private` bundles it; `check_quiz_audience.sh` fails CI on a private entry in the store APK and on none in the private APK, so a broken mechanism cannot pass by finding nothing; the script has a self-test. Non-Android targets declare no flavour and cannot build a private variant. |
-| Private content is assumed secret and is not | Medium | No mitigation in the build, by design: the repository is public and so is its JSON (§4.9). Stated in §4.9 and asked in §9; if the owner wants it secret, the private directory's source moves and nothing else does. |
+| Private content is assumed secret and is not | Low | Accepted by the owner: the repository is public and so is its JSON (§4.9). If that changes, the private directory's source moves and nothing else does. |
+| A tester's tablet is updated from the private build to the public one, and the private titles vanish | Medium | §4.9's version-code rule, settled in PR 3 against Amazon's documentation. The save survives either way — one app id, and ticks on titles the build lacks are kept (§4.7) — so the worst case is the private questions missing until the next test build. §8's device line checks it on a real testing-track tablet. |
+| Switching a tablet between a sideloaded and an Amazon-installed build deletes its save | Medium | Android refuses to replace an app signed with a different key without an uninstall. `README.md` tells the owner to export players to a file first (`PLAN-transfer.md`); the transfer round trip is already tested. |
+| A general-knowledge answer goes out of date | Low | Topic questions ask only for facts that do not change (§4.2), a reviewer's rule rather than a mechanism; `source` names the reference, so a reported error is rechecked quickly. |
 | Adding flavours breaks an existing build or a habit | Medium | Android only; PR 3's done-when requires the other four CI legs green with unchanged commands and every `app-release.apk` reference moved; an unflagged Android build's behaviour is checked and made to fail or build the store rather than the private variant. |
 | A question spoils a book the child has not read | Medium | One title per question, the latest a reader needs (§4.1); mixed rounds draw only from ticked titles (§4.6). Review is the only check on which title a question belongs to; no mechanism can judge it. |
 | The text is too much for the youngest players | Medium | Three options; length caps enforced by the content test and measured in PR 6 (§4.8); level-1 questions first in every round; the screen reader reads it all. Proven only by §8's device line with a six-year-old. |
@@ -664,9 +702,11 @@ copied into §8, with every title under the threshold named — those are hidden
 - [ ] *(Device)* A players file exported with ticks and scores imports on a second device with the same
       shelf and best scores.
 - [ ] *(Device)* Rotating mid-round keeps the round, its question and its score so far.
-- [ ] *(Device)* On one Android tablet, the store and private builds install side by side; the store
-      build's shelf shows only store series, the private build's shows both, and its settings footer
-      says *home build*.
+- [ ] *(Device)* A tablet on the Amazon Live App Testing track installs the private build over the
+      store build with its save intact; its shelf shows store and private series and its footer says
+      *home build*; a tablet on the public listing shows only store series; and a later public
+      release does not replace the private build on the testing tablet. The last part needs a
+      published listing (`PLAN.md` §7, phase 6) and stays open until one exists.
 
 ---
 
@@ -683,19 +723,22 @@ copied into §8, with every title under the threshold named — those are hidden
 | *Topsy and Tim* began as Jean and Gareth Adamson's books. TV only, as the ask lists it, or a book series too? | The owner. TV only until told otherwise. |
 | Narnia's order: current numbering (*The Magician's Nephew* first) or publication order (*The Lion, the Witch and the Wardrobe* first). It decides which title a series-wide question belongs to (§4.1). | The owner, before PR 7. |
 | Which series, if any, move from private to the store. All start private (§4.4). | The owner, per series, at any time: a `git mv` between the two directories, keeping title ids and every child's ticks. Advice is the owner's to seek; the plan does not claim naming a series in a store build is legally safe. |
-| Which general packs the store build carries — §4.4 proposes fairy tales, Aesop and three classic stories. | The owner, before PR 12. |
-| Should private content stay in this public repository? It keeps it off the store, not off GitHub (§4.9). | The owner. Options: leave it (default); a gitignored local directory, so only the owner's own machine can make a private build; a private repository checked out into the directory, so CI can still check it; or §3's on-device import, which needs no private build at all. Only the first is in this plan's estimates. |
-| One app id for both builds, or the private build as a separate `.home` app (§4.9's default)? | The owner, before PR 3. One id means one save, but only one build can be installed at a time, and a store-signed build and a self-signed one cannot replace each other without an uninstall, which deletes the save. |
+| Which other Beatrix Potter tales, and which further topics (the sea, space, the body), join the store packs. | The owner, any time; each is a content-only change. |
 | Who checks the questions, and are 10 to offer and 20 as the target the right numbers? | The owner. Both are constants. |
 | Built-in read-aloud for non-readers (§2). | Deferred; the device pass shows whether the screen reader is enough. |
 | A per-profile *harder questions* switch using `level` (§2). | Deferred; the device pass shows whether one level mix suits both a five- and a nine-year-old. |
 | Two players taking turns (§2). | Deferred. |
 
+**Answered by the owner:** the private build is the same app as the store build, delivered to the
+family's tablets through the Amazon Appstore's Live App Testing track (§4.9); the private questions
+stay in this public repository (§4.9); the store packs are Peter Rabbit and general knowledge about
+the world, the UK and animals (§4.4).
+
 ---
 
 ## 10. Starting order
 
-1. Answer §9's Kitty, placement and app-id questions; they are the only ones that block a pull
+1. Answer §9's Kitty and placement questions; they are the only ones that block a pull
    request in the first half of the phase.
 2. PR 2: the content test and its broken fixtures **before** the loader, so the format is enforced
    before any pack depends on it; then the Faraway Tree pack, which is the first real input.

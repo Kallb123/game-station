@@ -1302,9 +1302,12 @@ thirteen pull requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
 - **Store and private builds.** A pack's directory, `assets/quiz/store/` or `assets/quiz/private/`,
   is its audience. The private directory is declared for the `private` flavour only, so it is
   bundled only by `flutter build apk --flavor private`; every other build, on every platform, is a
-  store build. Every named series starts private; the store gets public-domain stories (fairy tales,
-  Aesop, three classics) unless the owner moves a pack. CI unzips the store APK and fails on any
-  private pack. Private packs are kept off the store, not secret: this repository is public.
+  store build. Both are the same app, with one save: the private build reaches the family's tablets
+  through the Amazon Appstore's Live App Testing track, the store build through the public listing.
+  Every named series starts private; the store gets Peter Rabbit and general knowledge about the
+  world, the UK and animals unless the owner moves a pack. CI unzips the store APK and fails on any
+  private pack. Private packs are kept out of the public release, not secret: they stay in this
+  public repository, by the owner's choice.
 - Text only: no cover art, character pictures, logos, stills, theme tunes or long quotations, because
   every series is someone else's copyright and trademark. No new package; one optional profile field,
   `Profile.quiz`, with `schemaVersion` still 1. Android gains two product flavours and the store APK
