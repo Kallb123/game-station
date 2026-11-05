@@ -347,6 +347,11 @@ SudokuProgress _readSudoku(Map<String, Object?> raw, String path) =>
         _optMap(raw, 'bestTimeMs', path),
         _at(path, 'bestTimeMs'),
       ),
+      bestSolve: _readMapOf(
+        _optMap(raw, 'bestSolve', path),
+        _at(path, 'bestSolve'),
+        _readSolvedPuzzle,
+      ),
     );
 
 SolvedPuzzle _readSolvedPuzzle(Map<String, Object?> raw, String path) =>
@@ -385,6 +390,11 @@ TracksProgress _readTracks(Map<String, Object?> raw, String path) =>
       bestTimeMs: _readIntMap(
         _optMap(raw, 'bestTimeMs', path),
         _at(path, 'bestTimeMs'),
+      ),
+      bestSolve: _readMapOf(
+        _optMap(raw, 'bestSolve', path),
+        _at(path, 'bestSolve'),
+        _readSolvedPuzzle,
       ),
     );
 
@@ -580,6 +590,7 @@ Map<String, Object?> _writeTracks(TracksProgress tracks) => {
   'solved': _sorted(tracks.solved, _writeSolvedPuzzle),
   'inProgress': _sorted(tracks.inProgress, _writeTracksInProgress),
   'bestTimeMs': _sorted(tracks.bestTimeMs, (int value) => value),
+  'bestSolve': _sorted(tracks.bestSolve, _writeSolvedPuzzle),
 };
 
 Map<String, Object?> _writeTracksInProgress(TracksInProgress puzzle) => {
@@ -600,6 +611,7 @@ Map<String, Object?> _writeSudoku(SudokuProgress sudoku) => {
       'lastDayIndex': sudoku.dailyStreak.lastDayIndex,
   },
   'bestTimeMs': _sorted(sudoku.bestTimeMs, (int value) => value),
+  'bestSolve': _sorted(sudoku.bestSolve, _writeSolvedPuzzle),
 };
 
 Map<String, Object?> _writeSolvedPuzzle(SolvedPuzzle solved) => {

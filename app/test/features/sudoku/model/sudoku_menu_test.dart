@@ -19,12 +19,14 @@ void main() {
     Map<String, PuzzleInProgress> inProgress = const {},
     DailyStreak streak = const DailyStreak(),
     Map<String, int> bestTimeMs = const {},
+    Map<String, SolvedPuzzle> bestSolve = const {},
   }) => SudokuMenu.of(
     SudokuProgress(
       solved: solved,
       inProgress: inProgress,
       dailyStreak: streak,
       bestTimeMs: bestTimeMs,
+      bestSolve: bestSolve,
     ),
   );
 
@@ -211,6 +213,119 @@ void main() {
 
       expect(menu.bestTimeMs(SudokuSpec.s9x9, Difficulty.easy), 245000);
       expect(menu.bestTimeMs(SudokuSpec.s9x9, Difficulty.hard), isNull);
+    });
+  });
+
+  group('bestAssists', () {
+    const key = '9x9:easy';
+    final a = 'sudoku:9x9:easy:3';
+    final b = 'sudoku:9x9:easy:1';
+    final c = 'sudoku:9x9:easy:2';
+
+    ({int hints, int mistakes})? assistsOf(SudokuMenu menu) =>
+        menu.bestAssists(SudokuSpec.s9x9, Difficulty.easy);
+
+    test('returns the stored best solve', () {
+      final menu = menuOf(
+        bestTimeMs: const {key: 5000},
+        bestSolve: const {
+          key: SolvedPuzzle(timeMs: 5000, hints: 2, mistakes: 1),
+        },
+      );
+
+      expect(assistsOf(menu), (hints: 2, mistakes: 1));
+    });
+
+    test('ignores a stored solve whose time disagrees, using the fallback', () {
+      final menu = menuOf(
+        solved: {a: const SolvedPuzzle(timeMs: 5000, hints: 4, mistakes: 0)},
+        bestTimeMs: const {key: 5000},
+        bestSolve: const {
+          key: SolvedPuzzle(timeMs: 9999, hints: 1, mistakes: 1),
+        },
+      );
+
+      expect(assistsOf(menu), (hints: 4, mistakes: 0));
+    });
+
+    test('is null for a stale stored solve with nothing to fall back on', () {
+      final menu = menuOf(
+        bestTimeMs: const {key: 5000},
+        bestSolve: const {key: SolvedPuzzle(timeMs: 9999, hints: 1)},
+      );
+
+      expect(assistsOf(menu), isNull);
+    });
+
+    test('falls back to the solved entry at the best time', () {
+      final menu = menuOf(
+        solved: {
+          a: const SolvedPuzzle(timeMs: 5000, hints: 3, mistakes: 2),
+          b: const SolvedPuzzle(timeMs: 8000),
+        },
+        bestTimeMs: const {key: 5000},
+      );
+
+      expect(assistsOf(menu), (hints: 3, mistakes: 2));
+    });
+
+    test('does not use a solved entry at a different time', () {
+      final menu = menuOf(
+        solved: {a: const SolvedPuzzle(timeMs: 8000, hints: 1)},
+        bestTimeMs: const {key: 5000},
+      );
+
+      expect(assistsOf(menu), isNull);
+    });
+
+    test('prefers the fewest assists among solves at the best time', () {
+      final solved = <String, SolvedPuzzle>{
+        a: const SolvedPuzzle(timeMs: 5000, hints: 3, mistakes: 1),
+        b: const SolvedPuzzle(timeMs: 5000, hints: 1, mistakes: 1),
+        c: const SolvedPuzzle(timeMs: 5000, hints: 2, mistakes: 2),
+      };
+      final reversed = Map<String, SolvedPuzzle>.fromEntries(
+        solved.entries.toList().reversed,
+      );
+
+      expect(assistsOf(menuOf(solved: solved, bestTimeMs: const {key: 5000})), (
+        hints: 1,
+        mistakes: 1,
+      ));
+      expect(
+        assistsOf(menuOf(solved: reversed, bestTimeMs: const {key: 5000})),
+        (hints: 1, mistakes: 1),
+      );
+    });
+
+    test('breaks an equal-assist tie by the lowest id, not map order', () {
+      // b sorts before a here, so the id and the insertion order disagree.
+      final solved = <String, SolvedPuzzle>{
+        a: const SolvedPuzzle(timeMs: 5000, hints: 2),
+        b: const SolvedPuzzle(timeMs: 5000, mistakes: 2),
+      };
+      final reversed = Map<String, SolvedPuzzle>.fromEntries(
+        solved.entries.toList().reversed,
+      );
+      final lowest = a.compareTo(b) < 0 ? solved[a]! : solved[b]!;
+      final expected = (hints: lowest.hints, mistakes: lowest.mistakes);
+
+      expect(
+        assistsOf(menuOf(solved: solved, bestTimeMs: const {key: 5000})),
+        expected,
+      );
+      expect(
+        assistsOf(menuOf(solved: reversed, bestTimeMs: const {key: 5000})),
+        expected,
+      );
+    });
+
+    test('is null where there is no best time', () {
+      final menu = menuOf(
+        solved: {a: const SolvedPuzzle(timeMs: 5000, hints: 1)},
+      );
+
+      expect(assistsOf(menu), isNull);
     });
   });
 }

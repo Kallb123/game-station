@@ -161,6 +161,7 @@ class _SudokuMenuScreenState extends ConsumerState<SudokuMenuScreen> {
                       difficulty: difficulty,
                       solved: menu.solvedCount(spec, difficulty),
                       bestTimeMs: menu.bestTimeMs(spec, difficulty),
+                      bestAssists: menu.bestAssists(spec, difficulty),
                       onPlay: () => _play(menu.nextPuzzle(spec, difficulty)),
                     ),
                   ),

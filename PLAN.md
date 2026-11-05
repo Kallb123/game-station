@@ -564,6 +564,22 @@ Tracks puzzles in progress as it does Sudoku's. Both fields are optional with de
 written before phase 9 decodes with nothing lost and `schemaVersion` stays 1; `transfer_codec.dart`
 nests this codec's output, so a players file carries both with no change there.
 
+`sudoku.bestSolve` and `tracks.bestSolve` arrived after phase 9 (`PLAN-best-time-assists.md`). Each
+maps the same `"<size>:<tier>"` key as `bestTimeMs` to the `SolvedPuzzle` that set that best time, so
+the menus can show its hints and mistakes beside it:
+
+```json
+"bestTimeMs": { "9x9:easy": 180000 },
+"bestSolve": { "9x9:easy": { "timeMs": 180000, "hints": 1, "mistakes": 2,
+                             "solvedAt": "...", "clean": false } }
+```
+
+`bestTimeMs` keeps its integer values and stays the authority: an entry in `bestSolve` is shown only
+while its `timeMs` equals the best time, so a build that predates the field — which drops it on its
+next write — cannot leave a detail beside a time it does not describe. A best time with no matching
+entry falls back to a solve in `solved` at that time, or to the time alone. The field is optional,
+defaults to empty and `schemaVersion` stays 1.
+
 `draw` arrives with phase 8 and holds three numbers, not the drawings. A drawing is one file under
 `drawings/<profileId>/` (§6), because §5.2's whole point is a save file of a few kilobytes and one
 pencil drawing is tens of them — and because a corrupt file then costs one picture rather than a

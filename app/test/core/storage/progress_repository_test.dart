@@ -407,6 +407,61 @@ void main() {
       expect(repository.activeProfile.sudoku.bestTimeMs['9x9:medium'], 40000);
     });
 
+    test('recordSolved writes bestSolve with the solve that set the best '
+        'time', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final id = puzzleAt(1, difficulty: Difficulty.medium);
+
+      repository.recordSolved(
+        id,
+        const SolvedPuzzle(timeMs: 90000, hints: 2, mistakes: 3),
+      );
+
+      final sudoku = repository.activeProfile.sudoku;
+      final best = sudoku.bestSolve['9x9:medium'];
+      expect(sudoku.bestTimeMs['9x9:medium'], 90000);
+      expect(best?.timeMs, 90000);
+      expect(best?.hints, 2);
+      expect(best?.mistakes, 3);
+      expect(best?.solvedAt, isNotNull);
+      expect(best?.solvedAt, sudoku.solved[id.value]?.solvedAt);
+      expect(sudoku.bestSolveFor('9x9:medium'), best);
+    });
+
+    test('a faster solve replaces bestSolve; a slower or equal one does '
+        'not', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      Map<String, SolvedPuzzle> bestSolve() =>
+          repository.activeProfile.sudoku.bestSolve;
+      Difficulty medium() => Difficulty.medium;
+
+      repository.recordSolved(
+        puzzleAt(1, difficulty: medium()),
+        const SolvedPuzzle(timeMs: 90000, hints: 5),
+      );
+      repository.recordSolved(
+        puzzleAt(2, difficulty: medium()),
+        const SolvedPuzzle(timeMs: 40000, mistakes: 1),
+      );
+      expect(bestSolve()['9x9:medium']?.timeMs, 40000);
+      expect(bestSolve()['9x9:medium']?.mistakes, 1);
+      expect(bestSolve()['9x9:medium']?.hints, 0);
+
+      repository.recordSolved(
+        puzzleAt(3, difficulty: medium()),
+        const SolvedPuzzle(timeMs: 120000),
+      );
+      repository.recordSolved(
+        puzzleAt(4, difficulty: medium()),
+        const SolvedPuzzle(timeMs: 40000, hints: 9),
+      );
+
+      expect(bestSolve()['9x9:medium']?.timeMs, 40000);
+      expect(bestSolve()['9x9:medium']?.mistakes, 1);
+      expect(bestSolve()['9x9:medium']?.hints, 0);
+      expect(bestSolve(), hasLength(1));
+    });
+
     test('a burst of sudoku mutations costs one write', () async {
       final store = MemorySaveStore(initial: freshSave());
       final repository = repositoryOver(store);
@@ -501,6 +556,60 @@ void main() {
         const SolvedPuzzle(timeMs: 120000),
       );
       expect(repository.activeProfile.tracks.bestTimeMs[key], 40000);
+    });
+
+    test('recordTracksSolved writes bestSolve with the solve that set the '
+        'best time', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final id = puzzleAt(1);
+
+      repository.recordTracksSolved(
+        id,
+        const SolvedPuzzle(timeMs: 90000, hints: 2, mistakes: 3),
+      );
+
+      final tracks = repository.activeProfile.tracks;
+      final best = tracks.bestSolve['7x7:easy'];
+      expect(tracks.bestTimeMs['7x7:easy'], 90000);
+      expect(best?.timeMs, 90000);
+      expect(best?.hints, 2);
+      expect(best?.mistakes, 3);
+      expect(best?.solvedAt, isNotNull);
+      expect(best?.solvedAt, tracks.solved[id.value]?.solvedAt);
+      expect(tracks.bestSolveFor('7x7:easy'), best);
+    });
+
+    test('a faster Tracks solve replaces bestSolve; a slower or equal one '
+        'does not', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      Map<String, SolvedPuzzle> bestSolve() =>
+          repository.activeProfile.tracks.bestSolve;
+
+      repository.recordTracksSolved(
+        puzzleAt(1),
+        const SolvedPuzzle(timeMs: 90000, hints: 5),
+      );
+      repository.recordTracksSolved(
+        puzzleAt(2),
+        const SolvedPuzzle(timeMs: 40000, mistakes: 1),
+      );
+      expect(bestSolve()['7x7:easy']?.timeMs, 40000);
+      expect(bestSolve()['7x7:easy']?.mistakes, 1);
+      expect(bestSolve()['7x7:easy']?.hints, 0);
+
+      repository.recordTracksSolved(
+        puzzleAt(3),
+        const SolvedPuzzle(timeMs: 120000),
+      );
+      repository.recordTracksSolved(
+        puzzleAt(4),
+        const SolvedPuzzle(timeMs: 40000, hints: 9),
+      );
+
+      expect(bestSolve()['7x7:easy']?.timeMs, 40000);
+      expect(bestSolve()['7x7:easy']?.mistakes, 1);
+      expect(bestSolve()['7x7:easy']?.hints, 0);
+      expect(bestSolve(), hasLength(1));
     });
 
     test('Tracks calls leave Sudoku progress untouched', () {

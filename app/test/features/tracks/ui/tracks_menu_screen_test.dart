@@ -14,6 +14,7 @@ import 'package:puzzle_engine/puzzle_engine.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/core/ui/puzzle_menu.dart';
 import 'package:zibo_games/features/tracks/data/providers.dart';
 import 'package:zibo_games/features/tracks/model/tracks_difficulties.dart';
 import 'package:zibo_games/features/tracks/ui/tracks_board.dart';
@@ -156,8 +157,41 @@ void main() {
         ),
       );
 
-      expect(find.text('Solved 2 · Best 1:05'), findsOneWidget);
+      // No `bestSolve` here, so the detail comes from the solved entry at the best
+      // time (`PLAN-best-time-assists.md` §4.3).
+      expect(find.textContaining('Solved 2 · Best 1:05'), findsOneWidget);
       expect(find.text('Not solved yet'), findsOneWidget);
+    });
+
+    testWidgets('a row shows what the best time cost', (tester) async {
+      final key = TracksProgress.bestTimeKey(TracksSpec.s5x5, Difficulty.easy);
+      await openMenu(
+        tester,
+        save: saveWith(
+          TracksProgress(
+            solved: {idOf(TracksSpec.s5x5, Difficulty.easy, 0).value: solved()},
+            bestTimeMs: {key: 65000},
+            bestSolve: {
+              key: const SolvedPuzzle(timeMs: 65000, hints: 2, mistakes: 1),
+            },
+          ),
+        ),
+      );
+
+      expect(
+        find.text(
+          tierProgressLabel(
+            solved: 1,
+            bestTimeMs: 65000,
+            bestAssists: (hints: 2, mistakes: 1),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Solved 1 · Best 1:05 · 2 hints, 1 mistake'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a row launches the lowest unsolved index', (tester) async {

@@ -25,7 +25,8 @@ class SudokuMenu {
   /// Solved indexes first and positionally, because a named parameter cannot
   /// carry the private field's name and so cannot initialise it directly.
   const SudokuMenu._(
-    this._solvedIndexes, {
+    this._solvedIndexes,
+    this._fallbackAssists, {
     required this.progress,
     required this.continuePuzzle,
     required this.lastPlayed,
@@ -34,6 +35,7 @@ class SudokuMenu {
   /// The menu for [progress].
   factory SudokuMenu.of(SudokuProgress progress) {
     final solvedIndexes = <String, Set<int>>{};
+    final fallback = <String, ({int hints, int mistakes, String id})>{};
     PuzzleId? lastSolved;
     DateTime? lastSolvedAt;
 
@@ -44,6 +46,25 @@ class SudokuMenu {
       (solvedIndexes[SudokuProgress.bestTimeKey(id.spec, id.difficulty)] ??=
               <int>{})
           .add(id.index);
+
+      // The §4.3 fallback: a solve at exactly the stored best time. Fewest
+      // assists wins, then the lowest id, so map order cannot decide it.
+      final key = SudokuProgress.bestTimeKey(id.spec, id.difficulty);
+      final solve = entry.value;
+      if (solve.timeMs == progress.bestTimeMs[key]) {
+        final current = fallback[key];
+        final cost = solve.hints + solve.mistakes;
+        if (current == null ||
+            cost < current.hints + current.mistakes ||
+            (cost == current.hints + current.mistakes &&
+                id.value.compareTo(current.id) < 0)) {
+          fallback[key] = (
+            hints: solve.hints,
+            mistakes: solve.mistakes,
+            id: id.value,
+          );
+        }
+      }
 
       final at = entry.value.solvedAt;
       if (at == null) continue;
@@ -60,6 +81,7 @@ class SudokuMenu {
     final continuePuzzle = _continueFrom(progress.inProgress);
     return SudokuMenu._(
       solvedIndexes,
+      fallback,
       progress: progress,
       continuePuzzle: continuePuzzle,
       lastPlayed: continuePuzzle ?? lastSolved,
@@ -92,6 +114,11 @@ class SudokuMenu {
   /// Solved indexes by [SudokuProgress.bestTimeKey], so [nextPuzzle] and
   /// [solvedCount] cost nothing per build.
   final Map<String, Set<int>> _solvedIndexes;
+
+  /// Hints and mistakes of the solve behind each tier's best time, found in
+  /// `solved` for saves written before `bestSolve` existed
+  /// (`PLAN-best-time-assists.md` §4.3).
+  final Map<String, ({int hints, int mistakes, String id})> _fallbackAssists;
 
   /// Days in a row, as the daily card shows it.
   int get streak => progress.dailyStreak.current;
@@ -144,6 +171,28 @@ class SudokuMenu {
   /// none has been set.
   int? bestTimeMs(SudokuSpec spec, Difficulty difficulty) =>
       progress.bestTimeMs[SudokuProgress.bestTimeKey(spec, difficulty)];
+
+  /// What the best solve for this size and difficulty cost, or null where
+  /// that is unknown.
+  ///
+  /// The stored `bestSolve` when it agrees with the best time; else the
+  /// fallback from `solved`, which exists because saves written before
+  /// `bestSolve` have a best time and no detail beside it
+  /// (`PLAN-best-time-assists.md` §4.3). Nothing is written back.
+  ({int hints, int mistakes})? bestAssists(
+    SudokuSpec spec,
+    Difficulty difficulty,
+  ) {
+    final key = SudokuProgress.bestTimeKey(spec, difficulty);
+    final stored = progress.bestSolveFor(key);
+    if (stored != null) {
+      return (hints: stored.hints, mistakes: stored.mistakes);
+    }
+    final found = _fallbackAssists[key];
+    return found == null
+        ? null
+        : (hints: found.hints, mistakes: found.mistakes);
+  }
 
   /// The in-progress entry with the most time on its clock, or null when there
   /// is none. See [continuePuzzle] for why that is the rule.

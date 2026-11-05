@@ -53,6 +53,14 @@ SaveData fullSave() => SaveData(
         },
         dailyStreak: const DailyStreak(current: 4, best: 11, lastDayIndex: 223),
         bestTimeMs: const {'9x9:easy': 180000, '9x9:medium': 402000},
+        bestSolve: {
+          '9x9:easy': SolvedPuzzle(
+            timeMs: 180000,
+            hints: 2,
+            mistakes: 1,
+            solvedAt: DateTime.utc(2026, 8, 10, 8, 15),
+          ),
+        },
       ),
       arcade: ArcadeProgress(
         games: {
@@ -107,6 +115,13 @@ SaveData fullSave() => SaveData(
           ),
         },
         bestTimeMs: {'5x5:easy': 52000},
+        bestSolve: {
+          '5x5:easy': SolvedPuzzle(
+            timeMs: 52000,
+            mistakes: 1,
+            solvedAt: DateTime.utc(2026, 8, 13, 16, 5),
+          ),
+        },
       ),
     ),
     Profile(

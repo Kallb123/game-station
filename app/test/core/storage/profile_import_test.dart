@@ -223,6 +223,7 @@ void main() {
         tracks: const TracksProgress(
           solved: {'tracks:5x5:easy:1': SolvedPuzzle(timeMs: 40000)},
           bestTimeMs: {'5x5:easy': 40000},
+          bestSolve: {'5x5:easy': SolvedPuzzle(timeMs: 40000, hints: 1)},
         ),
       );
 
@@ -243,6 +244,7 @@ void main() {
           tracks: const TracksProgress(
             solved: {'tracks:5x5:easy:1': SolvedPuzzle(timeMs: 40000)},
             bestTimeMs: {'5x5:easy': 40000},
+            bestSolve: {'5x5:easy': SolvedPuzzle(timeMs: 40000, hints: 1)},
           ),
         ),
       );
