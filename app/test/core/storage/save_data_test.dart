@@ -30,6 +30,67 @@ void main() {
       expect(changed, isNot(fullSave()));
     });
 
+    test('quiz progress compares by value, with known as a set', () {
+      const title = QuizTitleProgress(seed: 1, next: 2, pool: 3);
+      final a = QuizProgress(known: {'x', 'y'}, titles: {'t': title});
+      final b = QuizProgress(known: {'y', 'x'}, titles: {'t': title});
+
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(a, isNot(a.copyWith(known: {'x'})));
+      expect(a, isNot(a.copyWith(mixed: const QuizMixedProgress(rounds: 1))));
+      expect(a, isNot(a.copyWith(titles: const {})));
+      expect(a.copyWith(), a);
+    });
+
+    test('quiz titles and mixed counters compare field by field', () {
+      const title = QuizTitleProgress(
+        seed: 1,
+        next: 2,
+        pool: 3,
+        rounds: 4,
+        best: 5,
+      );
+
+      expect(
+        title,
+        const QuizTitleProgress(seed: 1, next: 2, pool: 3, rounds: 4, best: 5),
+      );
+      expect(
+        title.hashCode,
+        const QuizTitleProgress(
+          seed: 1,
+          next: 2,
+          pool: 3,
+          rounds: 4,
+          best: 5,
+        ).hashCode,
+      );
+      expect(title, isNot(const QuizTitleProgress(seed: 1, next: 2, pool: 3)));
+      expect(
+        const QuizMixedProgress(rounds: 1, best: 2),
+        const QuizMixedProgress(rounds: 1, best: 2),
+      );
+      expect(
+        const QuizMixedProgress(rounds: 1, best: 2),
+        isNot(const QuizMixedProgress(rounds: 1, best: 3)),
+      );
+      expect(const QuizMixedProgress(), const QuizMixedProgress(rounds: 0));
+    });
+
+    test('a difference in the quiz field is a difference at the root', () {
+      final profile = fullSave().profiles.first;
+      final changed = fullSave().copyWith(
+        profiles: [
+          profile.copyWith(quiz: const QuizProgress(known: {'other'})),
+          fullSave().profiles.last,
+        ],
+      );
+
+      expect(changed, isNot(fullSave()));
+      expect(profile.copyWith(quiz: const QuizProgress()), isNot(profile));
+    });
+
     test('a difference in the Tracks fields is a difference at the root', () {
       final profile = fullSave().profiles.first;
       SaveData with_(Profile changed) =>

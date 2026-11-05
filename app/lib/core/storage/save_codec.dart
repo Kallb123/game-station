@@ -292,6 +292,7 @@ Profile _readProfile(Map<String, Object?> raw, String path) => Profile(
   snakeCounting: _readSnakeCounting(raw, path),
   tracksTheme: _readTracksTheme(raw, path),
   tracks: _readTracks(_optMap(raw, 'tracks', path), _at(path, 'tracks')),
+  quiz: _readQuiz(_optMap(raw, 'quiz', path), _at(path, 'quiz')),
 );
 
 /// Reads `snakeCounting`, defaulting to [SnakeCounting.ones] both when the key
@@ -502,6 +503,57 @@ int _bitCount(int mask) {
   return count;
 }
 
+/// Reads the quiz block, dropping what cannot be trusted rather than refusing
+/// the save (`PLAN-phase-10-quiz.md` §4.7).
+///
+/// A title entry with a negative number, or with `next` beyond `pool`, is
+/// dropped silently, and a `mixed` with a negative number reads as the default:
+/// the handling Tracks gives a malformed board. The cost is that the title
+/// starts a fresh order, which is a few repeated questions; refusing the save
+/// would cost the child everything (`AGENTS.md`). A wrong *type* is still a
+/// format error, as everywhere else in this file. Every key of the block is
+/// optional. Ids in `known` are kept whatever they say, since this build cannot
+/// tell a withdrawn title from a later build's.
+QuizProgress _readQuiz(Map<String, Object?> raw, String path) {
+  final entries = _readMapOf(
+    _optMap(raw, 'titles', path),
+    _at(path, 'titles'),
+    _readQuizTitle,
+  );
+  return QuizProgress(
+    known: _readStringList(raw['known'], _at(path, 'known')).toSet(),
+    titles: {
+      for (final entry in entries.entries)
+        if (_quizTitleFits(entry.value)) entry.key: entry.value,
+    },
+    mixed: _readQuizMixed(_optMap(raw, 'mixed', path), _at(path, 'mixed')),
+  );
+}
+
+QuizTitleProgress _readQuizTitle(Map<String, Object?> raw, String path) =>
+    QuizTitleProgress(
+      seed: _int(_required(raw, 'seed', path), _at(path, 'seed')),
+      next: _int(_required(raw, 'next', path), _at(path, 'next')),
+      pool: _int(_required(raw, 'pool', path), _at(path, 'pool')),
+      rounds: _optInt(raw, 'rounds', path, 0),
+      best: _optInt(raw, 'best', path, 0),
+    );
+
+bool _quizTitleFits(QuizTitleProgress entry) =>
+    entry.seed >= 0 &&
+    entry.next >= 0 &&
+    entry.pool >= 0 &&
+    entry.rounds >= 0 &&
+    entry.best >= 0 &&
+    entry.next <= entry.pool;
+
+QuizMixedProgress _readQuizMixed(Map<String, Object?> raw, String path) {
+  final rounds = _optInt(raw, 'rounds', path, 0);
+  final best = _optInt(raw, 'best', path, 0);
+  if (rounds < 0 || best < 0) return const QuizMixedProgress();
+  return QuizMixedProgress(rounds: rounds, best: best);
+}
+
 DailyStreak _readStreak(Map<String, Object?> raw, String path) => DailyStreak(
   current: _optInt(raw, 'current', path, 0),
   best: _optInt(raw, 'best', path, 0),
@@ -578,6 +630,7 @@ Map<String, Object?> _writeProfile(Profile profile) => {
   'arcade': _sorted(profile.arcade.games, _writeArcadeGame),
   'draw': _writeDraw(profile.draw),
   'tracks': _writeTracks(profile.tracks),
+  'quiz': _writeQuiz(profile.quiz),
   'mistakeFeedback': profile.mistakeFeedback.name,
   'arcadeEasyMode': profile.arcadeEasyMode,
   'arcadeAutoFire': profile.arcadeAutoFire,
@@ -599,6 +652,21 @@ Map<String, Object?> _writeTracksInProgress(TracksInProgress puzzle) => {
   'elapsedMs': puzzle.elapsedMs,
   'undoStack': puzzle.undoStack,
   'hints': puzzle.hints,
+};
+
+Map<String, Object?> _writeQuiz(QuizProgress quiz) => {
+  // Sorted so the file does not churn with set order.
+  'known': quiz.known.toList()..sort(),
+  'titles': _sorted(quiz.titles, _writeQuizTitle),
+  'mixed': {'rounds': quiz.mixed.rounds, 'best': quiz.mixed.best},
+};
+
+Map<String, Object?> _writeQuizTitle(QuizTitleProgress title) => {
+  'seed': title.seed,
+  'next': title.next,
+  'pool': title.pool,
+  'rounds': title.rounds,
+  'best': title.best,
 };
 
 Map<String, Object?> _writeSudoku(SudokuProgress sudoku) => {

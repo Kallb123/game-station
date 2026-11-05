@@ -546,6 +546,117 @@ class TracksProgress {
   );
 }
 
+/// One title's place in its shuffled question order, plus its single-title
+/// counters (`PLAN-phase-10-quiz.md` §4.6, §4.7).
+///
+/// A title's questions, sorted by id, are shuffled by `GameRng(seed)`; [next] is
+/// how many of that order have been asked and [pool] how many questions the
+/// order was built over. When [next] reaches [pool] a new seed is drawn; when
+/// the loaded pool size differs from [pool], [next] restarts under the same
+/// seed. Determinism here is convenience, not load-bearing as it is for
+/// puzzles: if the generator's sequence ever changed, the cost is a few repeats.
+class QuizTitleProgress {
+  const QuizTitleProgress({
+    required this.seed,
+    required this.next,
+    required this.pool,
+    this.rounds = 0,
+    this.best = 0,
+  });
+
+  /// Seeds the shuffle of this title's question order.
+  final int seed;
+
+  /// How many questions of the order have been asked.
+  final int next;
+
+  /// How many questions the order was built over.
+  final int pool;
+
+  /// Finished single-title rounds of this title.
+  final int rounds;
+
+  /// The best single-title score, 0 to 10.
+  final int best;
+
+  @override
+  bool operator ==(Object other) =>
+      other is QuizTitleProgress &&
+      other.seed == seed &&
+      other.next == next &&
+      other.pool == pool &&
+      other.rounds == rounds &&
+      other.best == best;
+
+  @override
+  int get hashCode => Object.hash(seed, next, pool, rounds, best);
+}
+
+/// The counters for mixed rounds (`PLAN-phase-10-quiz.md` §4.7): how many have
+/// been finished and the best score, 0 to 10. A mixed round has no order of its
+/// own; it advances each title's [QuizTitleProgress.next] (§4.6).
+class QuizMixedProgress {
+  const QuizMixedProgress({this.rounds = 0, this.best = 0});
+
+  /// Finished mixed rounds.
+  final int rounds;
+
+  /// The best mixed score, 0 to 10.
+  final int best;
+
+  @override
+  bool operator ==(Object other) =>
+      other is QuizMixedProgress &&
+      other.rounds == rounds &&
+      other.best == best;
+
+  @override
+  int get hashCode => Object.hash(rounds, best);
+}
+
+/// One profile's quiz history (`PLAN-phase-10-quiz.md` §4.7).
+class QuizProgress {
+  const QuizProgress({
+    this.known = const <String>{},
+    this.titles = const {},
+    this.mixed = const QuizMixedProgress(),
+  });
+
+  /// The title ids this profile has ticked as read or watched.
+  ///
+  /// An id this build does not know, from a later build or a withdrawn title,
+  /// is **kept**, unlike [Profile.tracksTheme]'s unknown value: dropping it
+  /// would untick a child's book whenever a players file passed through an
+  /// older build (§4.7).
+  final Set<String> known;
+
+  /// Title id to its place in its question order and its single-title counters.
+  final Map<String, QuizTitleProgress> titles;
+
+  /// Counters for mixed rounds.
+  final QuizMixedProgress mixed;
+
+  QuizProgress copyWith({
+    Set<String>? known,
+    Map<String, QuizTitleProgress>? titles,
+    QuizMixedProgress? mixed,
+  }) => QuizProgress(
+    known: known ?? this.known,
+    titles: titles ?? this.titles,
+    mixed: mixed ?? this.mixed,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is QuizProgress &&
+      _setEquals(other.known, known) &&
+      _mapEquals(other.titles, titles) &&
+      other.mixed == mixed;
+
+  @override
+  int get hashCode => Object.hash(_setHash(known), _mapHash(titles), mixed);
+}
+
 /// One entry in a game's high-score table.
 ///
 /// `PLAN.md` §4.3 lists the profile as part of an entry; it is the profile that
@@ -737,6 +848,7 @@ class Profile {
     this.snakeCounting = SnakeCounting.ones,
     this.tracksTheme = TracksTheme.train,
     this.tracks = const TracksProgress(),
+    this.quiz = const QuizProgress(),
   }) : assert(createdAt.isUtc, 'createdAt must be UTC');
 
   /// `"p1"`, `"p2"`, … — a counter, never random and never a clock reading, so
@@ -786,6 +898,10 @@ class Profile {
   /// This profile's Tracks history.
   final TracksProgress tracks;
 
+  /// This profile's quiz history. On the profile because siblings on one
+  /// tablet have read different books (`PLAN-phase-10-quiz.md` §4.7).
+  final QuizProgress quiz;
+
   Profile copyWith({
     String? name,
     AvatarId? avatar,
@@ -799,6 +915,7 @@ class Profile {
     SnakeCounting? snakeCounting,
     TracksTheme? tracksTheme,
     TracksProgress? tracks,
+    QuizProgress? quiz,
   }) => Profile(
     id: id,
     name: name ?? this.name,
@@ -814,6 +931,7 @@ class Profile {
     snakeCounting: snakeCounting ?? this.snakeCounting,
     tracksTheme: tracksTheme ?? this.tracksTheme,
     tracks: tracks ?? this.tracks,
+    quiz: quiz ?? this.quiz,
   );
 
   @override
@@ -832,7 +950,8 @@ class Profile {
       other.padSide == padSide &&
       other.snakeCounting == snakeCounting &&
       other.tracksTheme == tracksTheme &&
-      other.tracks == tracks;
+      other.tracks == tracks &&
+      other.quiz == quiz;
 
   @override
   int get hashCode => Object.hash(
@@ -850,6 +969,7 @@ class Profile {
     snakeCounting,
     tracksTheme,
     tracks,
+    quiz,
   );
 }
 
@@ -978,6 +1098,20 @@ int _mapHash<V>(Map<String, V> map) {
   var hash = 0;
   for (final entry in map.entries) {
     hash ^= Object.hash(entry.key, entry.value);
+  }
+  return hash;
+}
+
+bool _setEquals<T>(Set<T> a, Set<T> b) {
+  if (identical(a, b)) return true;
+  return a.length == b.length && a.containsAll(b);
+}
+
+/// Order-independent, because [_setEquals] is.
+int _setHash<T>(Set<T> set) {
+  var hash = 0;
+  for (final item in set) {
+    hash ^= item.hashCode;
   }
   return hash;
 }

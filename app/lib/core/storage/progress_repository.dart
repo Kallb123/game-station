@@ -80,6 +80,7 @@ class ProfileImportEntry {
     snakeCounting: incoming.snakeCounting,
     tracksTheme: incoming.tracksTheme,
     tracks: incoming.tracks,
+    quiz: incoming.quiz,
   );
 }
 

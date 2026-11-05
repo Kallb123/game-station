@@ -455,6 +455,7 @@ void main() {
             profile.copyWith(
               tracksTheme: TracksTheme.train,
               tracks: const TracksProgress(),
+              quiz: const QuizProgress(),
               // The frozen text predates `bestSolve` too; the fixture's
               // value for it is not in the file, so it decodes empty.
               sudoku: profile.sudoku.copyWith(bestSolve: const {}),
@@ -1011,6 +1012,244 @@ void main() {
         ),
         throwsA(isA<UnsupportedSaveVersion>()),
       );
+    });
+  });
+
+  // `PLAN-phase-10-quiz.md` §4.7 and §6, PR 4.
+  group('the quiz block', () {
+    String profileJson(Map<String, Object?>? quiz) => jsonEncode({
+      'schemaVersion': 1,
+      'activeProfileId': 'p1',
+      'profiles': [
+        {
+          'id': 'p1',
+          'name': 'Ana',
+          'avatar': 'fox',
+          'createdAt': '2026-08-11T10:00:00Z',
+          'quiz': ?quiz,
+        },
+      ],
+    });
+
+    QuizProgress decodeQuiz(Map<String, Object?> quiz) =>
+        decodeSave(profileJson(quiz)).activeProfile.quiz;
+
+    Map<String, Object?> title({
+      Object? seed = 7,
+      Object? next = 3,
+      Object? pool = 10,
+      Object? rounds = 2,
+      Object? best = 5,
+    }) => {
+      'seed': seed,
+      'next': next,
+      'pool': pool,
+      'rounds': rounds,
+      'best': best,
+    };
+
+    test('ticks and counters round trip unchanged', () {
+      const quiz = QuizProgress(
+        known: {'dahl.matilda', 'narnia.lion-witch-wardrobe'},
+        titles: {
+          'dahl.matilda': QuizTitleProgress(
+            seed: 1,
+            next: 24,
+            pool: 24,
+            rounds: 4,
+            best: 10,
+          ),
+        },
+        mixed: QuizMixedProgress(rounds: 2, best: 7),
+      );
+      final initial = SaveData.initial(createdAt: DateTime.utc(2026));
+      final save = initial.copyWith(
+        profiles: [initial.activeProfile.copyWith(quiz: quiz)],
+      );
+
+      expect(decodeSave(encodeSave(save)).activeProfile.quiz, quiz);
+    });
+
+    test('known is written sorted and deduplicated', () {
+      final quiz = decodeQuiz({
+        'known': ['b.two', 'a.one', 'b.two'],
+      });
+
+      expect(quiz.known, {'a.one', 'b.two'});
+      final json =
+          jsonDecode(
+                encodeSave(
+                  decodeSave(
+                    profileJson({
+                      'known': ['b.two', 'a.one', 'b.two'],
+                    }),
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+      final profile =
+          (json['profiles']! as List<Object?>).first! as Map<String, Object?>;
+      expect((profile['quiz']! as Map<String, Object?>)['known'], [
+        'a.one',
+        'b.two',
+      ]);
+    });
+
+    test('an id no build knows survives a round trip', () {
+      final save = decodeSave(
+        profileJson({
+          'known': ['someday.unknown-title'],
+        }),
+      );
+
+      expect(decodeSave(encodeSave(save)).activeProfile.quiz.known, {
+        'someday.unknown-title',
+      });
+    });
+
+    test('titles are written sorted by key with every field', () {
+      final quiz = decodeQuiz({
+        'titles': {'z.last': title(), 'a.first': title(seed: 1)},
+      });
+      final json =
+          jsonDecode(
+                encodeSave(
+                  decodeSave(
+                    profileJson({
+                      'titles': {'z.last': title(), 'a.first': title(seed: 1)},
+                    }),
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+      final profile =
+          (json['profiles']! as List<Object?>).first! as Map<String, Object?>;
+      final titles =
+          (profile['quiz']! as Map<String, Object?>)['titles']!
+              as Map<String, Object?>;
+
+      expect(quiz.titles.keys, containsAll(['a.first', 'z.last']));
+      expect(titles.keys.toList(), ['a.first', 'z.last']);
+      expect(titles['a.first'], title(seed: 1));
+    });
+
+    test('every key of the block is optional', () {
+      expect(decodeQuiz(const {}), const QuizProgress());
+      final quiz = decodeQuiz({
+        'titles': {
+          't': {'seed': 1, 'next': 0, 'pool': 4},
+        },
+      });
+
+      expect(
+        quiz.titles['t'],
+        const QuizTitleProgress(seed: 1, next: 0, pool: 4),
+      );
+    });
+
+    test('a title with next beyond pool is dropped and the rest load', () {
+      final quiz = decodeQuiz({
+        'known': ['kept'],
+        'titles': {'bad': title(next: 11, pool: 10), 'good': title()},
+        'mixed': {'rounds': 2, 'best': 3},
+      });
+
+      expect(quiz.titles.keys, ['good']);
+      expect(quiz.known, {'kept'});
+      expect(quiz.mixed, const QuizMixedProgress(rounds: 2, best: 3));
+    });
+
+    test('next equal to pool is kept', () {
+      final quiz = decodeQuiz({
+        'titles': {'full': title(next: 10, pool: 10)},
+      });
+
+      expect(quiz.titles.keys, ['full']);
+    });
+
+    for (final field in ['seed', 'next', 'pool', 'rounds', 'best']) {
+      test('a title with a negative $field is dropped and the rest load', () {
+        final bad = title()..[field] = -1;
+        final quiz = decodeQuiz({
+          'titles': {'bad': bad, 'good': title()},
+        });
+
+        expect(quiz.titles.keys, ['good']);
+      });
+    }
+
+    test('a mixed with a negative number decodes to the defaults', () {
+      for (final mixed in [
+        {'rounds': -1, 'best': 4},
+        {'rounds': 4, 'best': -1},
+      ]) {
+        expect(decodeQuiz({'mixed': mixed}).mixed, const QuizMixedProgress());
+      }
+    });
+
+    // Leniency is for values that are numbers but make no sense. A value of the
+    // wrong type is still refused, as everywhere else in the codec.
+    void expectRefused(Map<String, Object?> quiz, String path) {
+      expect(
+        () => decodeSave(profileJson(quiz)),
+        throwsA(isA<SaveFormatException>().having((e) => e.path, 'path', path)),
+      );
+    }
+
+    test('a mistyped field is refused and names its path', () {
+      expectRefused({
+        'known': [3],
+      }, 'profiles[0].quiz.known[0]');
+      expectRefused({
+        'titles': {'t': title(seed: 'x')},
+      }, 'profiles[0].quiz.titles.t.seed');
+      expectRefused({
+        'titles': {'t': title(rounds: 1.5)},
+      }, 'profiles[0].quiz.titles.t.rounds');
+      expectRefused({
+        'mixed': {'best': 'x'},
+      }, 'profiles[0].quiz.mixed.best');
+      expectRefused({'titles': []}, 'profiles[0].quiz.titles');
+    });
+
+    test('a title missing a required field is refused and names its path', () {
+      for (final field in ['seed', 'next', 'pool']) {
+        final entry = title()..remove(field);
+        expectRefused({
+          'titles': {'t': entry},
+        }, 'profiles[0].quiz.titles.t.$field');
+      }
+    });
+
+    test('a file written before the quiz decodes with quiz empty and nothing '
+        'else changed', () {
+      final expected = fullSave().copyWith(
+        profiles: [
+          for (final profile in fullSave().profiles)
+            profile.copyWith(quiz: const QuizProgress()),
+        ],
+      );
+
+      expect(decodeSave(preQuizSaveJson), expected);
+    });
+
+    test('older fixtures decode with quiz empty', () {
+      for (final json in [
+        planExampleJson,
+        minimalSaveJson,
+        preTracksSaveJson,
+      ]) {
+        for (final profile in decodeSave(json).profiles) {
+          expect(profile.quiz, const QuizProgress());
+        }
+      }
+    });
+
+    test('the schema version is still 1', () {
+      final json = jsonDecode(encodeSave(fullSave())) as Map<String, Object?>;
+
+      expect(json['schemaVersion'], 1);
+      expect(currentSchemaVersion, 1);
     });
   });
 

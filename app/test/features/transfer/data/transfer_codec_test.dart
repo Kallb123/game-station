@@ -114,6 +114,27 @@ Profile fullSecondProfile() => Profile(
     },
     bestTimeMs: const {'5x5:easy': 41000},
   ),
+  // An id no build carries, kept on purpose (`PLAN-phase-10-quiz.md` §4.7).
+  quiz: const QuizProgress(
+    known: {'dahl.matilda', 'someday.unknown-title'},
+    titles: {
+      'dahl.matilda': QuizTitleProgress(
+        seed: 40117,
+        next: 5,
+        pool: 20,
+        rounds: 2,
+        best: 7,
+      ),
+      'faraway-tree.enchanted-wood': QuizTitleProgress(
+        seed: 912873,
+        next: 24,
+        pool: 24,
+        rounds: 1,
+        best: 10,
+      ),
+    },
+    mixed: QuizMixedProgress(rounds: 4, best: 8),
+  ),
 );
 
 TransferBundle fullBundle() => TransferBundle(
@@ -181,6 +202,7 @@ void main() {
       expect(profile.draw, isNot(const DrawProgress()));
       expect(profile.tracksTheme, isNot(TracksTheme.train));
       expect(profile.tracks, isNot(const TracksProgress()));
+      expect(profile.quiz, isNot(const QuizProgress()));
     });
 
     test('a profile with Tracks progress round trips through a players file '
@@ -204,6 +226,31 @@ void main() {
       expect(back.tracks.bestTimeMs, isNotEmpty);
       expect(back.tracks.inProgress.keys, ['tracks:7x7:medium:3']);
       expect(back.tracks.inProgress.values.single.marks, hasLength(49));
+    });
+
+    test('a profile with quiz ticks and counters round trips through a '
+        'players file unchanged', () {
+      // The done-criterion of PLAN-phase-10-quiz.md §6 PR 4. The unknown id is
+      // checked on its own because a codec that filtered ticks to known titles
+      // would still pass the equality for every id it recognised.
+      final original = fullSecondProfile();
+      final bundle = TransferBundle(
+        exportedAt: DateTime.utc(2026, 10, 8),
+        everyone: false,
+        settings: const AppSettings(),
+        profiles: [original],
+      );
+
+      final back = decodeTransfer(encodeTransfer(bundle)).profiles.single;
+
+      expect(back.quiz, original.quiz);
+      expect(back.quiz.known, contains('someday.unknown-title'));
+      expect(back.quiz.titles.keys, [
+        'dahl.matilda',
+        'faraway-tree.enchanted-wood',
+      ]);
+      expect(back.quiz.titles['dahl.matilda']!.best, 7);
+      expect(back.quiz.mixed, const QuizMixedProgress(rounds: 4, best: 8));
     });
 
     test('a single-player file keeps everyone false', () {
