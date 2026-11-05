@@ -59,6 +59,7 @@ passes here passes there:
 | `dart tool/check_offline.dart` | The no-network, no-ads, no-tracking constraints. |
 | `dart tool/check_determinism.dart --self-test` | That the determinism scanner still detects what it claims to. |
 | `dart tool/check_determinism.dart` | No clock, no `dart:math`, no map-order iteration in the engine's `lib/`. |
+| `tool/check_quiz_audience.sh --self-test` | That the APK check for private quiz packs still tells a store listing from a private one. |
 
 A change is not done because it compiles. It is done when the checks pass and, for anything with
 visible behaviour, when it has been run. Report what was actually verified and what was not — "CI
@@ -83,6 +84,10 @@ cd app && flutter test -d <device-id> integration_test/tracks_smoke_test.dart
 | `invaders_smoke_test.dart` | Two real fingers on a real touchscreen, which is what the gesture arena is least faithfully simulated for, and a real frame clock driving the fixed-step accumulator. | `app/test/features/arcade/`, over synthetic pointers and a fake controller. |
 | `snake_smoke_test.dart` | Two real fingers on adjacent D-pad buttons whose bounding boxes overlap by design, a real frame clock driving the fixed-step accumulator, and a run's score read back out of a real `save.json`. | `app/test/features/arcade/snake/` and `app/test/features/arcade/`, over synthetic pointers, a fake controller and an in-memory store. |
 | `tracks_smoke_test.dart` | A drag laying a whole solution across a board at the device's real size and pixel ratio, `compute` really spawning the generation isolate, and `path_provider` really resolving the directory the solve is read back from. | `app/test/features/tracks/`, over a fixture puzzle source, synthetic drags and an in-memory store. |
+
+On an Android device each command needs `--flavor store` (or `--flavor private`): Android has had
+product flavours since phase 10 PR 3, and without one the Flutter tool cannot find a single APK to
+install. `-d flutter-tester` takes none.
 
 `-d flutter-tester` runs any of them headless on the host in about ten seconds, and is worth doing before
 a device run because it still exercises the real accumulator, the real codec and a real filesystem.

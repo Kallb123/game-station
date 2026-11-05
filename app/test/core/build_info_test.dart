@@ -49,6 +49,51 @@ void main() {
     );
   });
 
+  group('flavour', () {
+    test('adds the home marker to every label form of a private build', () {
+      const stamped = BuildInfo(
+        version: '0.1.0+1',
+        timestamp: '2026-08-15T13:07:41Z',
+        flavor: 'private',
+      );
+      const versionOnly = BuildInfo(
+        version: '0.1.0+1',
+        timestamp: 'yesterday-ish',
+        flavor: 'private',
+      );
+      const unstamped = BuildInfo(
+        version: '',
+        timestamp: '',
+        flavor: 'private',
+      );
+
+      expect(stamped.isHomeBuild, isTrue);
+      expect(
+        stamped.label,
+        'Version 0.1.0+1 · built 15 Aug 2026, 13:07 UTC · home build',
+      );
+      expect(versionOnly.label, 'Version 0.1.0+1 · home build');
+      expect(unstamped.label, '$developmentLabel · home build');
+    });
+
+    test('says nothing extra for a store build or no flavour', () {
+      for (final flavor in <String?>['store', null]) {
+        final info = BuildInfo(
+          version: '0.1.0+1',
+          timestamp: '2026-08-15T13:07:41Z',
+          flavor: flavor,
+        );
+
+        expect(info.isHomeBuild, isFalse);
+        expect(info.label, isNot(contains('home build')));
+      }
+    });
+
+    test('is absent under flutter test, so tests run as a non-home build', () {
+      expect(BuildInfo.current.flavor, isNull);
+    });
+  });
+
   // The guard. `build_info.dart` reads two defines by name and the shell script
   // writes two defines by name, and nothing but this test connects the two
   // strings: rename one and every build goes on succeeding while quietly

@@ -88,9 +88,10 @@ flutter:
     - assets/audio/snake/
     - assets/audio/tracks/
     # The quiz bank (PLAN-phase-10-quiz.md §4.9). `private` is flavour-tagged
-    # from its first commit so that no build ever carries it untagged. Android
-    # has no flavours until PR 3, so today no build bundles it; each directory
-    # holds an index.json because a declared empty directory fails the build.
+    # from its first commit so that no build ever carries it untagged. Only
+    # `--flavor private` (Android) bundles the private directory; every other
+    # build, on every platform, leaves it out. Each directory holds an
+    # index.json because a declared empty directory fails the build.
     - assets/quiz/store/
     - path: assets/quiz/private/
       flavors:

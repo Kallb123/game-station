@@ -4,7 +4,7 @@
 # time it was compiled, which the settings screen's footer shows
 # (app/lib/core/build_info.dart). Use it on any build a person will run:
 #
-#   cd app && flutter build apk --release $(../tool/build_defines.sh)
+#   cd app && flutter build apk --release --flavor store $(../tool/build_defines.sh)
 #
 # Unquoted on purpose: the output is two flags and neither value contains a
 # space, so word splitting is what turns one string into two arguments.

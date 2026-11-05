@@ -74,4 +74,7 @@ dart tool/check_determinism.dart --self-test
 step 'Checking the engine determinism rules'
 dart tool/check_determinism.dart
 
+step 'Testing the quiz audience check'
+tool/check_quiz_audience.sh --self-test
+
 printf '\n\033[32mAll checks passed.\033[0m\n'

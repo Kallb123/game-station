@@ -136,6 +136,13 @@ jobs:
       - name: Check the engine determinism rules
         run: dart tool/check_determinism.dart
 
+      # The private quiz packs must never be in a store build. The APK check
+      # itself runs in the Android workflow, which has the packages; this tests
+      # that the check can tell a store listing from a private one before it is
+      # trusted, for the same reason the offline check's self-test exists.
+      - name: Test the quiz audience check
+        run: tool/check_quiz_audience.sh --self-test
+
   # The Android leg lives in its own workflow so the same build can be run on
   # demand, and so the APK CI checks is the one people install. It asserts that
   # the built package requests no platform permission — the source-level check
