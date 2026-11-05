@@ -614,6 +614,13 @@ fixture (shown in the PR description); a loader test in release mode drops an un
 hides a title with nine checked; a pack with a syntax error is skipped and the others still load;
 the coverage table is in the PR description; the parse time of the bank, scaled to 1,000 questions, is
 recorded in §8.
+*Outcome:* built as above, with one shortfall. *The Enchanted Wood* has its 20 drafted questions, but
+the other three books have 5, 2 and 4: they were drafted with no copy of the books and no reference
+to hand, and questions guessing which book a land or a cousin first appears in were cut rather than
+left for a checker to catch, because a wrong guess there breaks §1's spoiler rule as well as a fact.
+Their titles and ids are in the pack, so the remaining questions are a content-only change, drafted
+from the books in the same way PRs 7–12 are. All four are hidden until each has ten checked
+questions, so nothing reaches a child in the meantime.
 
 **PR 3 — store and private builds.** The two Android product flavours, `--flavor store` in CI and
 `README.md`, the `app-store-release.apk` rename everywhere, `tool/check_quiz_audience.sh` with its
@@ -708,11 +715,13 @@ copied into §8, with every title under the threshold named — those are hidden
 
 ## 8. Verification checklist
 
-- [ ] `cd app && flutter test test/features/quiz` passes, including the content test over the real
+- [x] `cd app && flutter test test/features/quiz` passes, including the content test over the real
       bank; each content rule fails against its broken fixture. *(PR 2.)*
-- [ ] The loader in release mode drops every unchecked question and hides a title below ten checked
+- [x] The loader in release mode drops every unchecked question and hides a title below ten checked
       (loader test). *(PR 2.)*
-- [ ] Bank parse time, scaled to 1,000 questions, recorded here: ___ ms on the CI runner. *(PR 2.)*
+- [x] Bank parse time, scaled to 1,000 questions, recorded here: 13–19 ms on a cloud development
+      container, a fifth of §4.2's 100 ms bar, so the parse stays off `compute`. `content_test.dart`
+      prints the figure on every run, so the CI runner's number is in the app-test log. *(PR 2.)*
 - [ ] `tool/check_quiz_audience.sh store` passes on CI's store APK and fails on its private APK, the
       reverse holds in `private` mode, and `--self-test` passes. *(PR 3, and every CI run after.)*
 - [ ] `grep -rn 'app-release.apk' .github tool README.md` prints nothing. *(PR 3.)*

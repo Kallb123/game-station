@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "series": "demo",
+  "name": "Demo",
+  "collection": "book",
+  "titles": [
+    {
+      "id": "demo.one",
+      "name": "One",
+      "questions": [
+        {
+          "id": "demo.one.001",
+          "level": 1,
+          "checked": true,
+          "q": "What colour is the sky?",
+          "a": "Blue",
+          "wrong": [
+            "Red",
+            "Green",
+            "Both of them"
+          ],
+          "source": "Any atlas"
+        }
+      ]
+    }
+  ]
+}
