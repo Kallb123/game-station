@@ -14,6 +14,15 @@
 // the version before last. Instead, a build that was not stamped says it was
 // not stamped, and `tool/build_defines.sh` reads the version out of pubspec so
 // that a stamped one cannot disagree with it.
+//
+// The flavour is the one other thing a build knows about itself. It exists so
+// that the footer can say *home build*: with one app id and one label shared by
+// both builds, the footer is the only way to tell which build a tablet has.
+// Which content a build holds is decided by what was bundled into it
+// (PLAN-phase-10-quiz.md §4.9), never by this flag, so nothing should gate
+// content on it.
+
+import 'package:flutter/services.dart' show appFlavor;
 
 /// The define carrying the pubspec version, `0.1.0+1` shaped.
 const String versionDefine = 'APP_VERSION';
@@ -21,13 +30,24 @@ const String versionDefine = 'APP_VERSION';
 /// The define carrying the compile time, as an ISO-8601 UTC instant.
 const String buildTimeDefine = 'BUILD_TIME';
 
+/// The flavour name of the build cut for home use, with the private packs
+/// bundled.
+const String privateFlavor = 'private';
+
 /// What is shown for a build that was compiled without the defines — `flutter
 /// run` from a checkout, and every test.
 const String developmentLabel = 'Development build';
 
+/// What the footer appends for a home build.
+const String homeBuildLabel = 'home build';
+
 /// What build this is, and how to say it in one line.
 class BuildInfo {
-  const BuildInfo({required this.version, required this.timestamp});
+  const BuildInfo({
+    required this.version,
+    required this.timestamp,
+    this.flavor,
+  });
 
   /// The build the running binary was compiled as.
   ///
@@ -36,6 +56,7 @@ class BuildInfo {
   static const BuildInfo current = BuildInfo(
     version: String.fromEnvironment(versionDefine),
     timestamp: String.fromEnvironment(buildTimeDefine),
+    flavor: appFlavor,
   );
 
   /// The pubspec version this build was compiled from, or empty when it was
@@ -49,6 +70,16 @@ class BuildInfo {
   /// stay `const`: parsing is not a constant expression.
   final String timestamp;
 
+  /// The `--flavor` the build was made with, or null when it was made without
+  /// one, as on every platform but Android and in every test.
+  final String? flavor;
+
+  /// Whether this is the build cut for home use.
+  ///
+  /// For the footer only: the packs a build holds are whatever was bundled, and
+  /// a check of this flag must never stand in for that.
+  bool get isHomeBuild => flavor == privateFlavor;
+
   /// Whether this build carries no stamp at all.
   bool get isDevelopment => version.isEmpty;
 
@@ -60,7 +91,13 @@ class BuildInfo {
   DateTime? get builtAt => DateTime.tryParse(timestamp)?.toUtc();
 
   /// The one line the settings footer shows.
-  String get label {
+  ///
+  /// The home marker goes on every form, so that a local private build with no
+  /// stamp still says what it is.
+  String get label =>
+      isHomeBuild ? '$_stampLabel · $homeBuildLabel' : _stampLabel;
+
+  String get _stampLabel {
     if (isDevelopment) return developmentLabel;
     final at = builtAt;
     if (at == null) return 'Version $version';

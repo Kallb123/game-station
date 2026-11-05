@@ -2,7 +2,7 @@
 #
 # Prints the certificate an APK is signed with:
 #
-#   tool/apk_signing_cert.sh app/build/app/outputs/flutter-apk/app-release.apk
+#   tool/apk_signing_cert.sh app/build/app/outputs/flutter-apk/app-store-release.apk
 #
 # Android identifies an app by its package name and its signing certificate
 # together, and refuses to install an update signed by a different one — the

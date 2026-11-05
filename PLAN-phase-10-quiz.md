@@ -492,6 +492,18 @@ Two consequences of one app id, both checked in PR 3 rather than assumed:
   build as an update over it. The cost is one-way: Android will not install a lower version code
   over a higher one, so a tablet leaves the testing track for the public build only by uninstalling,
   after exporting its players. The rule and the choice are recorded here.
+
+  *Recorded in PR 3:* Amazon's Live App Testing documentation requires a test build promoted to
+  live to carry a version code at least the live build's (its *Understanding Live App Testing* page
+  says strictly greater), and its console warns when a test's devices are on version codes below the
+  live version's. Nothing requires a test build to differ from live while it stays a test, but the
+  private build is never promoted: the store build is the public release, so the first store
+  release after a test build would put the live version code above the test's, which is the warned
+  case and the update this rule exists to prevent. So the codes differ: the private flavour sets
+  `versionCode` to the store's plus 50,000, in `build.gradle.kts`, and `android-apk.yml` fails if
+  the two APKs it builds are not exactly 50,000 apart. developer.amazon.com was not reachable from
+  the session that built PR 3, so the rule was read from search results quoting those pages; §8's
+  device line on a real testing-track tablet is what confirms it.
 - **Signing.** An app installed from the Amazon Appstore carries Amazon's signature, and an APK
   sideloaded from CI carries the repository's key. Android will not replace one with the other
   without an uninstall, which deletes the save. So a tablet changes route only after exporting its
@@ -504,6 +516,16 @@ Every reference to `app-release.apk` — `android-apk.yml`, the usage comments i
 request. PR 3 records what an unflagged Android build does in practice; if it quietly produces a
 private build rather than failing, PR 3 fixes that before merging, because the safe direction for a
 forgotten flag is the store.
+
+*Recorded in PR 3:* an unflagged `flutter build apk --release` runs Gradle's `assembleRelease`,
+which builds **both** flavours, each with the right assets, because the Flutter Gradle plugin hands
+each variant its own flavour when it bundles assets. The Flutter tool then looks for
+`app-release.apk`, finds none, and exits 1 with *Gradle build failed to produce an .apk file*. A
+temporary CI step (reverted in the same pull request) showed both packages left in `flutter-apk/`:
+`app-store-release.apk` with no private entry and `app-private-release.apk` with two. So a
+forgotten flag fails rather than quietly producing a private build, and nothing needed fixing. The
+private package it leaves behind is named for what it is. `flutter run` and `flutter test -d` on an
+Android device fail the same way without `--flavor`, which `README.md` and `AGENTS.md` now say.
 
 iOS, macOS, Linux and Windows declare no flavours and build without `--flavor` — `flutter build
 linux` and `flutter build windows` do not accept one in Flutter 3.44 — so they are always store
@@ -633,6 +655,14 @@ iOS, macOS, Linux and Windows legs are green with no change to their commands; t
 rule and the resulting choice are recorded in §4.9; what an unflagged
 `flutter build apk` does is recorded in §4.9; a footer widget test shows *home build* for `private`
 and nothing for `store` or no flavour.
+*Outcome:* built as above. The audience check also requires the store index in both modes, so
+neither passes on a listing that is not of a quiz-carrying APK, and its self-test includes a
+20,000-entry listing: the first draft piped `printf` into `grep -q` under `pipefail`, which fails
+intermittently on a real APK's listing when `grep` stops reading early, and that case fails against
+it every time. The cross-mode failures and the identity comparison (package name, label, and
+version codes exactly 50,000 apart) run on every CI build rather than once, so the evidence the
+done-when asks for is in every Android log. The Android leg now builds twice; the second build
+reuses Gradle's work and took about a minute on CI against five for the first.
 
 **PR 4 — the save field.** `QuizProgress`, `QuizTitleProgress`, codec, equality, and `quiz` in
 `ProfileImportEntry.result`.
@@ -722,9 +752,10 @@ copied into §8, with every title under the threshold named — those are hidden
 - [x] Bank parse time, scaled to 1,000 questions, recorded here: 13–19 ms on a cloud development
       container, a fifth of §4.2's 100 ms bar, so the parse stays off `compute`. `content_test.dart`
       prints the figure on every run, so the CI runner's number is in the app-test log. *(PR 2.)*
-- [ ] `tool/check_quiz_audience.sh store` passes on CI's store APK and fails on its private APK, the
-      reverse holds in `private` mode, and `--self-test` passes. *(PR 3, and every CI run after.)*
-- [ ] `grep -rn 'app-release.apk' .github tool README.md` prints nothing. *(PR 3.)*
+- [x] `tool/check_quiz_audience.sh store` passes on CI's store APK and fails on its private APK, the
+      reverse holds in `private` mode, and `--self-test` passes. *(PR 3, and every CI run after:
+      `android-apk.yml` asserts all four.)*
+- [x] `grep -rn 'app-release.apk' .github tool README.md` prints nothing. *(PR 3.)*
 - [ ] A save from before PR 4 loads on the PR 13 build with `quiz` empty (fixture test in
       `save_codec_test.dart`).
 - [ ] `game_rng_test.dart` passes with its literals unchanged after the move to `core/`; `git log -p

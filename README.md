@@ -77,6 +77,10 @@ tool/verify.sh                 # format, analyze, test, offline check — both p
 cd app && flutter run -d linux # or macos, windows, or a connected device
 ```
 
+`flutter run` on an Android device needs `--flavor store` (or `--flavor private`, below). Desktop,
+iOS and macOS take no flavour and are always store builds; Linux and Windows do not accept `--flavor`
+in Flutter 3.44.
+
 Desktop Linux builds need `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev`.
 
 ### Getting an APK onto a phone
@@ -95,8 +99,28 @@ Every build asserts that the package requests no platform permission
 ([`tool/check_apk_permissions.sh`](tool/check_apk_permissions.sh)) before it is uploaded, so an APK
 that reached a phone was checked on the way.
 
-Locally, `cd app && flutter build apk --release` produces the same thing at
-`app/build/app/outputs/flutter-apk/app-release.apk`.
+Locally, `cd app && flutter build apk --release --flavor store` produces the same thing at
+`app/build/app/outputs/flutter-apk/app-store-release.apk`. `--flavor` is required: Android has two
+product flavours, and without one the Flutter tool cannot find a single APK.
+
+### The private ("home") build
+
+```sh
+cd app && flutter build apk --release --flavor private $(../tool/build_defines.sh)
+```
+
+This produces `app-private-release.apk`, which also carries the private quiz packs
+(`assets/quiz/private/`). It has the same app id and signing as the store build, but its version code
+is the store's plus 50,000 (`PLAN-phase-10-quiz.md` §4.9). **Never publish it**: it is for the
+family's tablets, through the Amazon Appstore's Live App Testing track. CI builds it on every run and
+checks it, and uploads it only from a manual run of the Android APK workflow with **private** ticked.
+The settings footer says *home build* on it.
+
+**Export players to a file before changing how a tablet gets the app.** An APK sideloaded from CI
+(the repository's key) and one installed from Amazon (Amazon's signature) cannot replace each other
+without an uninstall, which deletes the save. A tablet cannot go from the private build to the public
+one without an uninstall either, because of the version code. See
+[`PLAN-transfer.md`](PLAN-transfer.md).
 
 ### Which build is this?
 
@@ -110,7 +134,7 @@ workflow calls it, so every uploaded and released package is stamped. A build ma
 `flutter run`, `flutter test`, a plain local `flutter build` — says **Development build** instead:
 
 ```sh
-cd app && flutter build apk --release $(../tool/build_defines.sh)  # stamped
+cd app && flutter build apk --release --flavor store $(../tool/build_defines.sh)  # stamped
 ```
 
 There is no fallback version compiled into the app on purpose. One would be a second home for a

@@ -51,6 +51,9 @@ jobs:
           echo "Run this workflow from a release tag, not ${GITHUB_REF_NAME}." >&2
           exit 1
 
+      # Only the store APK: `apk` names the store artifact. The build workflow
+      # makes a private APK too, but it is for Live App Testing and never goes
+      # on a release page, which is public.
       - uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build.outputs.apk }}

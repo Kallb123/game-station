@@ -184,7 +184,7 @@ class SettingsScreen extends ConsumerWidget {
                   Navigator.of(context).pushNamed(AppRoutes.transfer),
             ),
             const SizedBox(height: AppSpacing.xxl),
-            const _BuildFooter(),
+            const BuildFooter(),
           ],
         ),
       ),
@@ -205,8 +205,12 @@ class SettingsScreen extends ConsumerWidget {
 /// Last in the [ListView] rather than pinned under it: pinning costs the height
 /// on every screen, which at 200% text scale is height the settings themselves
 /// need.
-class _BuildFooter extends StatelessWidget {
-  const _BuildFooter();
+class BuildFooter extends StatelessWidget {
+  /// [info] is injectable so a test can show the footer for each flavour; the
+  /// screen always uses the running build.
+  const BuildFooter({super.key, this.info = BuildInfo.current});
+
+  final BuildInfo info;
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +219,7 @@ class _BuildFooter extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Text(
-        BuildInfo.current.label,
+        info.label,
         textAlign: TextAlign.center,
         style: theme.textTheme.bodySmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,

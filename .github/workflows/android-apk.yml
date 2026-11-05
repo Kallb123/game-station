@@ -1,9 +1,14 @@
 name: Android APK
 
-# Builds the release APK and keeps it: CI needed the build to prove the app
+# Builds the release APKs and keeps them: CI needed the build to prove the app
 # compiles and requests no permissions, and threw the package away. This one
 # uploads it, so a phone can be handed a build without a store account and
 # without a local Flutter install.
+#
+# Two flavours are built on every run (PLAN-phase-10-quiz.md §4.9): `store`,
+# the public build, and `private`, which also bundles the private quiz packs
+# for the family's tablets. The store APK is what is uploaded, released and
+# installed widely; the private one is uploaded only on request.
 #
 # It is the same build either way — CI and the release workflow both call this
 # one rather than running their own `flutter build apk`, so the artifact people
@@ -11,6 +16,11 @@ name: Android APK
 on:
   # Build on request, from any branch or tag, via the Actions tab.
   workflow_dispatch:
+    inputs:
+      private:
+        description: Also upload the private APK, for Amazon Live App Testing
+        type: boolean
+        default: false
   # And as the Android leg of CI, and of android-release.yml. No inputs: the
   # Flutter pin is read from ci.yml below, because `env` is not in scope for a
   # called workflow's inputs and a second copy of the pin is a second thing to
@@ -100,6 +110,13 @@ jobs:
       - run: flutter pub get
         working-directory: app
 
+      # The audience guard is tested before it is trusted. CI's verify job runs
+      # the same self-test, but android-release.yml calls this workflow
+      # directly without that job, and a release is where a guard that passes
+      # vacuously costs the most.
+      - name: Test the quiz audience check
+        run: tool/check_quiz_audience.sh --self-test
+
       # The signing key, from repository secrets, written where Gradle looks for
       # it: app/android/key.properties and the keystore beside it, both
       # gitignored and both on a runner that is thrown away afterwards.
@@ -188,6 +205,10 @@ jobs:
       # Release, not debug: the debug manifest adds INTERNET for hot reload, and
       # it is the release artifact whose permissions are the promise.
       #
+      # Both flavours are built before the signing material is removed, because
+      # both must be signed. `--flavor` is required: with product flavours the
+      # Flutter tool looks for the unsuffixed release APK, which no longer exists.
+      #
       # Signed with the key written above when there is one, and with Flutter's
       # debug key otherwise — app/android/app/build.gradle.kts decides, from
       # whether key.properties exists. A store release still needs the rest of
@@ -201,8 +222,15 @@ jobs:
       # `flutter build apk` gives you — deliberately, since the alternative is
       # a fallback version in the source that goes stale without anyone
       # noticing.
-      - name: Build the release APK
-        run: flutter build apk --release $(../tool/build_defines.sh)
+      #
+      # build_defines.sh stamps the time of each call, so the two APKs differ by
+      # a few minutes in the footer; that is harmless.
+      - name: Build the store APK
+        run: flutter build apk --release --flavor store $(../tool/build_defines.sh)
+        working-directory: app
+
+      - name: Build the private APK
+        run: flutter build apk --release --flavor private $(../tool/build_defines.sh)
         working-directory: app
 
       # Deleted as soon as the build no longer needs it, and on failure too. The
@@ -215,8 +243,89 @@ jobs:
 
       # Belt and braces: tool/check_offline.dart reads the manifest source, this
       # reads the built package. Release checklist item — see PLAN.md §9.
-      - name: Assert the APK requests no platform permissions
-        run: tool/check_apk_permissions.sh app/build/app/outputs/flutter-apk/app-release.apk
+      - name: Assert the APKs request no platform permissions
+        run: |
+          set -euo pipefail
+          tool/check_apk_permissions.sh app/build/app/outputs/flutter-apk/app-store-release.apk
+          tool/check_apk_permissions.sh app/build/app/outputs/flutter-apk/app-private-release.apk
+
+      # Which quiz packs each package carries, read back from the package. The
+      # two negatives are permanent rather than one-off evidence: the store APK
+      # must fail private mode and the private APK must fail store mode on every
+      # run. A flavour mechanism that quietly stopped bundling the private
+      # packs would still pass the store check, and one that bundled them into
+      # the store build would pass the private check; only both directions
+      # together show that the two builds really differ, and a regression in
+      # either is caught on the run that introduces it rather than at release.
+      - name: Assert which quiz packs each APK carries
+        run: |
+          set -euo pipefail
+          out=app/build/app/outputs/flutter-apk
+          tool/check_quiz_audience.sh "$out/app-store-release.apk" store
+          tool/check_quiz_audience.sh "$out/app-private-release.apk" private
+          if tool/check_quiz_audience.sh "$out/app-store-release.apk" private; then
+            echo 'The store APK passed private mode: both builds are the same.' >&2
+            exit 1
+          fi
+          if tool/check_quiz_audience.sh "$out/app-private-release.apk" store; then
+            echo 'The private APK passed store mode: it would leak the private packs.' >&2
+            exit 1
+          fi
+
+      # One app, one save (PLAN-phase-10-quiz.md §4.9): the two builds must
+      # share package name and label, or a tablet would hold two apps. The
+      # private version code is the store's plus 50,000, so the private build
+      # always outranks the store build of the same commit and every earlier
+      # release; a drift in either number is caught here.
+      - name: Assert the two APKs are one app with the expected version codes
+        id: identity
+        run: |
+          set -euo pipefail
+          aapt=$(tool/android_sdk_tool.sh aapt2)
+          out=app/build/app/outputs/flutter-apk
+
+          badging() {
+            "$aapt" dump badging "$1" > "$RUNNER_TEMP/badging.txt"
+            package=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" "$RUNNER_TEMP/badging.txt" | head -1)
+            code=$(sed -n "s/^package:.* versionCode='\([^']*\)'.*/\1/p" "$RUNNER_TEMP/badging.txt" | head -1)
+            label=$(sed -n "s/^application-label:'\(.*\)'$/\1/p" "$RUNNER_TEMP/badging.txt" | head -1)
+          }
+
+          badging "$out/app-store-release.apk"
+          store_package=$package store_code=$code store_label=$label
+          badging "$out/app-private-release.apk"
+          private_package=$package private_code=$code private_label=$label
+
+          echo "store:   $store_package, versionCode $store_code, label '$store_label'"
+          echo "private: $private_package, versionCode $private_code, label '$private_label'"
+
+          {
+            echo '## Identity of the two builds'
+            echo
+            echo '| | Store | Private |'
+            echo '|---|---|---|'
+            echo "| Package | \`$store_package\` | \`$private_package\` |"
+            echo "| Version code | \`$store_code\` | \`$private_code\` |"
+            echo "| Label | $store_label | $private_label |"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -z "$store_package" ] || [ -z "$store_code" ] || [ -z "$store_label" ]; then
+            echo 'Could not read the store APK badging.' >&2
+            exit 1
+          fi
+          if [ "$store_package" != "$private_package" ]; then
+            echo 'The two APKs have different package names.' >&2
+            exit 1
+          fi
+          if [ "$store_label" != "$private_label" ]; then
+            echo 'The two APKs have different labels.' >&2
+            exit 1
+          fi
+          if [ "$private_code" != "$((store_code + 50000))" ]; then
+            echo "The private version code is $private_code, not $store_code + 50000." >&2
+            exit 1
+          fi
 
       # Which certificate actually signed the package, read back from the
       # package rather than assumed from the secrets. It answers the one
@@ -228,25 +337,37 @@ jobs:
         id: cert
         run: |
           set -euo pipefail
-          tool/apk_signing_cert.sh app/build/app/outputs/flutter-apk/app-release.apk |
+          tool/apk_signing_cert.sh app/build/app/outputs/flutter-apk/app-store-release.apk |
             tee "$RUNNER_TEMP/signing.txt"
           sha=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/signing.txt" | head -1)
           echo "sha256=${sha:-unknown}" >> "$GITHUB_OUTPUT"
 
-      # Named after what it contains, since a downloaded app-release.apk tells
+      # Named after what it contains, since a downloaded app-store-release.apk tells
       # you nothing about which build it came from. The version is pubspec's, so
       # the file name matches the version the app reports.
+      #
+      # The store artifact keeps the plain name, because android-release.yml
+      # attaches whatever the `apk` output names and must never be handed the
+      # private build. The private one gets a suffix and its own artifact below.
       - name: Name the APK after its version and commit
         id: apk
         env:
           SIGNING_KEY: ${{ steps.signing.outputs.key }}
           SIGNING_SHA256: ${{ steps.cert.outputs.sha256 }}
+          # A workflow_call run has no inputs, so this is empty there and the
+          # comparison below is false, which is the safe direction.
+          UPLOAD_PRIVATE: ${{ github.event_name == 'workflow_dispatch' && inputs.private }}
         run: |
           version=$(sed -n 's/^version: *//p' app/pubspec.yaml | head -1)
           name="game-station-${version/+/-build}-${GITHUB_SHA::7}"
-          cp app/build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/$name.apk"
+          cp app/build/app/outputs/flutter-apk/app-store-release.apk "$RUNNER_TEMP/$name.apk"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "path=$RUNNER_TEMP/$name.apk" >> "$GITHUB_OUTPUT"
+
+          private_name="$name-private"
+          cp app/build/app/outputs/flutter-apk/app-private-release.apk "$RUNNER_TEMP/$private_name.apk"
+          echo "private_name=$private_name" >> "$GITHUB_OUTPUT"
+          echo "private_path=$RUNNER_TEMP/$private_name.apk" >> "$GITHUB_OUTPUT"
 
           size=$(du -h "$RUNNER_TEMP/$name.apk" | cut -f1)
           if [ "$SIGNING_KEY" = 'release' ]; then
@@ -279,6 +400,14 @@ jobs:
               echo 'run — Android will ask for an uninstall first, which discards saved puzzles.'
               echo 'See the README on setting `ANDROID_KEYSTORE_BASE64` and friends.'
             fi
+            if [ "$UPLOAD_PRIVATE" = 'true' ]; then
+              echo
+              echo "The private APK is also uploaded, as \`$private_name\`. It is for Amazon"
+              echo 'Live App Testing only and **must not be published** — not on a release'
+              echo 'page, not in a store. It carries the private quiz packs. On this public'
+              echo 'repository any signed-in GitHub user can download an Actions artifact,'
+              echo 'which the owner accepted (PLAN-phase-10-quiz.md §4.9).'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Fourteen days rather than the default ninety: CI runs this on every pull
@@ -288,5 +417,16 @@ jobs:
         with:
           name: ${{ steps.apk.outputs.name }}
           path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14
+
+      # Only on a manual run that ticked `private`. CI and the release workflow
+      # build the private APK to check it, but never keep it: the store APK is
+      # what travels, and the private one has to be asked for by name.
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'workflow_dispatch' && inputs.private
+        with:
+          name: ${{ steps.apk.outputs.private_name }}
+          path: ${{ steps.apk.outputs.private_path }}
           if-no-files-found: error
           retention-days: 14

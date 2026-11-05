@@ -2,7 +2,7 @@
 #
 # Asserts that a built Android APK requests no platform permission:
 #
-#   tool/check_apk_permissions.sh app/build/app/outputs/flutter-apk/app-release.apk
+#   tool/check_apk_permissions.sh app/build/app/outputs/flutter-apk/app-store-release.apk
 #
 # `tool/check_offline.dart` reads the manifest in the repository; this reads the
 # package that actually gets installed, which is the evidence a parent can check
