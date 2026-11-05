@@ -2,8 +2,8 @@
 
 A local, offline, ad-free games app for children. Sudoku (9x9 and 6x6, deterministic from a date or
 index) and Tracks, a themeable path puzzle generated the same way, plus retro arcade games driven by
-on-screen controls, with progress that persists across sessions. A drawing board and Tracks arrive
-after the release line, as §7's phases 8 and 9.
+on-screen controls, with progress that persists across sessions. A drawing board, Tracks and a quiz
+about children's books, TV and films arrive after the release line, as §7's phases 8, 9 and 10.
 
 ---
 
@@ -1295,6 +1295,42 @@ checks the solve in a real `save.json`. It passes headless under `-d flutter-tes
 evidence and not a device run (`AGENTS.md`), so that line stays open too. Unlike phase 7's close,
 the headless run works here: `libminisound_ffi.so` was built from the pub cache's source with cmake
 and put on `LD_LIBRARY_PATH`, which `AGENTS.md` now describes.
+
+### Phase 10 — Quiz (13–17 days, plus content checking)
+
+A fifth game: a multiple-choice quiz about the stories a child knows. A child ticks the books they
+have read and the shows and films they have watched on a shelf, then plays a ten-question round mixed
+from everything ticked, or picks one title and is quizzed on that alone. Books first — the Magic
+Faraway Tree, four Roald Dahl books, two Rainbow Magic sets, two Narnia books and Paula Harrison's
+Kitty — then CBeebies (Bluey, Topsy and Tim, Hey Duggee, Waffle the Wonder Dog) and Disney (general
+questions on Mickey and friends, Disney films and Pixar films). A third card on the Arcade menu,
+after Invaders and Snake. Planned as thirteen pull requests in
+[`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
+
+- **Questions are data, keyed by stable title ids; the save stores only title ids and counters.**
+  One JSON pack per series under `app/assets/quiz/`, validated by a content test in CI. A profile
+  stores its ticked title ids and, per title, a seed and a position in that title's shuffled question
+  order — so questions can be added, corrected or withdrawn in any release with no save migration,
+  and title ids are frozen once shipped, as puzzle ids are. This is the phase's load-bearing decision.
+- **A question reaches a child only once a person has checked it**, and a title is offered only once
+  ten of its questions are. Release builds drop unchecked questions at load. Checking is owner time —
+  roughly 6–10 hours for the launch threshold — and the phase's critical path, so the release line
+  does not wait for it: a title under the threshold is hidden, not a blocker.
+- **Store and private builds.** A pack's directory, `assets/quiz/store/` or `assets/quiz/private/`,
+  is its audience. The private directory is declared for the `private` flavour only, so it is
+  bundled only by `flutter build apk --flavor private`; every other build, on every platform, is a
+  store build. Both are the same app, with one save: the private build reaches the family's tablets
+  through the Amazon Appstore's Live App Testing track, the store build through the public listing.
+  Every named series starts private; the store gets Peter Rabbit and general knowledge about the
+  world, the UK and animals unless the owner moves a pack. CI unzips the store APK and fails on any
+  private pack. Private packs are kept out of the public release, not secret: they stay in this
+  public repository, by the owner's choice.
+- Text only: no cover art, character pictures, logos, stills, theme tunes or long quotations, because
+  every series is someone else's copyright and trademark. No new package; one optional profile field,
+  `Profile.quiz`, with `schemaVersion` still 1. Android gains two product flavours and the store APK
+  becomes `app-store-release.apk`.
+
+Like phases 7, 8 and 9, it is a minor release after phase 6 and does not move the release line.
 
 ---
 
