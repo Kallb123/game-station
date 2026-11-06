@@ -11,7 +11,12 @@
 const int minQuestionsPerTitle = 10;
 
 /// Longest question, in characters of the trimmed text (§1, §4.3).
-const int maxQuestionLength = 100;
+///
+/// Measured, not guessed (§4.8): `quiz_play_layout_test.dart` shows a question
+/// this long, with three answers at [maxAnswerLength], answered and with Next
+/// showing, filling a 360x640 window at 200 % text with nothing to scroll. The
+/// first guess of 100 needed about 130 dp more than that window has.
+const int maxQuestionLength = 60;
 
 /// Longest answer, right or wrong, in characters of the trimmed text (§1).
 const int maxAnswerLength = 30;

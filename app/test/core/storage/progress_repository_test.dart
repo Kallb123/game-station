@@ -479,6 +479,72 @@ void main() {
     });
   });
 
+  group('quiz', () {
+    test('setQuizKnown ticks and unticks, keeping ids it was not given', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+
+      repository.setQuizKnown(['a', 'b', 'from-a-later-build'], known: true);
+      expect(repository.activeProfile.quiz.known, {
+        'a',
+        'b',
+        'from-a-later-build',
+      });
+
+      repository.setQuizKnown(['a', 'never-ticked'], known: false);
+      expect(repository.activeProfile.quiz.known, {'b', 'from-a-later-build'});
+    });
+
+    test('setQuizKnown changes the active profile only', () {
+      final repository = repositoryOver(MemorySaveStore(initial: freshSave()));
+      final first = repository.activeProfile.id;
+      repository.createProfile(name: 'Bo', avatar: AvatarId.owl);
+
+      repository.setQuizKnown(['a'], known: true);
+
+      expect(repository.activeProfile.quiz.known, {'a'});
+      expect(
+        repository.profiles.firstWhere((p) => p.id == first).quiz.known,
+        isEmpty,
+      );
+    });
+
+    test('a tick or untick that changes nothing writes nothing', () async {
+      final store = MemorySaveStore(initial: freshSave());
+      final repository = repositoryOver(store);
+
+      repository.setQuizKnown(['a'], known: false);
+      repository.setQuizKnown(const [], known: true);
+      await repository.flush();
+      expect(store.writes, 0);
+
+      repository.setQuizKnown(['a'], known: true);
+      await repository.flush();
+      expect(store.writes, 1);
+
+      repository.setQuizKnown(['a'], known: true);
+      await repository.flush();
+      expect(store.writes, 1);
+    });
+
+    test('updateQuiz applies the function to the active profile', () async {
+      final store = MemorySaveStore(initial: freshSave());
+      final repository = repositoryOver(store);
+
+      repository.updateQuiz(
+        (quiz) =>
+            quiz.copyWith(mixed: const QuizMixedProgress(rounds: 1, best: 8)),
+      );
+      await repository.flush();
+
+      expect(repository.activeProfile.quiz.mixed.best, 8);
+      expect((await store.load()).data.activeProfile.quiz.mixed.rounds, 1);
+
+      repository.updateQuiz((quiz) => quiz);
+      await repository.flush();
+      expect(store.writes, 1);
+    });
+  });
+
   group('tracks', () {
     TracksPuzzleId puzzleAt(
       int index, {

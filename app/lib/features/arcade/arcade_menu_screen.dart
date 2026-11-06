@@ -15,6 +15,8 @@ import '../../core/ui/screen_scaffold.dart';
 import '../../core/ui/theme.dart';
 import '../../core/ui/tokens.dart';
 import '../../routes.dart';
+import '../quiz/data/providers.dart';
+import '../quiz/ui/quiz_style.dart' show quizBestLabel;
 import 'invaders/invaders_screen.dart' show invadersGameId;
 import 'shared/game_shell.dart' show noScoresYetMessage;
 import 'snake/snake_screen.dart' show snakeGameId;
@@ -30,6 +32,12 @@ const String snakeTitle = 'Snake';
 
 /// The Snake card's button.
 const String playSnakeLabel = 'Play Snake';
+
+/// The Quiz card's own heading.
+const String quizCardTitle = 'Quiz';
+
+/// The Quiz card's button.
+const String playQuizLabel = 'Play Quiz';
 
 /// Shown on a card when this profile has no score in the selected mode yet —
 /// distinct from [noScoresYetMessage], which is what the table under it shows
@@ -84,6 +92,9 @@ class ArcadeMenuScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final profile = ref.watch(activeProfileProvider);
+    // No Quiz card until the catalog offers a title: a card that opens an
+    // empty quiz is a dead end for a child.
+    final showQuiz = ref.watch(quizCatalogProvider).offeredTitles.isNotEmpty;
 
     // Read when a toggle is tapped rather than held from this build, so
     // nothing here keeps a repository from a scope that has since been
@@ -201,6 +212,20 @@ class ArcadeMenuScreen extends ConsumerWidget {
                   scores: snakeScores,
                   roundLabel: 'Level',
                 ),
+                if (showQuiz) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  _GameCard(
+                    icon: Icons.quiz,
+                    title: quizCardTitle,
+                    bestLine: profile.quiz.mixed.rounds == 0
+                        ? notPlayedYetMessage
+                        : quizBestLabel(profile.quiz.mixed.best),
+                    playLabel: playQuizLabel,
+                    onPlay: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.quiz),
+                    scores: null,
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.xl),
                 const _SectionHeading(optionsSectionLabel),
                 const SizedBox(height: AppSpacing.md),
@@ -260,7 +285,10 @@ class _GameCard extends StatelessWidget {
 
   final String playLabel;
   final VoidCallback onPlay;
-  final List<HighScore> scores;
+
+  /// This game's top-five table; null for a game with no scores, which draws
+  /// neither the heading nor the table.
+  final List<HighScore>? scores;
 
   /// The word for what a score's `wave` field counts, passed on to
   /// [scoreRowLabel] so the table reads the same word as [bestLine].
@@ -321,16 +349,18 @@ class _GameCard extends StatelessWidget {
             onPressed: onPlay,
           ),
           for (final toggle in toggles) toggle,
-          Semantics(
-            header: true,
-            child: Text(
-              topScoresSectionLabel,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colors.onSecondaryContainer,
+          if (scores != null) ...[
+            Semantics(
+              header: true,
+              child: Text(
+                topScoresSectionLabel,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: colors.onSecondaryContainer,
+                ),
               ),
             ),
-          ),
-          _TopScores(scores: scores, roundLabel: roundLabel),
+            _TopScores(scores: scores!, roundLabel: roundLabel),
+          ],
         ],
       ),
     );

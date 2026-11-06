@@ -16,6 +16,10 @@ import 'features/draw/ui/draw_sheet_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profiles/profile_screen.dart';
 import 'features/puzzles/puzzles_menu_screen.dart';
+import 'features/quiz/ui/quiz_menu_screen.dart';
+import 'features/quiz/ui/quiz_pick_screen.dart';
+import 'features/quiz/ui/quiz_play_screen.dart';
+import 'features/quiz/ui/quiz_shelf_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/sudoku/ui/sudoku_menu_screen.dart';
 import 'features/sudoku/ui/sudoku_play_screen.dart';
@@ -211,6 +215,10 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.arcade => (context) => const ArcadeMenuScreen(),
   AppRoutes.arcadeInvaders => (context) => const InvadersScreen(),
   AppRoutes.arcadeSnake => (context) => const SnakeScreen(),
+  AppRoutes.quiz => (context) => const QuizMenuScreen(),
+  AppRoutes.quizShelf => (context) => const QuizShelfScreen(),
+  AppRoutes.quizPick => (context) => const QuizPickScreen(),
+  AppRoutes.quizPlay => _quizPlayScreen(settings.arguments),
   AppRoutes.draw => (context) => const DrawGalleryScreen(),
   AppRoutes.drawSheet => _drawSheetScreen(settings.arguments),
   AppRoutes.transfer => (context) => const TransferScreen(),
@@ -231,6 +239,12 @@ WidgetBuilder? _playScreen(Object? arguments) => arguments is SudokuPlayArgs
 WidgetBuilder? _tracksPlayScreen(Object? arguments) =>
     arguments is TracksPlayArgs
     ? (context) => TracksPlayScreen(args: arguments)
+    : null;
+
+/// The Quiz play screen for [arguments], or null when the route was pushed
+/// without a [QuizPlayArgs], for the same reason [_playScreen] checks.
+WidgetBuilder? _quizPlayScreen(Object? arguments) => arguments is QuizPlayArgs
+    ? (context) => QuizPlayScreen(args: arguments)
     : null;
 
 /// The draw sheet for [arguments], defaulting to a blank sheet when the route

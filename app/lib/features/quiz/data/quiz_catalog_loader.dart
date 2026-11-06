@@ -9,7 +9,8 @@
 // broken pack is logged with `debugPrint` and skipped, and the content test is
 // what makes that a CI failure long before a device sees it.
 //
-// Not wired into app start-up here: that, and the providers, are PR 6's.
+// Wired into app start-up in `main.dart`, which loads it beside the save and
+// overrides `quizCatalogProvider` with the result.
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';

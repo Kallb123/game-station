@@ -16,6 +16,8 @@ import 'core/storage/providers.dart';
 import 'core/storage/save_store.dart';
 import 'features/draw/data/drawing_repository.dart';
 import 'features/draw/data/providers.dart';
+import 'features/quiz/data/providers.dart';
+import 'features/quiz/data/quiz_catalog_loader.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,13 +26,19 @@ Future<void> main() async {
   final store = directory == null
       ? MemorySaveStore()
       : FileSaveStore(directory);
-  final loaded = await store.load();
+  // In parallel: the catalog is a few asset reads and the save one file read,
+  // and neither waits on the other, so start-up costs the slower of the two.
+  final (loaded, quizCatalog) = await (
+    store.load(),
+    QuizCatalogLoader().load(),
+  ).wait;
 
   runApp(
     ProviderScope(
       overrides: [
         saveStoreProvider.overrideWithValue(store),
         initialSaveProvider.overrideWithValue(loaded),
+        quizCatalogProvider.overrideWithValue(quizCatalog),
         // A drawing needs a real directory even when `save.json` does not —
         // `DrawingRepository` is `dart:io`-only, unlike `SaveStore`, which
         // has a [MemorySaveStore] to fall back to. `Directory.systemTemp` in

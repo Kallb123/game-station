@@ -29,7 +29,11 @@ import 'package:zibo_games/features/arcade/snake/model/snake_sim.dart';
 import 'package:zibo_games/features/arcade/snake/snake_game.dart';
 import 'package:zibo_games/features/arcade/snake/snake_screen.dart';
 
+import 'package:zibo_games/features/quiz/data/providers.dart';
+import 'package:zibo_games/features/quiz/model/quiz_catalog.dart';
+
 import '../../app_harness.dart';
+import '../quiz/quiz_fixtures.dart';
 
 /// Pumps the menu on its own, over [store] when given or a fresh save
 /// otherwise.
@@ -42,12 +46,14 @@ Future<ProviderContainer> pumpMenu(
   WidgetTester tester, {
   SaveData? save,
   SaveStore? store,
+  QuizCatalog? catalog,
 }) async {
   final resolvedStore = store ?? MemorySaveStore(initial: save ?? freshSave());
   final container = ProviderContainer(
     overrides: [
       saveStoreProvider.overrideWithValue(resolvedStore),
       initialSaveProvider.overrideWithValue(await resolvedStore.load()),
+      if (catalog != null) quizCatalogProvider.overrideWithValue(catalog),
     ],
   );
   addTearDown(container.dispose);
@@ -422,4 +428,46 @@ void main() {
       expect(find.text(notPlayedYetMessage), findsOneWidget);
     },
   );
+
+  group('Quiz card', () {
+    testWidgets('is absent over the empty catalog', (tester) async {
+      await pumpMenu(tester, save: freshSave());
+
+      expect(find.text(quizCardTitle), findsNothing);
+      expect(find.text(playQuizLabel), findsNothing);
+    });
+
+    testWidgets('follows the Snake card, with no scores table', (tester) async {
+      await pumpMenu(tester, catalog: fixtureCatalog());
+
+      expect(find.text(quizCardTitle), findsOneWidget);
+      expect(find.text(playQuizLabel), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text(quizCardTitle)).dy,
+        greaterThan(tester.getTopLeft(find.text(snakeTitle)).dy),
+      );
+      // Invaders, Snake and Quiz each say they are unplayed.
+      expect(find.text(notPlayedYetMessage), findsNWidgets(3));
+      // Only the two arcade games draw a table.
+      expect(find.text(topScoresSectionLabel), findsNWidgets(2));
+    });
+
+    testWidgets('shows the best mixed score once played', (tester) async {
+      final save = freshSave();
+      final played = save.copyWith(
+        profiles: [
+          save.activeProfile.copyWith(
+            quiz: const QuizProgress(
+              mixed: QuizMixedProgress(rounds: 1, best: 8),
+            ),
+          ),
+        ],
+      );
+
+      await pumpMenu(tester, save: played, catalog: fixtureCatalog());
+
+      expect(find.text('Best 8 out of 10'), findsOneWidget);
+      expect(find.text(notPlayedYetMessage), findsNWidgets(2));
+    });
+  });
 }

@@ -65,7 +65,7 @@ right. There is no timer and no way to lose.
 | Text only: no cover art, character pictures, logos, stills or theme tunes | Every series named in the ask is someone else's copyright and trademark. Factual questions written in this repository's own words, naming a title as a title, are the narrowest use; a picture of Elsa or a clip of a theme tune is not. Series are drawn with a Material icon and a colour. `app/assets/quiz/` holds JSON only, and the content test (§4.3) fails on any non-`.json` file in it. |
 | Private packs never ship in a store build | The named series are someone else's trademarks, and the owner wants some of them for home use only. A private pack is left out of the store build's asset bundle, not hidden at runtime, so it is not in the binary a store or anyone unzipping it receives. CI unzips the store APK and fails on any `assets/quiz/private/` entry (§4.9). |
 | No quotation longer than a short phrase | Same reason. A question may name a character, place or object; it may not reproduce a sentence of the book or a line of a script. The content test refuses a question or answer over its length cap (below), which bounds the damage mechanically; whether a short phrase is a quotation is the reviewer's check. |
-| Minimal reading, as far as a quiz allows | `AGENTS.md` asks for minimal reading, and a quiz is reading. This is the one game in the app built for readers, roughly six and over, or a grown-up reading aloud. It reads as little as it can: three options, not four; a question of at most 100 characters and an answer of at most 30, enforced by the content test; and every question and answer exposed as semantics, so TalkBack and VoiceOver read them aloud with no new dependency. The caps are provisional until PR 6 measures them at 200 % text (§4.8). |
+| Minimal reading, as far as a quiz allows | `AGENTS.md` asks for minimal reading, and a quiz is reading. This is the one game in the app built for readers, roughly six and over, or a grown-up reading aloud. It reads as little as it can: three options, not four; a question of at most 60 characters and an answer of at most 30, enforced by the content test; and every question and answer exposed as semantics, so TalkBack and VoiceOver read them aloud with no new dependency. The question cap was 100 until PR 6 measured it at 200 % text (§4.8). |
 | No time pressure, no scary failure | `PLAN.md` §1 and `AGENTS.md`. No timer, no lives, no streak to break. A wrong answer is shown gently — the right answer is highlighted and the child taps Next when ready — and every finished round ends on the same celebration, whatever the score. |
 | A question never spoils a title the child has not ticked | Narnia, Faraway Tree and Rainbow Magic are series, and a question about book four answered on the strength of book one gives book four away. Every question belongs to exactly one title — the earliest a reader would need to answer it — and a mixed round draws only from ticked titles (§4.1, §4.6). Disney's three titles each span many films, so they ask only what a film's opening shows, never how it ends (§4.4). |
 | No network, no new package | `PLAN.md` §1. Questions are bundled assets parsed with `dart:convert`. `app/pubspec.yaml` gains one asset directory and no dependency, so `tool/check_offline.dart` has no new graph to audit. `check_offline.dart` scans `app/lib` for URLs and not `assets/`, so the content test refuses `://` in any question, answer or source itself (§4.3). |
@@ -260,7 +260,7 @@ the parse moves to `compute`.
 - a series id that is not its file name, or a `collection` other than `book`, `tv`, `film` or `topic`;
 - a title or question id that breaks §4.1's or §4.2's shape, does not start with its parent's id, or
   is duplicated anywhere in the bank;
-- a question over 100 characters or an answer over 30, or empty text;
+- a question over 60 characters or an answer over 30, or empty text (§4.8 says why 60);
 - `wrong` not exactly three; any two of the four answers equal after trimming and case-folding;
 - an answer of the form "all of the above", "none of the above", "both", or naming an option's
   position — options are shuffled (§4.6), so these become nonsense;
@@ -461,12 +461,29 @@ the proof the move changed nothing.
 
 ### 4.8 Text size and layout
 
-The 100- and 30-character caps are guesses until measured. PR 6 adds a widget test that renders the
+The 100- and 30-character caps were guesses until measured. PR 6 adds a widget test that renders the
 play screen at 200 % text on a 360 x 640 dp window with the longest question and the three longest
 answers in the real bank, and asserts no overflow and that all three answers and Next are on screen
 without scrolling. If the caps do not fit, the caps come down — in the content test, so every pack is
 held to them — rather than the screen scrolling, because an answer below the fold is an answer a
 child does not know exists.
+
+*Measured in PR 6:* the question cap comes down to **60**; the answer cap stays at 30. A 100-character
+question needed about 124 dp more than the window has even after the screen was tightened — regular
+weight rather than bold for the question and answers, a 1.2 line height, back and the progress dots
+on one row with no heading, and small gaps, with every answer still at least
+`AppTapTargets.primary` tall. With three 30-character answers, a 60-character question fits with Next
+ending at 631 of 640 dp; 61 does not. The real bank's longest question was already 60 characters, so
+nothing had to be rewritten. The measurement is in Roboto, the face Android draws the app in, loaded
+by the test from the pinned Flutter SDK's `material_fonts` artifact: `flutter test` otherwise draws in
+Ahem, whose glyphs are one em wide, and in it the bank's own longest text overflowed by 800 dp.
+
+Because a line breaks where the words do, a 60-character question can wrap worse than the one the
+cap was measured with. So `quiz_play_layout_test.dart` renders **every question in the bank** with
+its own three longest answers, not only the longest text, and a content pull request whose question
+takes a fifth line fails CI there even though the content test passes it. At 31 questions that costs
+about four seconds; at the launch target's six hundred it is about a minute, and if that is too much
+the test can narrow to questions within some margin of the cap.
 
 ### 4.9 Store and private builds
 
@@ -725,6 +742,22 @@ played, and no Quiz card over a catalog that offers nothing; the Invaders and Sn
 tests are unchanged; screenshots of the shelf and a question, day and
 night, are attached to the PR rather than committed. The app version moves to 0.5.1, the first build
 in which a child can reach the quiz.
+*Outcome:* built as above, with these differences. The question cap is 60, not 100 (§4.8). The
+theme has no success colour, and the arcade role scheme's tertiary is a salmon that reads as the
+wrong answer's red, so the right answer borrows the Sudoku green's `primaryContainer` with a tick and
+a border; a wrong choice is `errorContainer` with no cross. All four answer states measure above 7:1
+in both themes. The tick and the semantics label *right answer* carry the meaning, not the colour. The pack format has no icon or colour, so a series
+is drawn with its collection's icon and the avatar swatch at its index in the catalog. A finished
+round earns one to three stars — three for 8–10, two for 5–7, one otherwise, because there is no
+failure state — beside the score as text. The shelf's collection switch appears only when more than
+one collection offers a title, since a switch with one position is noise; today only books do. The
+play screen draws its own row of back and progress dots rather than `ScreenScaffold`'s title bar,
+whose heading costs a line §4.8 cannot spare. `CompletionCard` gains a `score` constructor; its timed
+constructor and the Sudoku and Tracks screens are unchanged. The catalog provider defaults to an
+empty catalog rather than throwing as the save providers do, so every test that builds its own scope
+sees no quiz, which is why the Invaders and Snake card tests needed no change; `main.dart` loads the
+catalog beside the save and overrides it. The screenshots were taken in a widget test with Roboto
+loaded, not on a device.
 
 **PRs 7–11 — content.** Each adds its series' packs at 20 drafted questions per title — 40 per
 Disney title — with `checked: false` on everything not yet verified, and pastes the coverage table.
