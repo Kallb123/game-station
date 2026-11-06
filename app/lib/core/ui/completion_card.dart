@@ -46,7 +46,38 @@ class CompletionCard extends StatelessWidget {
     required this.backLabel,
     required this.onBack,
     super.key,
-  });
+  }) : _score = null,
+       _outOf = 0,
+       _stars = 0,
+       _nextLabel = nextPuzzleLabel;
+
+  /// A card for a scored finish, a quiz round: [score] out of [outOf] with
+  /// [stars] beside it. The same card with a different body rather than a
+  /// second widget, so the two finishes cannot drift apart in layout.
+  ///
+  /// [onNext] is *Play again* in practice; null hides it.
+  const CompletionCard.score({
+    required int score,
+    required int outOf,
+    required int stars,
+    required String nextLabel,
+    required this.onNext,
+    required this.backLabel,
+    required this.onBack,
+    super.key,
+  }) : time = '',
+       hints = 0,
+       mistakes = 0,
+       clean = false,
+       // A named parameter cannot initialise a private field directly.
+       // ignore: prefer_initializing_formals
+       _score = score,
+       // ignore: prefer_initializing_formals
+       _outOf = outOf,
+       // ignore: prefer_initializing_formals
+       _stars = stars,
+       // ignore: prefer_initializing_formals
+       _nextLabel = nextLabel;
 
   /// How long it took, already formatted — `4:05`.
   final String time;
@@ -71,6 +102,15 @@ class CompletionCard extends StatelessWidget {
 
   /// Back to where the puzzle was chosen.
   final VoidCallback onBack;
+
+  /// Set only by [CompletionCard.score], which draws it instead of the timed
+  /// rows.
+  final int? _score;
+  final int _outOf;
+  final int _stars;
+  final String _nextLabel;
+
+  bool get _scored => _score != null;
 
   @override
   Widget build(BuildContext context) {
@@ -106,24 +146,34 @@ class CompletionCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    _Stat(label: completionTimeLabel, value: time),
-                    _Stat(label: completionHintsLabel, value: '$hints'),
-                    _Stat(label: completionMistakesLabel, value: '$mistakes'),
-                    if (clean) ...[
+                    if (_scored) ...[
+                      Text(
+                        '$_score out of $_outOf',
+                        style: theme.textTheme.headlineSmall,
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: AppSpacing.md),
-                      const _CleanStar(),
+                      Center(child: _ScoreStars(count: _stars)),
+                    ] else ...[
+                      _Stat(label: completionTimeLabel, value: time),
+                      _Stat(label: completionHintsLabel, value: '$hints'),
+                      _Stat(label: completionMistakesLabel, value: '$mistakes'),
+                      if (clean) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        const _CleanStar(),
+                      ],
                     ],
                     const SizedBox(height: AppSpacing.xl),
                     if (onNext != null) ...[
                       BigButton(
-                        icon: Icons.arrow_forward,
-                        label: nextPuzzleLabel,
+                        icon: _scored ? Icons.replay : Icons.arrow_forward,
+                        label: _nextLabel,
                         onPressed: onNext,
                       ),
                       const SizedBox(height: AppSpacing.md),
                     ],
                     BigButton(
-                      icon: Icons.grid_on,
+                      icon: _scored ? Icons.arrow_back : Icons.grid_on,
                       label: backLabel,
                       onPressed: onBack,
                     ),
@@ -201,6 +251,32 @@ class _CleanStar extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The stars of a scored finish. Its own label rather than the quiz's widget:
+/// `core/` imports nothing from a feature.
+class _ScoreStars extends StatelessWidget {
+  const _ScoreStars({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    return Semantics(
+      container: true,
+      label: '$count of 3 stars',
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < count; i++)
+              Icon(Icons.star, size: AppIconSizes.large, color: color),
+          ],
+        ),
       ),
     );
   }

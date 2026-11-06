@@ -47,6 +47,20 @@ abstract final class AppRoutes {
   /// easy mode and the counting choice — come from the profile.
   static const String arcadeSnake = '/arcade/snake';
 
+  /// The Quiz menu (`PLAN-phase-10-quiz.md` §4.5).
+  static const String quiz = '/quiz';
+
+  /// The quiz shelf, where a child ticks what they have read or watched
+  /// (`PLAN-phase-10-quiz.md` §4.5).
+  static const String quizShelf = '/quiz/shelf';
+
+  /// The list of titles to play one of (`PLAN-phase-10-quiz.md` §4.5).
+  static const String quizPick = '/quiz/pick';
+
+  /// One quiz round, being played. Pushed with a `QuizPlayArgs`
+  /// (`PLAN-phase-10-quiz.md` §4.5).
+  static const String quizPlay = '/quiz/play';
+
   /// The drawing gallery, from phase 8.
   static const String draw = '/draw';
 

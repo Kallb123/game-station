@@ -434,6 +434,31 @@ class ProgressRepository extends ChangeNotifier {
         (profile) => profile.copyWith(tracks: update(profile.tracks)),
       );
 
+  // --- quiz --------------------------------------------------------------
+
+  /// Ticks ([known] true) or unticks the titles in [titleIds] on the active
+  /// profile's shelf. Ids not named are untouched, including ones this build
+  /// does not know: a later build's or a withdrawn title's tick must survive
+  /// (`PLAN-phase-10-quiz.md` §4.7). Ticking what is ticked changes nothing and
+  /// so writes nothing, as [_apply] compares before it schedules.
+  void setQuizKnown(Iterable<String> titleIds, {required bool known}) =>
+      updateQuiz(
+        (quiz) => quiz.copyWith(
+          known: known
+              ? {...quiz.known, ...titleIds}
+              : {...quiz.known}.difference(titleIds.toSet()),
+        ),
+      );
+
+  /// Replaces the active profile's quiz block with what [update] makes of it.
+  /// A round's end and a quit both use it as `updateQuiz(round.applyTo)`
+  /// (`PLAN-phase-10-quiz.md` §4.7).
+  void updateQuiz(QuizProgress Function(QuizProgress) update) =>
+      _replaceProfile(
+        _data.activeProfileId,
+        (profile) => profile.copyWith(quiz: update(profile.quiz)),
+      );
+
   // --- tracks ------------------------------------------------------------
 
   /// Changes the skin the active profile draws Tracks with. Per profile, so
