@@ -392,7 +392,14 @@ asked**, for two integers and a seed per title. Determinism here is convenience,
 it is for puzzles: if `GameRng`'s sequence ever changed, the cost is a few repeats.
 
 **A single-title round** takes the next ten from that title's order. With `minQuestionsPerTitle`
-equal to the round length, a round never repeats a question within itself.
+equal to the round length, ten questions always fit in one order, but a round need not start at the
+top of one: a mixed round can leave a title at 20 of 24, and the single-title round after it then
+runs off the end and reshuffles part-way through, where the new order may put one of the four it has
+just asked near its front. So **a draw passes over any question the same round has already asked**,
+advancing `next` past it. That question loses its turn in the new order, which it has just had; the
+alternatives were worse — reseeding until the new order happens to start clear is a loop whose length
+depends on luck, and abandoning the old order at the start of a round drops its unasked remainder.
+*(Added in PR 5, which found the original sentence true only for a round that starts an order.)*
 
 **A mixed round** takes ten questions from ticked, offered titles, rotating **by series first, then
 by title within a series**, each series and each title order shuffled per round. Rotating by series
@@ -402,8 +409,11 @@ that title's `next`, so mixed and single-title rounds share one order per title 
 what the other just asked.
 
 **Within a round**, questions are ordered level 1 before level 2, so a round starts with its easiest
-questions. Options are the right answer plus two of the three wrong ones, chosen and shuffled by a
-round `GameRng` seeded from the clock, as an arcade run is.
+questions; the sort is stable, so within a level a mixed round keeps its rotation. Options are the
+right answer plus two of the three wrong ones, chosen and shuffled by a round `GameRng` seeded from
+the clock, as an arcade run is. The same generator draws a title's first seed and every reseed, and
+shuffles a mixed round's series and titles. It is consumed in a fixed order — those shuffles, then
+the ten draws, then the options in the order shown — so a seeded test pins a whole round.
 
 **Scoring.** The round counts right answers. Nothing else is scored.
 
@@ -438,7 +448,11 @@ the proof the move changed nothing.
 - **Written at the end of each round, on quitting a round, and on each shelf toggle**, not per answer
   (§2). Quitting writes the `next` values the answered questions advanced, so a child who quits after
   one question is not asked it again first next time; a force-quit loses at most that round's
-  advance, which costs a few repeats.
+  advance, which costs a few repeats. Because a round is shown sorted by level, the answered
+  questions of a title need not be a prefix of what was drawn from it, and `next` can only record a
+  prefix: each title advances to just past its answered question drawn **last**, so a drawn question
+  left unanswered before that point is passed over for this order rather than an answered one asked
+  again first. A quit changes no `rounds` or `best`; only a finished round counts.
 - `schemaVersion` stays 1: the field is optional with a default, the reasoning phases 3, 4, 7, 8 and
   9 recorded. `transfer_codec.dart` nests the save codec's output, so a players file carries it
   unchanged; `ProfileImportEntry.result` builds a profile field by field, and the guard test phase 9
@@ -687,6 +701,18 @@ within itself; a mixed round over one ticked Narnia book and four ticked Dahl bo
 five Narnia questions out of ten, the series alternating; every level-1 question in a round precedes every level-2 one;
 each question's three options are distinct and include the answer; `game_rng_test.dart` passes with
 its literals unchanged; `no_random_test.dart` still passes.
+*Outcome:* built as above, with one design addition. §4.6 claimed a single-title round never repeats
+because the threshold equals the round length, which holds only for a round that starts an order; a
+draw now passes over any question the same round has asked, and §4.6 says why. §4.7 now says how a
+quit records a level-sorted round: each title advances past its answered question drawn last. Each
+question in a round carries its title's `seed`, `next` and `pool` as they stood after its draw, so
+the save written on a quit is read off the round rather than recomputed. The 24-question test runs
+twice: one title's cursor drawn 72 times, each block of 24 a permutation, and back-to-back rounds,
+where the first 24 asks are a permutation and no order or round repeats a question — a round that
+reseeds part-way passes over what it asked, so its new order is short by those. Breaking the skip,
+the stable level sort or the draw-index rule each fails tests. A test pins `quizRoundLength` at or
+under `minQuestionsPerTitle`, because the skip loop ends only while that holds. `game_rng_test.dart`
+changed only its import line.
 
 **PR 6 — the screens.** The Quiz menu, shelf, title list and play screen, the Quiz card on the Arcade
 menu, routes, sounds and haptics.
@@ -766,7 +792,7 @@ copied into §8, with every title under the threshold named — those are hidden
 - [x] `grep -rn 'app-release.apk' .github tool README.md` prints nothing. *(PR 3.)*
 - [ ] A save from before PR 4 loads on the PR 13 build with `quiz` empty (fixture test in
       `save_codec_test.dart`). The fixture test exists from PR 4 (`preQuizSaveJson`).
-- [ ] `game_rng_test.dart` passes with its literals unchanged after the move to `core/`; `git log -p
+- [x] `game_rng_test.dart` passes with its literals unchanged after the move to `core/`; `git log -p
       -- app/test/**/game_rng_test.dart` shows only the path change. *(PR 5.)*
 - [ ] `dart tool/check_offline.dart` passes and `git diff <plan commit> -- '*/pubspec.yaml'` shows only
       the `version:` line and the `assets/quiz/` declaration.

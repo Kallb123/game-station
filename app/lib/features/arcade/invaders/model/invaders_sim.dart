@@ -26,8 +26,8 @@
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/game_rng.dart';
 import '../../shared/fixed_step.dart' as shared_step;
-import '../../shared/game_rng.dart';
 import '../../shared/pad_input.dart';
 import 'invaders_rules.dart';
 

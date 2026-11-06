@@ -1,5 +1,8 @@
-// The seeded source every Invaders run draws from: which column an alien
-// fires from, the UFO's crossing time and its score (`PLAN-phase-4.md` §4.3).
+// The seeded source the arcade and the quiz draw from: which column an alien
+// fires from, the UFO's crossing time and its score (`PLAN-phase-4.md` §4.3),
+// and the quiz's question and answer order (`PLAN-phase-10-quiz.md` §4.6).
+// It lives in `core/` because a second feature uses it, the reason `clock.dart`
+// moved there.
 //
 // `dart:math`'s `Random(seed)` stays out of `app/lib` for the same reason
 // `PLAN-phase-1.md` §1 kept it out of the engine: it carries no guarantee of a
@@ -29,7 +32,8 @@ int _mul32(int a, int b) {
   return (low + (high << 16)) & _mask32;
 }
 
-/// The seeded source behind every non-deterministic choice Invaders makes.
+/// The seeded source behind every non-deterministic choice the arcade and the
+/// quiz make.
 ///
 /// Xorshift32, seeded by one round of SplitMix32 — the same shape as the
 /// engine's `Rng`, and for one of its reasons: masking to 32 bits at every
@@ -43,10 +47,9 @@ int _mul32(int a, int b) {
 /// to literals so an unintended change shows up as a diff of numbers rather
 /// than a game that plays differently for no visible reason.
 ///
-/// Not exported past `features/arcade/shared/`: reusing the engine's `Rng`
-/// instead was rejected in `PLAN-phase-4.md` §3 because exporting a frozen
-/// sequence generator for a use that must not be frozen undoes the reason it
-/// is frozen at all.
+/// Reusing the engine's `Rng` instead was rejected in `PLAN-phase-4.md` §3
+/// because exporting a frozen sequence generator for a use that must not be
+/// frozen undoes the reason it is frozen at all.
 class GameRng {
   /// Creates a generator for [seed]; the same seed always replays the same
   /// sequence.

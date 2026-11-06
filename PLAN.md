@@ -682,6 +682,7 @@ game-station/
    │  ├─ core/
    │  │  ├─ storage/                # ProgressRepository, atomic write, migrations
    │  │  ├─ audio/                  # minisound wrapper, mute-aware (PLAN-phase-5.md §4.2)
+   │  │  ├─ game_rng.dart           # seeded PRNG for arcade runs and quiz order (PLAN-phase-10-quiz.md §4.6)
    │  │  ├─ haptics.dart            # HapticFeedback, mobile-gated, settings-gated
    │  │  └─ ui/                     # BigButton, ScreenScaffold, design tokens, avatars, layout
    │  ├─ features/
@@ -702,7 +703,6 @@ game-station/
    │  │     │  ├─ arcade_result.dart     # what one finished run reports to storage
    │  │     │  ├─ fixed_step.dart        # fixedStep, maxStepsPerFrame, the accumulator —
    │  │     │  │                         #   shared by both games since phase 7 (PLAN-phase-7-snake.md §4.7)
-   │  │     │  ├─ game_rng.dart          # the arcade's seeded PRNG, clock-seeded per run
    │  │     │  ├─ game_shell.dart        # HUD, pause, quit confirmation, game-over card
    │  │     │  ├─ on_screen_pad.dart     # LEFT/RIGHT/FIRE or a four-way D-pad, over raw Listeners
    │  │     │  └─ pad_input.dart         # one value type for the pad and the keyboard
