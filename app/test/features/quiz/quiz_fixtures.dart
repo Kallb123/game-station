@@ -54,3 +54,21 @@ QuizCatalog fixtureCatalog({
 
 /// The series part of a title id.
 String seriesOf(String titleId) => titleId.split('.').first;
+
+/// Like [fixtureCatalog] plus a TV series of two titles, so a screen has more
+/// than one collection to offer.
+QuizCatalog fixtureMultiCollectionCatalog() {
+  final base = fixtureCatalog();
+  return QuizCatalog(
+    series: [
+      ...base.series,
+      QuizSeries(
+        id: 'show',
+        name: 'show',
+        collection: QuizCollection.tv,
+        audience: QuizAudience.store,
+        titles: [fixtureTitle('show.one', 24), fixtureTitle('show.two', 24)],
+      ),
+    ],
+  );
+}
