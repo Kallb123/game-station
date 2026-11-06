@@ -701,6 +701,18 @@ within itself; a mixed round over one ticked Narnia book and four ticked Dahl bo
 five Narnia questions out of ten, the series alternating; every level-1 question in a round precedes every level-2 one;
 each question's three options are distinct and include the answer; `game_rng_test.dart` passes with
 its literals unchanged; `no_random_test.dart` still passes.
+*Outcome:* built as above, with one design addition. §4.6 claimed a single-title round never repeats
+because the threshold equals the round length, which holds only for a round that starts an order; a
+draw now passes over any question the same round has asked, and §4.6 says why. §4.7 now says how a
+quit records a level-sorted round: each title advances past its answered question drawn last. Each
+question in a round carries its title's `seed`, `next` and `pool` as they stood after its draw, so
+the save written on a quit is read off the round rather than recomputed. The 24-question test runs
+twice: one title's cursor drawn 72 times, each block of 24 a permutation, and back-to-back rounds,
+where the first 24 asks are a permutation and no order or round repeats a question — a round that
+reseeds part-way passes over what it asked, so its new order is short by those. Breaking the skip,
+the stable level sort or the draw-index rule each fails tests. A test pins `quizRoundLength` at or
+under `minQuestionsPerTitle`, because the skip loop ends only while that holds. `game_rng_test.dart`
+changed only its import line.
 
 **PR 6 — the screens.** The Quiz menu, shelf, title list and play screen, the Quiz card on the Arcade
 menu, routes, sounds and haptics.
@@ -780,7 +792,7 @@ copied into §8, with every title under the threshold named — those are hidden
 - [x] `grep -rn 'app-release.apk' .github tool README.md` prints nothing. *(PR 3.)*
 - [ ] A save from before PR 4 loads on the PR 13 build with `quiz` empty (fixture test in
       `save_codec_test.dart`). The fixture test exists from PR 4 (`preQuizSaveJson`).
-- [ ] `game_rng_test.dart` passes with its literals unchanged after the move to `core/`; `git log -p
+- [x] `game_rng_test.dart` passes with its literals unchanged after the move to `core/`; `git log -p
       -- app/test/**/game_rng_test.dart` shows only the path change. *(PR 5.)*
 - [ ] `dart tool/check_offline.dart` passes and `git diff <plan commit> -- '*/pubspec.yaml'` shows only
       the `version:` line and the `assets/quiz/` declaration.
