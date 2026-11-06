@@ -34,7 +34,10 @@ class _QuizShelfScreenState extends ConsumerState<QuizShelfScreen> {
   Widget build(BuildContext context) {
     final catalog = ref.watch(quizCatalogProvider);
     final quiz = ref.watch(activeProfileProvider).quiz;
-    final repo = ref.read(progressRepositoryProvider);
+    // Read at tap time rather than held from this build, for the reason
+    // `arcade_menu_screen.dart`'s `setOptions` gives.
+    void setKnown(List<String> ids, {required bool known}) =>
+        ref.read(progressRepositoryProvider).setQuizKnown(ids, known: known);
     final brightness = Theme.of(context).brightness;
     final offered = {for (final t in catalog.offeredTitles) t.id};
 
@@ -109,7 +112,7 @@ class _QuizShelfScreenState extends ConsumerState<QuizShelfScreen> {
             label: quizAllLabel(series.collection),
             selected: allTicked,
             // Ticks all if any is unticked, else unticks all.
-            onPressed: () => repo.setQuizKnown(ids, known: !allTicked),
+            onPressed: () => setKnown(ids, known: !allTicked),
           ),
         );
         for (final t in titles) {
@@ -121,7 +124,7 @@ class _QuizShelfScreenState extends ConsumerState<QuizShelfScreen> {
               seriesColor: color,
               progress: quiz.titles[t.id],
               ticked: ticked,
-              onTap: () => repo.setQuizKnown([t.id], known: !ticked),
+              onTap: () => setKnown([t.id], known: !ticked),
             ),
           );
         }
