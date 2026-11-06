@@ -13,6 +13,9 @@ import 'package:zibo_games/core/storage/save_data.dart';
 /// the setting itself.
 class RecordingAudio implements AppAudio {
   final List<Motif> played = [];
+
+  /// The gain of each entry in [played], in step with it.
+  final List<double> gains = [];
   final Set<Motif> looping = {};
   final Set<Motif> preloaded = {};
   bool _sound = true;
@@ -21,6 +24,7 @@ class RecordingAudio implements AppAudio {
   void play(Motif motif, {double gain = 1.0}) {
     if (!_sound) return;
     played.add(motif);
+    gains.add(gain);
   }
 
   @override

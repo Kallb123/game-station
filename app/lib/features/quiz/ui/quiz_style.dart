@@ -117,3 +117,6 @@ class QuizStars extends StatelessWidget {
     );
   }
 }
+
+/// Shown on the play screen when a round cannot be made.
+const String nothingToAskMessage = 'No questions to ask yet';
