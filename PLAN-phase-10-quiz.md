@@ -671,6 +671,14 @@ reuses Gradle's work and took about a minute on CI against five for the first.
 codec and through a players file unchanged; an unknown title id in `known` survives a round trip; an
 entry with `next` greater than `pool` is dropped and the rest load; the import guard test fails
 before `quiz` is added to the import and passes after; `schemaVersion` is still 1.
+*Outcome:* built as planned. `known` is a set in memory, written sorted, and duplicates collapse on
+read. Inside `quiz` every key is optional; a title entry's `seed`, `next` and `pool` are required,
+while `rounds` and `best` default to 0. A wrong type is a format error naming its path, as everywhere
+else in the codec, while a negative number or a `next` beyond `pool` drops that title entry and a
+negative `mixed` reads as the default. A `next` equal to `pool` is kept, because it means the order is
+used up and the next draw reseeds. `preQuizSaveJson` freezes main's encoder output for `fullSave()`
+before the change. The import guard test failed with `quiz` in the fixture and not in
+`ProfileImportEntry.result`, and passed once it was added.
 
 **PR 5 — the round.** `QuizPicker`, `QuizRound`, and `game_rng.dart` moved to `core/`.
 **Done when:** plain `test()` cases show that a title of 24 questions asks all 24 before any repeats,
@@ -757,7 +765,7 @@ copied into §8, with every title under the threshold named — those are hidden
       `android-apk.yml` asserts all four.)*
 - [x] `grep -rn 'app-release.apk' .github tool README.md` prints nothing. *(PR 3.)*
 - [ ] A save from before PR 4 loads on the PR 13 build with `quiz` empty (fixture test in
-      `save_codec_test.dart`).
+      `save_codec_test.dart`). The fixture test exists from PR 4 (`preQuizSaveJson`).
 - [ ] `game_rng_test.dart` passes with its literals unchanged after the move to `core/`; `git log -p
       -- app/test/**/game_rng_test.dart` shows only the path change. *(PR 5.)*
 - [ ] `dart tool/check_offline.dart` passes and `git diff <plan commit> -- '*/pubspec.yaml'` shows only

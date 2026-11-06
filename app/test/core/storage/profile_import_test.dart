@@ -225,6 +225,13 @@ void main() {
           bestTimeMs: {'5x5:easy': 40000},
           bestSolve: {'5x5:easy': SolvedPuzzle(timeMs: 40000, hints: 1)},
         ),
+        quiz: const QuizProgress(
+          known: {'dahl.matilda'},
+          titles: {
+            'dahl.matilda': QuizTitleProgress(seed: 7, next: 3, pool: 20),
+          },
+          mixed: QuizMixedProgress(rounds: 1, best: 6),
+        ),
       );
 
       repository.applyProfileImport(repository.planProfileImport([file]));
@@ -245,6 +252,13 @@ void main() {
             solved: {'tracks:5x5:easy:1': SolvedPuzzle(timeMs: 40000)},
             bestTimeMs: {'5x5:easy': 40000},
             bestSolve: {'5x5:easy': SolvedPuzzle(timeMs: 40000, hints: 1)},
+          ),
+          quiz: const QuizProgress(
+            known: {'dahl.matilda'},
+            titles: {
+              'dahl.matilda': QuizTitleProgress(seed: 7, next: 3, pool: 20),
+            },
+            mixed: QuizMixedProgress(rounds: 1, best: 6),
           ),
         ),
       );
