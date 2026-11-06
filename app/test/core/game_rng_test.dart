@@ -8,7 +8,7 @@
 // visible reason.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zibo_games/features/arcade/shared/game_rng.dart';
+import 'package:zibo_games/core/game_rng.dart';
 
 /// The first five `nextUint32()` draws for three seeds, captured from this
 /// implementation.

@@ -1,8 +1,8 @@
 // The whole of Snake, as plain Dart (`PLAN-phase-7-snake.md` §3, §4.1).
 //
 // No Flame, no widgets, no clock, and — unlike `invaders_sim.dart`, which
-// imports `shared/game_rng.dart` — no import from `shared/` at all beyond
-// `PadInput`: PR 3's rule for `model/` is that `PadInput` is its only outside
+// imports `core/game_rng.dart` — no import from outside `model/` at all
+// beyond `PadInput`: PR 3's rule for `model/` is that `PadInput` is its only outside
 // import, so [_SnakeRng] below is a copy of `GameRng`'s xorshift32, not a
 // share of it. That mirrors `game_rng.dart`'s own reason for copying rather
 // than importing the engine's `Rng` — crossing a boundary that should not be
@@ -486,7 +486,7 @@ const int _mask32 = 0xFFFFFFFF;
 const int _uint32Size = 4294967296;
 
 /// `(a * b) & _mask32`, computed in halves so it stays exact on the web —
-/// copied from `shared/game_rng.dart`'s `_mul32` rather than imported, for
+/// copied from `core/game_rng.dart`'s `_mul32` rather than imported, for
 /// the reason this file's header gives.
 int _mul32(int a, int b) {
   final low = (a & 0xFFFF) * b;
@@ -495,7 +495,7 @@ int _mul32(int a, int b) {
 }
 
 /// The seeded source behind target and decoy placement — a copy of
-/// `shared/game_rng.dart`'s `GameRng`, not an import of it, so that
+/// `core/game_rng.dart`'s `GameRng`, not an import of it, so that
 /// `model/`'s only outside import stays `PadInput`
 /// (`PLAN-phase-7-snake.md` PR 3). See that file for why xorshift32 seeded by
 /// one round of SplitMix32, rather than `dart:math`'s `Random`, is what keeps
