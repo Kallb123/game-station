@@ -31,6 +31,8 @@ import 'package:zibo_games/features/arcade/invaders/invaders_game.dart';
 import 'package:zibo_games/features/draw/data/drawing_repository.dart';
 import 'package:zibo_games/features/draw/data/providers.dart';
 import 'package:zibo_games/features/draw/ui/draw_sheet_screen.dart';
+import 'package:zibo_games/features/quiz/data/providers.dart';
+import 'package:zibo_games/features/quiz/ui/quiz_play_screen.dart';
 import 'package:zibo_games/features/sudoku/data/providers.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_grid_view.dart';
 import 'package:zibo_games/features/sudoku/ui/sudoku_play_screen.dart';
@@ -41,6 +43,7 @@ import 'package:zibo_games/features/tracks/ui/tracks_play_screen.dart';
 import 'package:zibo_games/routes.dart';
 
 import 'app_harness.dart';
+import 'features/quiz/quiz_fixtures.dart';
 import 'features/sudoku/puzzle_fixtures.dart';
 import 'features/tracks/tracks_puzzle_fixtures.dart';
 
@@ -63,8 +66,8 @@ const Map<String, Size> _sweepSizes = {
 };
 
 /// Every route, and the arguments it needs to be pushed with — every one but
-/// [AppRoutes.sudokuPlay], [AppRoutes.tracksPlay] and [AppRoutes.drawSheet]
-/// takes none (`routes.dart`).
+/// [AppRoutes.sudokuPlay], [AppRoutes.tracksPlay], [AppRoutes.drawSheet] and
+/// [AppRoutes.quizPlay] takes none (`routes.dart`).
 Map<String, Object?> _sweepRoutes(PuzzleId puzzleId) => {
   AppRoutes.home: null,
   AppRoutes.profiles: null,
@@ -86,6 +89,12 @@ Map<String, Object?> _sweepRoutes(PuzzleId puzzleId) => {
   // (`transfer_screen.dart`); the confirmation page's own 200% check lives in
   // `transfer_screen_test.dart`.
   AppRoutes.transfer: null,
+  AppRoutes.quiz: null,
+  AppRoutes.quizShelf: null,
+  AppRoutes.quizPick: null,
+  // A single-title round, because a fresh save has nothing ticked for a mixed
+  // one to draw from (`PLAN-phase-10-quiz.md` §4.5).
+  AppRoutes.quizPlay: const QuizPlayArgs.title(narniaId),
 };
 
 /// Leaves the game the way a child would, so the repository's debounced
@@ -132,6 +141,9 @@ void main() {
               drawingRepositoryProvider.overrideWithValue(
                 DrawingRepository(drawingDir),
               ),
+              // Five titles of 24 questions: enough for the shelf and the
+              // pick list to scroll, which is what a narrow window strains.
+              quizCatalogProvider.overrideWithValue(fixtureCatalog()),
             ],
           );
 
