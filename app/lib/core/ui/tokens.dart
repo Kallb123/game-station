@@ -123,6 +123,69 @@ abstract final class AppTypeScale {
   static const double textHeight = 1.35;
 }
 
+/// Sizes of the quiz play screen (`PLAN-quiz-screen.md` §1, §4.2).
+///
+/// A group of its own because the quiz is the one screen read by a child who
+/// is still learning to read, so its type is far larger than [AppTypeScale]
+/// and must not be pulled back by a change to the app-wide scale.
+abstract final class AppQuizSizes {
+  /// 30 dp — the question, bold. Nearly twice the body size: the complaint
+  /// that started the redesign was a question too small to read comfortably.
+  static const double question = 30;
+
+  /// 34 dp — the question when the screen has two columns. The card is the
+  /// whole left half there and 30 dp would leave it mostly empty.
+  static const double questionWide = 34;
+
+  /// 24 dp — an answer, bold.
+  static const double answer = 24;
+
+  /// Line height of the question and the answers. Looser than a heading and
+  /// tighter than [AppTypeScale.textHeight]: these are short blocks that wrap.
+  static const double lineHeight = 1.3;
+
+  /// 36 dp — the most the question and the answers ever grow to with the
+  /// system text setting. It is what the old 18 dp text reached at 200 %, so
+  /// no setting draws the quiz smaller than before; unclamped, a 30 dp
+  /// question at 200 % is 60 dp, about five characters a line on a phone.
+  static const double textCeiling = 36;
+
+  /// 88 dp — the least an answer is tall. Taller than [AppTapTargets.primary]
+  /// because the shape and the label need to sit comfortably in it.
+  static const double answerMinHeight = 88;
+
+  /// 28 dp — the corners of an answer and of the question card, which are the
+  /// same size so the card does not read as a different kind of thing.
+  static const double radius = 28;
+
+  /// 12 dp — between two answers.
+  static const double answerGap = 12;
+
+  /// 26 dp — the circle, triangle or square on an answer. Colour never says
+  /// which answer is which on its own, so the shape does too.
+  static const double shape = 26;
+
+  /// 44 dp — the tick or cross badge on an answer.
+  static const double badge = 44;
+
+  /// 14 dp — the progress bar's height, one segment per question.
+  static const double progressHeight = 14;
+
+  /// 7 dp — the progress segments' corners: half the height, so they are pills.
+  static const double progressRadius = 7;
+
+  /// 6 dp — between two progress segments.
+  static const double progressGap = 6;
+
+  /// 4 dp — the ring around the right answer. Drawn outside the answer, so
+  /// that it appears without the answer moving.
+  static const double ring = 4;
+
+  /// 4 dp — the clear gap between the right answer and its ring, so the ring
+  /// reads as a ring rather than a thicker edge.
+  static const double ringGap = 4;
+}
+
 /// A seed colour per surface role, for one brightness.
 ///
 /// Roles rather than literal colours: `sudoku` is "the colour Sudoku is", so

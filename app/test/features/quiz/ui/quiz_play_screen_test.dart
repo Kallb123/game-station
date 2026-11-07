@@ -86,6 +86,13 @@ Future<_Run> _open(
   return (int.parse(m[1]!), m[2]!);
 }
 
+Rect _answerRect(WidgetTester tester, int i) =>
+    tester.getRect(find.byKey(ValueKey('quizAnswer$i')));
+
+List<Rect> _answerRects(WidgetTester tester) => [
+  for (var i = 0; i < 3; i++) _answerRect(tester, i),
+];
+
 Finder _right(WidgetTester tester) => find.text('A ${_shown(tester).$1}');
 Finder _wrong(WidgetTester tester) => find.text('W ${_shown(tester).$1} a');
 
@@ -158,39 +165,79 @@ void main() {
     },
   );
 
-  testWidgets('a wrong answer leaves the rest open, a right one locks', (
+  testWidgets('a wrong answer greys out gently, a right one locks', (
     tester,
   ) async {
     await _open(tester, const QuizPlayArgs.title(narniaId));
+    final (n, _) = _shown(tester);
     expect(find.text(nextLabel), findsNothing);
-    expect(find.byIcon(Icons.check_circle), findsNothing);
+    expect(find.text(notThisOneNote), findsNothing);
+    expect(find.text(tapAnAnswerHint), findsOneWidget);
+
+    final rects = _answerRects(tester);
 
     await tester.tap(_wrong(tester));
     await _settle(tester);
-    final (n, _) = _shown(tester);
     expect(find.text(nextLabel), findsNothing);
-    expect(find.byIcon(Icons.check_circle), findsNothing);
+    expect(find.text(notThisOneNote), findsOneWidget);
+    expect(find.text(tryAgainMessage), findsOneWidget);
+    expect(find.text(tapAnAnswerHint), findsNothing);
+    expect(find.bySemanticsLabel('W $n a, not this one'), findsOneWidget);
+    expect(_answerRects(tester), rects);
 
-    // The wrong choice shows its error colour and cannot be tapped again.
-    final material = tester.widget<Material>(
-      find
-          .ancestor(of: find.text('W $n a'), matching: find.byType(Material))
-          .first,
-    );
-    final colors = Theme.of(tester.element(find.text('W $n a'))).colorScheme;
-    expect(material.color, colors.errorContainer);
+    // Nothing is drawn in the error colour: a wrong try is not a failure.
+    final colors = Theme.of(tester.element(find.text('A $n'))).colorScheme;
+    final errorMaterials = tester
+        .widgetList<Material>(find.byType(Material))
+        .where((m) => m.color == colors.errorContainer);
+    expect(errorMaterials, isEmpty);
+
+    // Tapping the tried answer again does nothing.
+    await tester.tap(_wrong(tester));
+    await _settle(tester);
+    expect(find.text(notThisOneNote), findsOneWidget);
 
     // The right answer is still tappable, and solves the question.
     await tester.tap(find.text('A $n'));
     await _settle(tester);
     expect(find.text(nextLabel), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.text(wellDoneMessage), findsOneWidget);
+    expect(find.text(tryAgainMessage), findsNothing);
+    expect(find.byType(FilledButton), findsOneWidget);
     expect(find.bySemanticsLabel('A $n, right answer'), findsOneWidget);
+    expect(_answerRects(tester), rects);
 
     await tester.tap(find.text(nextLabel));
     await _settle(tester);
     expect(find.text(nextLabel), findsNothing);
-    expect(find.byIcon(Icons.check_circle), findsNothing);
+    expect(find.text(notThisOneNote), findsNothing);
+    expect(find.text(tapAnAnswerHint), findsOneWidget);
+    expect(find.byType(FilledButton), findsNothing);
+  });
+
+  testWidgets('the progress bar reads as one label', (tester) async {
+    await _open(tester, const QuizPlayArgs.title(narniaId));
+    expect(find.bySemanticsLabel('Question 1 of 10'), findsOneWidget);
+    expect(find.text('1 / 10'), findsOneWidget);
+  });
+
+  testWidgets('a wide window puts the question left of the answers', (
+    tester,
+  ) async {
+    await _open(tester, const QuizPlayArgs.title(narniaId));
+    tester.view.physicalSize = const Size(960, 600);
+    await tester.pumpAndSettle();
+
+    final (n, _) = _shown(tester);
+    final question = tester.getRect(find.text('Q $n of $narniaId'));
+    final answers = [for (var i = 0; i < 3; i++) _answerRect(tester, i)];
+    for (final a in answers) {
+      expect(question.right, lessThan(a.left));
+    }
+    // The three answers are stacked in one column.
+    expect(answers[0].left, answers[1].left);
+    expect(answers[0].bottom, lessThan(answers[1].top));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('quitting after three answers saves the place but not the score', (
