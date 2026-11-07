@@ -56,11 +56,6 @@ class QuizPlayArgs {
   int get hashCode => titleId.hashCode;
 }
 
-/// Line height of the question and answers: the theme's 1.4 is for running
-/// text, and these are short blocks that wrap at 200 % text, where a tighter
-/// line is the difference between fitting a phone and scrolling (§4.8).
-const double _quizTextHeight = 1.2;
-
 /// One round of the quiz, played.
 class QuizPlayScreen extends ConsumerStatefulWidget {
   const QuizPlayScreen({required this.args, super.key});
@@ -106,8 +101,11 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
   void _choose(int option) {
     final round = _round!;
-    // A locked question ignores further taps.
-    if (round.chosenAt(round.index) != null) return;
+    // A solved question, or an option already tried, ignores further taps.
+    if (round.isSolved(round.index) ||
+        round.wrongTriesAt(round.index).contains(option)) {
+      return;
+    }
 
     final right = round.answer(option);
     if (right) {
@@ -123,7 +121,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
   void _next() {
     final round = _round!;
-    if (round.chosenAt(round.index) == null) return;
+    if (!round.isSolved(round.index)) return;
 
     if (round.index < round.questions.length - 1) {
       setState(round.advance);
@@ -141,7 +139,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   Future<void> _confirmQuit() async {
     final round = _round;
     // Nothing answered loses nothing; a finished round is already written.
-    if (round == null || _finished || round.answeredCount == 0) {
+    if (round == null || _finished || round.solvedCount == 0) {
       popIfPossible(context);
       return;
     }
@@ -228,15 +226,13 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   }
 
   Widget _playing(BuildContext context, QuizRound round) {
-    // Capped on a tablet as every menu is: three answers stretched across
-    // 800 dp read as bars rather than buttons. A phone is drawn unchanged.
-    final question = ContentWidthCap(
-      child: QuizQuestionView(
-        round: round,
-        onChoose: _choose,
-        onNext: _next,
-        onBack: () => unawaited(_confirmQuit()),
-      ),
+    // The view caps its own width: only its one-column layout is capped,
+    // since two columns need the room.
+    final question = QuizQuestionView(
+      round: round,
+      onChoose: _choose,
+      onNext: _next,
+      onBack: () => unawaited(_confirmQuit()),
     );
     if (!_finished) return question;
 
@@ -274,13 +270,14 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   }
 }
 
-/// The play screen's chrome and the question on it: back, progress dots, the
-/// question, its three answers and the reserved *Next* slot.
+/// The play screen's chrome and the question on it: back, progress bar, the
+/// question card, its three answers and the feedback slot
+/// (`PLAN-quiz-screen.md` §4.2).
 ///
-/// Public and driven by a [QuizRound] so the §4.8 text-size test can pump the
-/// real layout. It holds no state of its own; the screen rebuilds it as the
+/// Public and driven by a [QuizRound] so the layout test can pump the real
+/// layout. It owns only a scroll controller; the screen rebuilds it as the
 /// round moves.
-class QuizQuestionView extends StatelessWidget {
+class QuizQuestionView extends StatefulWidget {
   const QuizQuestionView({
     required this.round,
     required this.onChoose,
@@ -291,142 +288,358 @@ class QuizQuestionView extends StatelessWidget {
 
   final QuizRound round;
 
-  /// Called with the tapped option's index; ignored once answered.
+  /// Called with the tapped option's index; ignored once it is locked.
   final ValueChanged<int> onChoose;
   final VoidCallback onNext;
   final VoidCallback onBack;
 
   @override
+  State<QuizQuestionView> createState() => _QuizQuestionViewState();
+}
+
+class _QuizQuestionViewState extends State<QuizQuestionView> {
+  final ScrollController _scroll = ScrollController();
+
+  /// Identifies the feedback slot, so it can be scrolled into view.
+  final GlobalKey _feedbackKey = GlobalKey();
+
+  /// Whether the question on show was solved at the last build. The round is
+  /// mutated in place, so the widget cannot compare old and new itself.
+  late bool _wasSolved = widget.round.isSolved(widget.round.index);
+
+  @override
+  void didUpdateWidget(QuizQuestionView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final solved = widget.round.isSolved(widget.round.index);
+    if (solved && !_wasSolved) {
+      // After the frame, because the solved state is what makes the slot
+      // show *Next*: at large text it can be below the fold, and a child
+      // should not have to find it (§4.3).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final slot = _feedbackKey.currentContext;
+        if (!mounted || slot == null) return;
+        unawaited(
+          Scrollable.ensureVisible(
+            slot,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+          ),
+        );
+      });
+    }
+    _wasSolved = solved;
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final round = widget.round;
     final current = round.current;
-    final chosen = round.chosenAt(round.index);
-    final isLast = round.index == round.questions.length - 1;
+    final solved = round.isSolved(round.index);
+    final wrong = round.wrongTriesAt(round.index);
 
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: Padding(
-            // Tighter above and below than at the sides: at 200 % text on a
-            // 640 dp window every dp is a line of the longest question.
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.xs,
-              AppSpacing.md,
-              AppSpacing.xs,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Back and the dots share a row: a heading on its own line
-                // costs a line of a 640 dp window at 200% text for nothing
-                // the dots do not already say.
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: onBack,
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        size: AppIconSizes.large,
+      builder: (context, constraints) {
+        // The Fire tablet sideways. A tall tablet or a phone has one column.
+        final wide =
+            constraints.maxWidth >= _twoColumnMinWidth &&
+            constraints.maxWidth > constraints.maxHeight;
+
+        final content = Padding(
+          // Tighter above and below than at the sides: every dp is a line
+          // of the question on a small window.
+          padding: EdgeInsets.fromLTRB(
+            wide ? AppSpacing.xl : AppSpacing.lg,
+            AppSpacing.sm,
+            wide ? AppSpacing.xl : AppSpacing.lg,
+            AppSpacing.sm,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _TopRow(round: round, onBack: widget.onBack),
+              const SizedBox(height: AppQuizSizes.gap),
+              // Debug and profile builds only: an unchecked question is one a
+              // reviewer has not signed off, and a child never sees it
+              // (`PLAN-phase-10-quiz.md` §4.2).
+              if (!kReleaseMode && !current.question.checked)
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Chip(label: Text('unchecked')),
+                ),
+              Expanded(
+                child: wide
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _QuestionCard(
+                              text: current.question.q,
+                              fontSize: AppQuizSizes.questionWide,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xl),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _answers(current, solved, wrong),
+                                const SizedBox(height: AppQuizSizes.gap),
+                                _feedback(solved, wrong),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: _QuestionCard(
+                              text: current.question.q,
+                              fontSize: AppQuizSizes.question,
+                            ),
+                          ),
+                          const SizedBox(height: AppQuizSizes.gap),
+                          _answers(current, solved, wrong),
+                          const SizedBox(height: AppQuizSizes.gap),
+                          _feedback(solved, wrong),
+                        ],
                       ),
-                      tooltip: 'Back',
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(child: _ProgressDots(round: round)),
-                  ],
-                ),
-                // Debug and profile builds only: an unchecked question is one
-                // a reviewer has not signed off, and a child never sees it
-                // (§4.2).
-                if (!kReleaseMode && !current.question.checked)
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Chip(label: Text('unchecked')),
-                  ),
-                const SizedBox(height: AppSpacing.sm),
-                Semantics(
-                  header: true,
-                  child: Text(
-                    current.question.q,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      height: _quizTextHeight,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                for (var i = 0; i < current.options.length; i++) ...[
-                  if (i > 0) const SizedBox(height: AppSpacing.xs),
-                  _AnswerButton(
-                    key: ValueKey('quizAnswer$i'),
-                    text: current.options[i],
-                    state: chosen == null
-                        ? _AnswerState.open
-                        : i == current.answerIndex
-                        ? _AnswerState.right
-                        : i == chosen
-                        ? _AnswerState.wrong
-                        : _AnswerState.other,
-                    onTap: () => onChoose(i),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.sm),
-                _NextSlot(
-                  visible: chosen != null,
-                  label: isLast ? finishLabel : nextLabel,
-                  onPressed: onNext,
-                ),
-              ],
+              ),
+            ],
+          ),
+        );
+
+        // The card is meant to fill what the answers leave, which is a bounded
+        // height; inside a scroll view it takes the larger of the viewport
+        // and what the content needs, so a window that is too small scrolls
+        // instead of overflowing.
+        return Scrollbar(
+          controller: _scroll,
+          // A page that scrolls should say so: a thumb that appears only on
+          // touch is invisible to a child who has not touched it (§4.3).
+          thumbVisibility: true,
+          child: SingleChildScrollView(
+            controller: _scroll,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: wide ? content : ContentWidthCap(child: content),
+              ),
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _answers(QuizRoundQuestion current, bool solved, List<int> wrong) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < current.options.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppQuizSizes.answerGap),
+          _AnswerButton(
+            key: ValueKey('quizAnswer$i'),
+            index: i,
+            text: current.options[i],
+            state: solved && i == current.answerIndex
+                ? _AnswerState.right
+                : wrong.contains(i)
+                ? _AnswerState.wrong
+                : solved
+                ? _AnswerState.other
+                : _AnswerState.open,
+            onTap: () => widget.onChoose(i),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _feedback(bool solved, List<int> wrong) {
+    final isLast = widget.round.index == widget.round.questions.length - 1;
+    // An IndexedStack is as tall as its tallest child, whatever is showing and
+    // whatever the text size, so the answers above never move when the slot
+    // changes. It also lays out, paints, hit-tests and reads out only the
+    // child at [index], so the hidden ones cannot be tapped or heard.
+    return IndexedStack(
+      key: _feedbackKey,
+      index: solved
+          ? 2
+          : wrong.isEmpty
+          ? 0
+          : 1,
+      alignment: Alignment.center,
+      children: [
+        const _IdleHint(),
+        const _TryAgainBox(),
+        _SolvedFeedback(
+          label: isLast ? finishLabel : nextLabel,
+          onNext: widget.onNext,
         ),
+      ],
+    );
+  }
+}
+
+/// The narrowest view that gets two columns. A 600 dp tablet held upright is
+/// wider than a phone but too narrow to split in half.
+const double _twoColumnMinWidth = 720;
+
+/// The scheme for a role seed, for the brightness being drawn.
+ColorScheme _role(BuildContext context, Color Function(AppPalette) seed) {
+  final brightness = Theme.of(context).brightness;
+  return AppTheme.roleScheme(seed(AppPalette.of(brightness)), brightness);
+}
+
+/// The system text scale, held so that text drawn at [fontSize] never grows
+/// past [AppQuizSizes.textCeiling]. Only the top is clamped: a child who has
+/// chosen smaller text still gets it.
+TextScaler _scaler(BuildContext context, double fontSize) => MediaQuery.of(
+  context,
+).textScaler.clamp(maxScaleFactor: AppQuizSizes.textCeiling / fontSize);
+
+/// Back, the progress bar and the counter.
+class _TopRow extends StatelessWidget {
+  const _TopRow({required this.round, required this.onBack});
+
+  final QuizRound round;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final count = round.questions.length;
+    return SizedBox(
+      height: AppTapTargets.min,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onBack,
+            tooltip: 'Back',
+            icon: const Icon(Icons.arrow_back, size: AppIconSizes.large),
+            style: IconButton.styleFrom(
+              backgroundColor: colors.surfaceContainerHigh,
+              foregroundColor: colors.onSurface,
+              fixedSize: const Size.square(AppTapTargets.min),
+              shape: const CircleBorder(),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            // One label for the bar and the counter together: the segments
+            // and "3 / 10" are the same fact twice.
+            child: Semantics(
+              container: true,
+              label: 'Question ${round.index + 1} of $count',
+              child: ExcludeSemantics(
+                child: Row(
+                  children: [
+                    Expanded(child: _ProgressBar(round: round)),
+                    const SizedBox(width: AppSpacing.lg),
+                    Text(
+                      '${round.index + 1} / $count',
+                      textScaler: MediaQuery.of(context).textScaler.clamp(
+                        maxScaleFactor: AppQuizSizes.counterMaxScale,
+                      ),
+                      style: TextStyle(
+                        fontSize: AppQuizSizes.counter,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Ten dots: answered filled, the current one ringed, the rest outlined.
-class _ProgressDots extends StatelessWidget {
-  const _ProgressDots({required this.round});
+/// One segment per question: solved filled, the current one ringed, the rest
+/// faint.
+class _ProgressBar extends StatelessWidget {
+  const _ProgressBar({required this.round});
 
   final QuizRound round;
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    final count = round.questions.length;
-    return Semantics(
-      container: true,
-      label: 'Question ${round.index + 1} of $count',
-      child: ExcludeSemantics(
-        child: Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            for (var i = 0; i < count; i++)
-              _dot(
-                color,
-                answered: round.chosenAt(i) != null,
-                current: i == round.index,
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        for (var i = 0; i < round.questions.length; i++) ...[
+          if (i > 0) const SizedBox(width: AppQuizSizes.progressGap),
+          Expanded(
+            child: Container(
+              height: AppQuizSizes.progressHeight,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(
+                  AppQuizSizes.progressRadius,
+                ),
+                color: round.isSolved(i)
+                    ? colors.primary
+                    : i == round.index
+                    ? colors.primaryContainer
+                    : colors.surfaceContainerHighest,
+                // The current segment's ring is the shape cue, so position
+                // never rests on colour alone.
+                border: i == round.index
+                    ? Border.all(
+                        color: colors.primary,
+                        width: AppBorders.selected,
+                      )
+                    : null,
               ),
-          ],
-        ),
-      ),
+            ),
+          ),
+        ],
+      ],
     );
   }
+}
 
-  Widget _dot(Color color, {required bool answered, required bool current}) {
+/// The question, on a tinted surface rather than a container colour so it
+/// cannot be mistaken for the second answer, which is the arcade container.
+class _QuestionCard extends StatelessWidget {
+  const _QuestionCard({required this.text, required this.fontSize});
+
+  final String text;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final arcade = _role(context, (p) => p.arcade);
     return Container(
-      width: 14,
-      height: 14,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: answered ? color : null,
-        // The current dot's thicker ring is the shape cue, so position never
-        // rests on colour alone.
-        border: Border.all(
-          color: color,
-          width: current ? AppBorders.selected : AppBorders.hairline,
+        color: arcade.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(AppQuizSizes.radius),
+      ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      alignment: Alignment.topLeft,
+      child: Semantics(
+        header: true,
+        child: Text(
+          text,
+          textScaler: _scaler(context, fontSize),
+          style: TextStyle(
+            fontSize: fontSize,
+            height: AppQuizSizes.lineHeight,
+            fontWeight: FontWeight.w700,
+            color: arcade.onSurface,
+          ),
         ),
       ),
     );
@@ -436,148 +649,310 @@ class _ProgressDots extends StatelessWidget {
 enum _AnswerState { open, right, wrong, other }
 
 /// One answer. Built from a [Material] and an [InkWell] rather than a button
-/// so that locking it does not turn it the disabled grey: the right and wrong
-/// colours have to survive the lock.
+/// so that locking it does not turn it the disabled grey: the state colours
+/// have to survive the lock.
+///
+/// Its place sets its colour and shape (circle, triangle, square), so colour
+/// never says which answer is which on its own.
 class _AnswerButton extends StatelessWidget {
   const _AnswerButton({
     super.key,
+    required this.index,
     required this.text,
     required this.state,
     required this.onTap,
   });
 
+  final int index;
   final String text;
   final _AnswerState state;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    // The theme has no success token, and the arcade role scheme's tertiary
-    // is a salmon that reads as the wrong answer's red. The right answer
-    // borrows the Sudoku green's container instead: the one green the palette
-    // already has, checked for contrast by `contrast_test.dart` as a role
-    // colour. The tick and the semantics label still carry the meaning.
-    final success = AppTheme.roleScheme(
-      AppPalette.of(theme.brightness).sudoku,
-      theme.brightness,
-    );
-    final (background, foreground, border) = switch (state) {
-      _AnswerState.open => (
-        colors.primaryContainer,
-        colors.onPrimaryContainer,
-        Colors.transparent,
-      ),
-      _AnswerState.right => (
-        success.primaryContainer,
-        success.onPrimaryContainer,
-        success.onPrimaryContainer,
-      ),
-      _AnswerState.wrong => (
-        colors.errorContainer,
-        colors.onErrorContainer,
-        Colors.transparent,
-      ),
-      _AnswerState.other => (
-        colors.surfaceContainerHighest,
-        colors.onSurface,
-        Colors.transparent,
-      ),
-    };
+    final surface = Theme.of(context).colorScheme;
+    final role = _role(context, (p) => [p.sudoku, p.arcade, p.draw][index % 3]);
+    final wrong = state == _AnswerState.wrong;
+    final right = state == _AnswerState.right;
+    // A wrong try greys out, never reddens: nothing here is a failure (§1).
+    final background = wrong
+        ? surface.surfaceContainerHighest
+        : role.primaryContainer;
+    final foreground = wrong
+        ? surface.onSurfaceVariant
+        : role.onPrimaryContainer;
     final locked = state != _AnswerState.open;
+
+    final label = right
+        ? '$text, right answer'
+        : wrong
+        ? '$text, not this one'
+        : text;
+    final radius = BorderRadius.circular(AppQuizSizes.radius);
+
+    Widget body = Material(
+      color: background,
+      shape: RoundedRectangleBorder(borderRadius: radius),
+      child: InkWell(
+        onTap: locked ? null : onTap,
+        customBorder: RoundedRectangleBorder(borderRadius: radius),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: AppQuizSizes.answerMinHeight,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppQuizSizes.answerPadStart,
+              AppQuizSizes.answerPadVertical,
+              AppQuizSizes.answerPadEnd,
+              AppQuizSizes.answerPadVertical,
+            ),
+            child: Row(
+              children: [
+                _shape(foreground),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        text,
+                        textScaler: _scaler(context, AppQuizSizes.answer),
+                        style: TextStyle(
+                          fontSize: AppQuizSizes.answer,
+                          height: AppQuizSizes.lineHeight,
+                          fontWeight: FontWeight.w700,
+                          color: foreground,
+                        ),
+                      ),
+                      if (wrong)
+                        Text(
+                          notThisOneNote,
+                          style: TextStyle(
+                            fontSize: AppQuizSizes.note,
+                            fontWeight: FontWeight.w500,
+                            color: foreground,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (right || wrong) ...[
+                  const SizedBox(width: AppSpacing.md),
+                  _badge(right: right, role: role, surface: surface),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (right) {
+      // The ring is painted outside the answer's own box, so it appears
+      // without anything moving (§1, "nothing jumps").
+      const outset = AppQuizSizes.ring + AppQuizSizes.ringGap;
+      body = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: -outset,
+            right: -outset,
+            top: -outset,
+            bottom: -outset,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: ShapeDecoration(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      AppQuizSizes.radius + outset,
+                    ),
+                    side: BorderSide(
+                      color: surface.onSurface,
+                      width: AppQuizSizes.ring,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          body,
+        ],
+      );
+    } else if (state == _AnswerState.other) {
+      body = Opacity(opacity: 0.4, child: body);
+    }
 
     return Semantics(
       container: true,
       button: true,
       excludeSemantics: true,
       enabled: !locked,
-      label: state == _AnswerState.right ? '$text, right answer' : text,
+      label: label,
       onTap: locked ? null : onTap,
-      child: Material(
-        color: background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.button),
-          side: BorderSide(color: border, width: AppBorders.selected),
-        ),
-        child: InkWell(
-          onTap: locked ? null : onTap,
-          customBorder: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadii.button),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: AppTapTargets.primary),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.xs,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      text,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: foreground,
-                        height: _quizTextHeight,
-                      ),
-                    ),
-                  ),
-                  if (state == _AnswerState.right) ...[
-                    const SizedBox(width: AppSpacing.sm),
-                    Icon(
-                      Icons.check_circle,
-                      size: AppIconSizes.large,
-                      color: foreground,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
+      child: body,
+    );
+  }
+
+  Widget _shape(Color color) {
+    final ShapeBorder border = switch (index % 3) {
+      0 => const CircleBorder(),
+      1 => StarBorder.polygon(sides: 3),
+      _ => RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppQuizSizes.squareShapeRadius),
+      ),
+    };
+    return SizedBox.square(
+      dimension: AppQuizSizes.shape,
+      child: DecoratedBox(
+        decoration: ShapeDecoration(color: color, shape: border),
+      ),
+    );
+  }
+
+  Widget _badge({
+    required bool right,
+    required ColorScheme role,
+    required ColorScheme surface,
+  }) {
+    return Container(
+      width: AppQuizSizes.badge,
+      height: AppQuizSizes.badge,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: right ? role.onPrimaryContainer : surface.surfaceContainer,
+      ),
+      child: Icon(
+        right ? Icons.check : Icons.close,
+        size: AppIconSizes.standard,
+        color: right ? role.primaryContainer : surface.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+/// What the slot says before anything has been tried.
+class _IdleHint extends StatelessWidget {
+  const _IdleHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        tapAnAnswerHint,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: AppTypeScale.body,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );
   }
 }
 
-/// *Next* or *Finish*, whose space is kept before an answer so the answers do
-/// not jump when it appears.
-///
-/// Before an answer the slot holds an invisible button with a blank label
-/// rather than the real one, so the height is exactly the button's at any
-/// text size while the word is not in the tree to be found or read.
-class _NextSlot extends StatelessWidget {
-  const _NextSlot({
-    required this.visible,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final bool visible;
-  final String label;
-  final VoidCallback onPressed;
+/// What the slot says after a wrong try: kind, and with a smile.
+class _TryAgainBox extends StatelessWidget {
+  const _TryAgainBox();
 
   @override
   Widget build(BuildContext context) {
-    if (visible) {
-      return BigButton(
-        icon: Icons.arrow_forward,
-        label: label,
-        onPressed: onPressed,
-      );
-    }
-    return const Visibility(
-      visible: false,
-      maintainSize: true,
-      maintainAnimation: true,
-      maintainState: true,
-      child: BigButton(
-        icon: Icons.arrow_forward,
-        // A non-breaking space: a plain one would be trimmed to no line.
-        label: ' ',
-        onPressed: null,
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      child: Container(
+        constraints: const BoxConstraints(
+          minHeight: AppQuizSizes.tryAgainMinHeight,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xl - AppSpacing.xs,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(AppRadii.button),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.sentiment_satisfied,
+              size: AppQuizSizes.smileyIcon,
+              color: colors.primary,
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Text(
+                tryAgainMessage,
+                style: TextStyle(
+                  fontSize: AppQuizSizes.message,
+                  fontWeight: FontWeight.w700,
+                  color: colors.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+/// What the slot says once the question is solved: praise, then *Next* or
+/// *Finish*. The only [FilledButton] on the screen.
+class _SolvedFeedback extends StatelessWidget {
+  const _SolvedFeedback({required this.label, required this.onNext});
+
+  final String label;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Green for a good answer, as the right answer's colour is the Sudoku
+    // role; the star and the words say it too.
+    final success = _role(context, (p) => p.sudoku);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Semantics(
+          liveRegion: true,
+          container: true,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.star,
+                size: AppQuizSizes.starIcon,
+                color: success.primary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: Text(
+                  wellDoneMessage,
+                  style: TextStyle(
+                    fontSize: AppQuizSizes.praise,
+                    height: AppTypeScale.headingHeight,
+                    fontWeight: FontWeight.w600,
+                    color: success.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Theme(
+          data: theme.copyWith(colorScheme: success),
+          child: BigButton(
+            icon: Icons.arrow_forward,
+            label: label,
+            onPressed: onNext,
+          ),
+        ),
+      ],
     );
   }
 }

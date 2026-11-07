@@ -12,13 +12,25 @@ const int minQuestionsPerTitle = 10;
 
 /// Longest question, in characters of the trimmed text (§1, §4.3).
 ///
-/// Measured, not guessed (§4.8): `quiz_play_layout_test.dart` shows a question
-/// this long, with three answers at [maxAnswerLength], answered and with Next
-/// showing, filling a 360x640 window at 200 % text with nothing to scroll. The
-/// first guess of 100 needed about 130 dp more than that window has.
-const int maxQuestionLength = 60;
+/// Measured, not guessed (`PLAN-quiz-screen.md` §1, §4.4):
+/// `quiz_play_layout_test.dart` plays the worst state (two wrong tries, then
+/// the right answer) with a question this long and three answers at
+/// [maxAnswerLength], and requires the page not to scroll at 100 % text on a
+/// 360x760 phone and a 960x528 tablet, and Next to be reachable at 200 % on
+/// 360x640. Raised in steps of 5 from the floor of 60 once the question card's
+/// padding came down to 16 dp: 80 fits, with Next ending at 752 of 760 on the
+/// phone and 520 of 528 on the tablet. 85 is 34 dp too tall for the phone
+/// window; the tablet is not the limit.
+const int maxQuestionLength = 80;
 
 /// Longest answer, right or wrong, in characters of the trimmed text (§1).
+///
+/// Measured the same way and kept at its floor of 30: with the question at 80,
+/// answers of 35 are 26 dp too tall for the phone window. (With a question of
+/// 60, 35-character answers do fit; 65 with 35 is already 26 dp over, so the
+/// longer question was preferred.) The figure holds for ordinary words:
+/// answers built round one very long word wrap sooner, which is why the layout
+/// test also renders every question in the real bank.
 const int maxAnswerLength = 30;
 
 /// The only pack and index `format` this code reads (§4.2).

@@ -54,7 +54,7 @@ const _fixtures = <String, List<String>>{
     'duplicate question id "demo.one.001", also in private/demo.json',
   ],
   'bad-level': ['level 3 is not 1 or 2'],
-  'question-too-long': ['q is 101 characters, longer than 60'],
+  'question-too-long': ['q is 101 characters, longer than 80'],
   'answer-too-long': ['a is 31 characters, longer than 30'],
   'wrong-answer-too-long': ['wrong[1] is 31 characters, longer than 30'],
   'empty-text': ['q is empty'],

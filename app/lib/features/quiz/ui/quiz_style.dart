@@ -23,6 +23,10 @@ const String backToQuizLabel = 'Back to Quiz';
 const String quizQuitTitle = 'Stop playing?';
 const String quizKeepPlayingLabel = 'Keep playing';
 const String quizStopLabel = 'Stop';
+const String tapAnAnswerHint = 'Tap an answer';
+const String tryAgainMessage = 'Good try! Have another go.';
+const String notThisOneNote = 'Not this one';
+const String wellDoneMessage = 'Yes! Well done!';
 
 /// Gives the quiz's screens the arcade role colour, as the arcade menu does
 /// for its own content (§4.5).

@@ -1,5 +1,5 @@
 // One round of the quiz as a play session: ten questions already drawn,
-// ordered and given their options, plus the answers a child has chosen so far
+// ordered and given their options, plus how far a child has got with them
 // (`PLAN-phase-10-quiz.md` §4.6).
 //
 // Pure Dart like the rest of `model/`: `QuizPicker` builds a round, the screen
@@ -45,7 +45,7 @@ class QuizRoundQuestion {
 
   /// The title's cursor just after this question was drawn: the values that
   /// go in the save if this is the last question of its title that was
-  /// answered (§4.7).
+  /// solved (§4.7).
   final int seedAfter;
   final int nextAfter;
   final int poolAfter;
@@ -57,7 +57,8 @@ class QuizRound {
   /// title of a single-title round, or null for a mixed one.
   QuizRound({required this.titleId, required List<QuizRoundQuestion> questions})
     : questions = List.unmodifiable(questions),
-      _chosen = List<int?>.filled(questions.length, null);
+      _solved = List<bool>.filled(questions.length, false),
+      _wrong = List.generate(questions.length, (_) => <int>[]);
 
   /// The title id of a single-title round, or null for a mixed round.
   final String? titleId;
@@ -65,7 +66,8 @@ class QuizRound {
   /// Questions in presented order.
   final List<QuizRoundQuestion> questions;
 
-  final List<int?> _chosen;
+  final List<bool> _solved;
+  final List<List<int>> _wrong;
   int _index = 0;
 
   bool get isMixed => titleId == null;
@@ -75,10 +77,19 @@ class QuizRound {
 
   QuizRoundQuestion get current => questions[_index];
 
-  /// The option chosen for question [i], or null if it is unanswered.
-  int? chosenAt(int i) => _chosen[i];
+  /// Whether question [i] has been answered rightly.
+  bool isSolved(int i) => _solved[i];
+
+  /// The wrong options tried on question [i], in tap order. A question is
+  /// only ever solved by its right option, so these are never the answer.
+  List<int> wrongTriesAt(int i) => List.unmodifiable(_wrong[i]);
 
   /// Records [option] for [current] and returns whether it is the right one.
+  ///
+  /// A wrong option does not end the question: the child may try another, so
+  /// a wrong answer costs a go rather than the question (§1). A tried option
+  /// is refused because the screen locks it, and a second tap would only be
+  /// a bug.
   bool answer(int option) {
     RangeError.checkValueInInterval(
       option,
@@ -86,17 +97,25 @@ class QuizRound {
       current.options.length - 1,
       'option',
     );
-    if (_chosen[_index] != null) {
-      throw StateError('Question $_index is already answered');
+    if (_solved[_index]) {
+      throw StateError('Question $_index is already solved');
     }
-    _chosen[_index] = option;
-    return option == current.answerIndex;
+    if (_wrong[_index].contains(option)) {
+      throw StateError('Option $option was already tried on question $_index');
+    }
+    if (option == current.answerIndex) {
+      _solved[_index] = true;
+      return true;
+    }
+    _wrong[_index].add(option);
+    return false;
   }
 
-  /// Moves to the next question.
+  /// Moves to the next question, which needs the current one solved: with
+  /// retries, "answered" no longer means "done".
   void advance() {
-    if (_chosen[_index] == null) {
-      throw StateError('Question $_index is not answered');
+    if (!_solved[_index]) {
+      throw StateError('Question $_index is not solved');
     }
     if (_index == questions.length - 1) {
       throw StateError('Question $_index is the last');
@@ -104,18 +123,20 @@ class QuizRound {
     _index++;
   }
 
-  int get answeredCount => _chosen.where((c) => c != null).length;
+  /// Questions solved, however many tries they took.
+  int get solvedCount => _solved.where((s) => s).length;
 
-  /// Right answers so far.
+  /// Questions solved with no wrong try: the score stays a measure of what
+  /// the child knew, not of how long they kept guessing.
   int get score {
     var right = 0;
     for (var i = 0; i < questions.length; i++) {
-      if (_chosen[i] == questions[i].answerIndex) right++;
+      if (_solved[i] && _wrong[i].isEmpty) right++;
     }
     return right;
   }
 
-  bool get isComplete => answeredCount == questions.length;
+  bool get isComplete => solvedCount == questions.length;
 
   /// [current] with this round's effect applied: what is written when the
   /// round ends and when it is quit (§4.7).
@@ -124,15 +145,16 @@ class QuizRound {
   /// the round began, so a shelf tick made meanwhile is not overwritten;
   /// `known` is never touched.
   ///
-  /// A title's cursor takes the snapshot of its answered question with the
-  /// greatest *draw* index. The level sort means answered questions need not
-  /// be a prefix of the draws; an unanswered question drawn earlier is passed
-  /// over for this cycle, which is better than asking an answered one first
-  /// next time.
+  /// A title's cursor takes the snapshot of its solved question with the
+  /// greatest *draw* index. The level sort means solved questions need not
+  /// be a prefix of the draws; an unsolved question drawn earlier is passed
+  /// over for this cycle, which is better than asking a solved one first
+  /// next time. A question with only wrong tries counts as unsolved, so it is
+  /// asked again.
   QuizProgress applyTo(QuizProgress current) {
     final latest = <String, QuizRoundQuestion>{};
     for (var i = 0; i < questions.length; i++) {
-      if (_chosen[i] == null) continue;
+      if (!_solved[i]) continue;
       final q = questions[i];
       final held = latest[q.titleId];
       if (held == null || q.drawIndex > held.drawIndex) latest[q.titleId] = q;
