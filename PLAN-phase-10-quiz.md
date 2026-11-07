@@ -291,13 +291,22 @@ to the store is a deliberate `git mv` by the owner, never a default.
 | Book | Kitty (Paula Harrison) | One title per book, in publication order from *Kitty and the Moonlight Rescue* (2019). A dozen or more are out; PR 9 takes the list from Oxford University Press's and the owner trims it to the books the family has | per PR 9 | 20 each |
 | TV | CBeebies | *Bluey*, *Topsy and Tim*, *Hey Duggee*, *Waffle the Wonder Dog* (the ask's *Waffle the Dog*) — one title each | 4 | 20 each |
 | Film | Disney | *Mickey and friends*, *Disney films*, *Pixar films* — general questions, three broad titles | 3 | 40 each |
+| Film | KPop Demon Hunters (Sony Pictures Animation, 2025) | *KPop Demon Hunters* — one film, one title | 1 | 20 |
 
-That is 19 titles before Kitty: 440 questions at target and 190 checked to offer them all, plus 20
+That is 20 titles before Kitty: 460 questions at target and 200 checked to offer them all, plus 20
 to draft and 10 to check per Kitty book.
 
 *Wonka* is read as *Charlie and the Chocolate Factory*, the Dahl book Willy Wonka is from; *Charlie
 and the Great Glass Elevator*, and the 2023 film *Wonka*, which is not Dahl's, are content-only
 additions if wanted. *Topsy and Tim* is TV only, as the ask lists it.
+
+**KPop Demon Hunters** was added by the owner after the launch list was planned, in a content-only
+pull request. It is one film, so it is a single title rather than a broad one, and §1's per-title
+spoiler rule applies to it as it does to a book: a child who ticks *watched* has seen the ending. Its
+title id is `kpop-demon-hunters.kpop-demon-hunters`, the film's own name, so that a sequel is a
+second title beside it rather than a rename. It starts private, as every named series does. It was
+drafted at 28 questions against its target of 20, so a checker can cut the ones that do not survive
+checking and still reach the target.
 
 **Disney's titles are broad.** The owner asked for general questions about Mickey and friends and
 about other Disney titles, Pixar's included, rather than a title per film:
@@ -633,8 +642,8 @@ the loader, which needs `rootBundle`, is the only part of the catalog in `data/`
 Estimates assume one developer, or one agent session with review, working on this full time, as
 phase 9's did. **Checking content is separate and is the owner's time**: verifying a question, its
 answer and its three wrong answers against the book or episode takes about two to three minutes with
-the source to hand, so the launch threshold of 190 checked questions is roughly 6–10 hours, plus
-about half an hour per Kitty book, and the full target of 440 a little over twice that. The store packs need 40 checked questions to offer all four titles,
+the source to hand, so the launch threshold of 200 checked questions is roughly 7–10 hours, plus
+about half an hour per Kitty book, and the full target of 460 a little over twice that. The store packs need 40 checked questions to offer all four titles,
 about two hours, and 140 at target. That is the phase's real critical path, and why the release line does
 not wait for it.
 

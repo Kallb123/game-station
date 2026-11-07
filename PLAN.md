@@ -1303,9 +1303,9 @@ have read and the shows and films they have watched on a shelf, then plays a ten
 from everything ticked, or picks one title and is quizzed on that alone. Books first — the Magic
 Faraway Tree, four Roald Dahl books, two Rainbow Magic sets, two Narnia books and Paula Harrison's
 Kitty — then CBeebies (Bluey, Topsy and Tim, Hey Duggee, Waffle the Wonder Dog) and Disney (general
-questions on Mickey and friends, Disney films and Pixar films). A third card on the Arcade menu,
-after Invaders and Snake. Planned as thirteen pull requests in
-[`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
+questions on Mickey and friends, Disney films and Pixar films), and the film *KPop Demon
+Hunters*. A third card on the Arcade menu, after Invaders and Snake. Planned as thirteen pull
+requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
 
 - **Questions are data, keyed by stable title ids; the save stores only title ids and counters.**
   One JSON pack per series under `app/assets/quiz/`, validated by a content test in CI. A profile

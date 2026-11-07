@@ -1,0 +1,378 @@
+{
+  "format": 1,
+  "series": "kpop-demon-hunters",
+  "name": "KPop Demon Hunters",
+  "collection": "film",
+  "titles": [
+    {
+      "id": "kpop-demon-hunters.kpop-demon-hunters",
+      "name": "KPop Demon Hunters",
+      "questions": [
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.001",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of the girl group in KPop Demon Hunters?",
+          "a": "HUNTR/X",
+          "wrong": [
+            "Saja Boys",
+            "Moon Stars",
+            "Tiger Hearts"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.002",
+          "level": 1,
+          "checked": true,
+          "q": "How many singers are in HUNTR/X?",
+          "a": "Three",
+          "wrong": [
+            "Two",
+            "Four",
+            "Five"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.003",
+          "level": 1,
+          "checked": true,
+          "q": "Who is the leader of HUNTR/X?",
+          "a": "Rumi",
+          "wrong": [
+            "Mira",
+            "Zoey",
+            "Celine"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.004",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of music do HUNTR/X sing?",
+          "a": "K-pop",
+          "wrong": [
+            "Rock",
+            "Opera",
+            "Country"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.005",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of the demon boy band?",
+          "a": "Saja Boys",
+          "wrong": [
+            "HUNTR/X",
+            "Tiger Boys",
+            "Shadow Five"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the Saja Boys' first scenes"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.006",
+          "level": 1,
+          "checked": true,
+          "q": "Who is the leader of the Saja Boys?",
+          "a": "Jinu",
+          "wrong": [
+            "Baby",
+            "Mystery",
+            "Bobby"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the Saja Boys' first scenes"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.007",
+          "level": 1,
+          "checked": true,
+          "q": "What is the magic shield that keeps demons away from people?",
+          "a": "The Honmoon",
+          "wrong": [
+            "The Moon Gate",
+            "The Star Wall",
+            "The Golden Door"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the opening"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.008",
+          "level": 1,
+          "checked": true,
+          "q": "What gives the hunters their power to keep demons away?",
+          "a": "Their singing",
+          "wrong": [
+            "Magic rings",
+            "A wishing star",
+            "Their phones"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the opening"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.009",
+          "level": 1,
+          "checked": true,
+          "q": "In which city do HUNTR/X live?",
+          "a": "Seoul",
+          "wrong": [
+            "Tokyo",
+            "London",
+            "New York"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.010",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Derpy?",
+          "a": "A tiger",
+          "wrong": [
+            "A dog",
+            "A bear",
+            "A dragon"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the scenes with Derpy and Sussie"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.011",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Sussie?",
+          "a": "A bird",
+          "wrong": [
+            "A frog",
+            "A rabbit",
+            "A fox"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the scenes with Derpy and Sussie"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.012",
+          "level": 1,
+          "checked": true,
+          "q": "Who is HUNTR/X's manager?",
+          "a": "Bobby",
+          "wrong": [
+            "Celine",
+            "Jinu",
+            "Gwi-Ma"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.013",
+          "level": 1,
+          "checked": true,
+          "q": "Who is the king of the demons?",
+          "a": "Gwi-Ma",
+          "wrong": [
+            "Jinu",
+            "Derpy",
+            "Bobby"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.014",
+          "level": 1,
+          "checked": true,
+          "q": "What colour is Rumi's long plait?",
+          "a": "Purple",
+          "wrong": [
+            "Green",
+            "Orange",
+            "Yellow"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.015",
+          "level": 2,
+          "checked": true,
+          "q": "Which member of HUNTR/X writes the words to their songs?",
+          "a": "Zoey",
+          "wrong": [
+            "Rumi",
+            "Mira",
+            "Bobby"
+          ],
+          "source": "KPop Demon Hunters (2025 film), throughout"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.016",
+          "level": 2,
+          "checked": true,
+          "q": "Who raised Rumi and trained her to be a hunter?",
+          "a": "Celine",
+          "wrong": [
+            "Bobby",
+            "Zoey",
+            "Jinu"
+          ],
+          "source": "KPop Demon Hunters (2025 film), Rumi's scenes with Celine"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.017",
+          "level": 2,
+          "checked": true,
+          "q": "What does Rumi hide from her friends?",
+          "a": "Her demon patterns",
+          "wrong": [
+            "A secret diary",
+            "A pet dragon",
+            "A magic crown"
+          ],
+          "source": "KPop Demon Hunters (2025 film), Rumi's scenes with Celine"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.018",
+          "level": 2,
+          "checked": true,
+          "q": "Rumi is half human and half what?",
+          "a": "Demon",
+          "wrong": [
+            "Fairy",
+            "Robot",
+            "Mermaid"
+          ],
+          "source": "KPop Demon Hunters (2025 film), Rumi's scenes with Celine"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.019",
+          "level": 2,
+          "checked": true,
+          "q": "What does Rumi fight demons with?",
+          "a": "A sword",
+          "wrong": [
+            "A bow and arrows",
+            "A magic wand",
+            "A hammer"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the fight scenes"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.020",
+          "level": 2,
+          "checked": true,
+          "q": "What does Zoey throw at demons?",
+          "a": "Knives",
+          "wrong": [
+            "Snowballs",
+            "Rocks",
+            "Water balloons"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the fight scenes"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.021",
+          "level": 2,
+          "checked": true,
+          "q": "Which HUNTR/X member fights with a long pole with a blade?",
+          "a": "Mira",
+          "wrong": [
+            "Rumi",
+            "Zoey",
+            "Celine"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the fight scenes"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.022",
+          "level": 2,
+          "checked": true,
+          "q": "What do the demons want to take from people?",
+          "a": "Their souls",
+          "wrong": [
+            "Their shoes",
+            "Their toys",
+            "Their sweets"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the opening"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.023",
+          "level": 2,
+          "checked": true,
+          "q": "What do the Saja Boys try to take from HUNTR/X?",
+          "a": "Their fans",
+          "wrong": [
+            "Their shoes",
+            "Their crowns",
+            "Their car"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the Saja Boys' first scenes"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.024",
+          "level": 2,
+          "checked": true,
+          "q": "Which song do HUNTR/X hope will make the Honmoon golden?",
+          "a": "Golden",
+          "wrong": [
+            "Soda Pop",
+            "Your Idol",
+            "Moonlight"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the song 'Golden'"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.025",
+          "level": 2,
+          "checked": true,
+          "q": "What is the Saja Boys' first song called?",
+          "a": "Soda Pop",
+          "wrong": [
+            "Golden",
+            "How It's Done",
+            "Takedown"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the song 'Soda Pop'"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.026",
+          "level": 2,
+          "checked": true,
+          "q": "Which song do Rumi and Jinu sing together?",
+          "a": "Free",
+          "wrong": [
+            "Golden",
+            "Soda Pop",
+            "Takedown"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the song 'Free'"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.027",
+          "level": 2,
+          "checked": true,
+          "q": "Which song do HUNTR/X sing at the very start of the film?",
+          "a": "How It's Done",
+          "wrong": [
+            "Golden",
+            "Your Idol",
+            "Free"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the opening"
+        },
+        {
+          "id": "kpop-demon-hunters.kpop-demon-hunters.028",
+          "level": 2,
+          "checked": true,
+          "q": "At which big music show do both groups sing near the end?",
+          "a": "The Idol Awards",
+          "wrong": [
+            "The Moon Festival",
+            "The Star Prize",
+            "The Tiger Cup"
+          ],
+          "source": "KPop Demon Hunters (2025 film), the ending"
+        }
+      ]
+    }
+  ]
+}
