@@ -85,8 +85,9 @@ Top to bottom on a phone:
    progress bar (14 dp high, radius 7, gap 6: solved segments `primary`, the current one ringed in
    `primary` over `primaryContainer`, the rest `surfaceContainerHighest`), and a `3 / 10` counter.
    One `Semantics` label, *Question 3 of 10*, as the dots had.
-2. **Question card**, radius 28, `primaryContainer` of the arcade scheme with
-   `onPrimaryContainer` text, padding 24/22. A `Semantics(header: true)` text. The debug-only
+2. **Question card**, radius 28, the arcade scheme's `surfaceContainerHigh` with `onSurface` text,
+   padding 24/22: a tinted surface rather than a container colour, so the card cannot be mistaken for
+   the second answer, which is the arcade container. A `Semantics(header: true)` text. The debug-only
    *unchecked* chip stays above it.
 3. **Three answers**, gap 12. Each a `Material` + `InkWell` (kept from PR 6: a disabled button would
    turn grey and lose the state colours), radius 28, at least 88 dp tall, padding 12/16/12/22: the
