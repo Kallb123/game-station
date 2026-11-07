@@ -548,7 +548,12 @@ class _TopRow extends StatelessWidget {
                     const SizedBox(width: AppSpacing.lg),
                     Text(
                       '${round.index + 1} / $count',
-                      textScaler: _scaler(context, 22),
+                      // Held lower than the question: the bar says the same
+                      // thing, and at the full ceiling the counter would take
+                      // the bar's room on a 360 dp phone.
+                      textScaler: MediaQuery.of(
+                        context,
+                      ).textScaler.clamp(maxScaleFactor: 1.25),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
