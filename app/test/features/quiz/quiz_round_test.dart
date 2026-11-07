@@ -18,11 +18,13 @@ QuizPicker _picker(QuizTitle title) => QuizPicker(
   ),
 );
 
-/// Answers the first [count] questions, right ones if [right], else wrong.
-void _answer(QuizRound r, int count, {bool right = true}) {
+/// Solves the first [count] questions, each with a wrong try first unless
+/// [firstGo], and advances between them.
+void _answer(QuizRound r, int count, {bool firstGo = true}) {
   for (var i = 0; i < count; i++) {
     final a = r.current.answerIndex;
-    r.answer(right ? a : (a + 1) % 3);
+    if (!firstGo) r.answer((a + 1) % 3);
+    r.answer(a);
     if (i < r.questions.length - 1 && i < count - 1) r.advance();
   }
 }
@@ -44,38 +46,80 @@ void main() {
       );
       expect(() => round.current.options.add('x'), throwsA(anything));
       expect(round.index, 0);
-      expect(round.chosenAt(0), isNull);
+      expect(round.isSolved(0), isFalse);
+      expect(round.wrongTriesAt(0), isEmpty);
     });
 
     test('answer reports right or wrong and updates score', () {
       expect(round.answer(round.current.answerIndex), isTrue);
       expect(round.score, 1);
-      expect(round.chosenAt(0), round.current.answerIndex);
+      expect(round.isSolved(0), isTrue);
       round.advance();
       expect(round.answer((round.current.answerIndex + 1) % 3), isFalse);
       expect(round.score, 1);
-      expect(round.answeredCount, 2);
+      expect(round.solvedCount, 1);
+      expect(round.isSolved(1), isFalse);
     });
 
-    test('answering twice, or out of range, throws', () {
+    test('a wrong answer can be followed by another', () {
+      final a = round.current.answerIndex;
+      final w1 = (a + 1) % 3;
+      final w2 = (a + 2) % 3;
+      expect(round.answer(w1), isFalse);
+      expect(round.answer(w2), isFalse);
+      expect(round.wrongTriesAt(0), [w1, w2]);
+      expect(round.isSolved(0), isFalse);
+      expect(round.answer(a), isTrue);
+      expect(round.isSolved(0), isTrue);
+      expect(round.wrongTriesAt(0), [w1, w2]);
+      expect(() => round.wrongTriesAt(0).add(0), throwsA(anything));
+    });
+
+    test('repeating a wrong option throws', () {
+      final w = (round.current.answerIndex + 1) % 3;
+      round.answer(w);
+      expect(() => round.answer(w), throwsStateError);
+      expect(round.wrongTriesAt(0), [w]);
+    });
+
+    test('answering after solving, or out of range, throws', () {
       expect(() => round.answer(3), throwsRangeError);
       expect(() => round.answer(-1), throwsRangeError);
-      round.answer(0);
-      expect(() => round.answer(1), throwsStateError);
+      round.answer(round.current.answerIndex);
+      expect(() => round.answer(0), throwsStateError);
+      expect(() => round.answer(round.current.answerIndex), throwsStateError);
     });
 
-    test('advance needs an answer and a next question', () {
+    test('score counts only questions solved on the first go', () {
+      _answer(round, 1);
+      round.advance();
+      _answer(round, 1, firstGo: false);
+      expect(round.solvedCount, 2);
+      expect(round.score, 1);
+    });
+
+    test('advance needs a solved question and a next question', () {
       expect(round.advance, throwsStateError);
+      round.answer((round.current.answerIndex + 1) % 3);
+      expect(round.advance, throwsStateError);
+      round.answer(round.current.answerIndex);
+      round.advance();
+      expect(round.index, 1);
+      round = _picker(
+        fixtureTitle('t.a', 24),
+      ).singleTitleRound('t.a', const QuizProgress(), GameRng(1))!;
       _answer(round, 10);
       expect(round.index, 9);
       expect(round.advance, throwsStateError);
     });
 
-    test('is complete after ten answers, not before', () {
+    test('is complete after ten solved, not before', () {
       _answer(round, 9);
       expect(round.isComplete, isFalse);
       round.advance();
-      round.answer(0);
+      round.answer((round.current.answerIndex + 1) % 3);
+      expect(round.isComplete, isFalse);
+      round.answer(round.current.answerIndex);
       expect(round.isComplete, isTrue);
     });
   });
@@ -100,7 +144,7 @@ void main() {
         },
       );
       final r = single(before);
-      _answer(r, 10, right: false);
+      _answer(r, 10, firstGo: false);
       final low = r.applyTo(before).titles['t.a']!;
       expect((low.rounds, low.best, low.next), (3, 9, 10));
 
@@ -135,6 +179,27 @@ void main() {
       expect(next.questions.map((q) => q.question.id), isNot(contains(first)));
       expect(titleOrder(title, e.seed)[e.next - 1].id, first);
     });
+
+    test(
+      'a quit with wrong tries on the current question keeps the cursor',
+      () {
+        final r = single(const QuizProgress());
+        _answer(r, 3);
+        final third = r.current;
+        r.advance();
+        r.answer((r.current.answerIndex + 1) % 3);
+        final e = r.applyTo(const QuizProgress()).titles['t.a']!;
+        expect(
+          (e.seed, e.next, e.pool),
+          (third.seedAfter, third.nextAfter, third.poolAfter),
+        );
+
+        // Wrong tries alone leave the save as it was.
+        final only = single(const QuizProgress());
+        only.answer((only.current.answerIndex + 1) % 3);
+        expect(only.applyTo(const QuizProgress()), const QuizProgress());
+      },
+    );
 
     test('nothing answered returns progress equal to the input', () {
       const p = QuizProgress(

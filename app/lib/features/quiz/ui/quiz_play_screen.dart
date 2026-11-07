@@ -106,8 +106,11 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
   void _choose(int option) {
     final round = _round!;
-    // A locked question ignores further taps.
-    if (round.chosenAt(round.index) != null) return;
+    // A solved question, or an option already tried, ignores further taps.
+    if (round.isSolved(round.index) ||
+        round.wrongTriesAt(round.index).contains(option)) {
+      return;
+    }
 
     final right = round.answer(option);
     if (right) {
@@ -123,7 +126,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
 
   void _next() {
     final round = _round!;
-    if (round.chosenAt(round.index) == null) return;
+    if (!round.isSolved(round.index)) return;
 
     if (round.index < round.questions.length - 1) {
       setState(round.advance);
@@ -141,7 +144,7 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
   Future<void> _confirmQuit() async {
     final round = _round;
     // Nothing answered loses nothing; a finished round is already written.
-    if (round == null || _finished || round.answeredCount == 0) {
+    if (round == null || _finished || round.solvedCount == 0) {
       popIfPossible(context);
       return;
     }
@@ -300,7 +303,8 @@ class QuizQuestionView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final current = round.current;
-    final chosen = round.chosenAt(round.index);
+    final solved = round.isSolved(round.index);
+    final wrong = round.wrongTriesAt(round.index);
     final isLast = round.index == round.questions.length - 1;
 
     return LayoutBuilder(
@@ -360,19 +364,19 @@ class QuizQuestionView extends StatelessWidget {
                   _AnswerButton(
                     key: ValueKey('quizAnswer$i'),
                     text: current.options[i],
-                    state: chosen == null
-                        ? _AnswerState.open
-                        : i == current.answerIndex
+                    state: solved && i == current.answerIndex
                         ? _AnswerState.right
-                        : i == chosen
+                        : wrong.contains(i)
                         ? _AnswerState.wrong
-                        : _AnswerState.other,
+                        : solved
+                        ? _AnswerState.other
+                        : _AnswerState.open,
                     onTap: () => onChoose(i),
                   ),
                 ],
                 const SizedBox(height: AppSpacing.sm),
                 _NextSlot(
-                  visible: chosen != null,
+                  visible: solved,
                   label: isLast ? finishLabel : nextLabel,
                   onPressed: onNext,
                 ),
@@ -406,7 +410,7 @@ class _ProgressDots extends StatelessWidget {
             for (var i = 0; i < count; i++)
               _dot(
                 color,
-                answered: round.chosenAt(i) != null,
+                answered: round.isSolved(i),
                 current: i == round.index,
               ),
           ],

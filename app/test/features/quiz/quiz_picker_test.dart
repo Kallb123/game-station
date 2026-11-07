@@ -16,7 +16,7 @@ List<String> _ids(QuizRound r) => [for (final q in r.questions) q.question.id];
 
 QuizProgress _playThrough(QuizRound round, QuizProgress progress) {
   for (var i = 0; i < round.questions.length; i++) {
-    round.answer(0);
+    round.answer(round.current.answerIndex);
     if (i < round.questions.length - 1) round.advance();
   }
   return round.applyTo(progress);

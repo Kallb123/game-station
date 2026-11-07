@@ -91,11 +91,16 @@ Finder _wrong(WidgetTester tester) => find.text('W ${_shown(tester).$1} a');
 
 Future<void> _settle(WidgetTester tester) => tester.pumpAndSettle();
 
-/// Answers all ten, right where [rightAt] says so, and taps Next each time.
-/// Stops with the last answered but Finish not yet tapped.
+/// Solves all ten, getting the first try right where [rightAt] says so and
+/// wrong otherwise, and taps Next each time. Stops with the last solved but
+/// Finish not yet tapped.
 Future<void> _playTen(WidgetTester tester, bool Function(int i) rightAt) async {
   for (var i = 0; i < 10; i++) {
-    await tester.tap(rightAt(i) ? _right(tester) : _wrong(tester));
+    if (!rightAt(i)) {
+      await tester.tap(_wrong(tester));
+      await _settle(tester);
+    }
+    await tester.tap(_right(tester));
     await _settle(tester);
     if (i < 9) {
       await tester.tap(find.text(nextLabel));
@@ -153,7 +158,7 @@ void main() {
     },
   );
 
-  testWidgets('an answered question is locked and Next appears', (
+  testWidgets('a wrong answer leaves the rest open, a right one locks', (
     tester,
   ) async {
     await _open(tester, const QuizPlayArgs.title(narniaId));
@@ -163,16 +168,10 @@ void main() {
     await tester.tap(_wrong(tester));
     await _settle(tester);
     final (n, _) = _shown(tester);
-    expect(find.text(nextLabel), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.text(nextLabel), findsNothing);
+    expect(find.byIcon(Icons.check_circle), findsNothing);
 
-    // A second tap, on the right answer, changes nothing.
-    await tester.tap(find.text('A $n'));
-    await _settle(tester);
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
-    expect(find.bySemanticsLabel('A $n, right answer'), findsOneWidget);
-
-    // The wrong choice keeps its error colour once locked.
+    // The wrong choice shows its error colour and cannot be tapped again.
     final material = tester.widget<Material>(
       find
           .ancestor(of: find.text('W $n a'), matching: find.byType(Material))
@@ -180,6 +179,13 @@ void main() {
     );
     final colors = Theme.of(tester.element(find.text('W $n a'))).colorScheme;
     expect(material.color, colors.errorContainer);
+
+    // The right answer is still tappable, and solves the question.
+    await tester.tap(find.text('A $n'));
+    await _settle(tester);
+    expect(find.text(nextLabel), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.bySemanticsLabel('A $n, right answer'), findsOneWidget);
 
     await tester.tap(find.text(nextLabel));
     await _settle(tester);
@@ -260,6 +266,8 @@ void main() {
     expect(audio.played, [Motif.sudokuCorrect, Motif.sudokuWrong]);
     expect(audio.gains.last, 0.5);
     expect(haptics.calls, ['tap'], reason: 'no buzz for a wrong answer');
+    await tester.tap(_right(tester));
+    await _settle(tester);
 
     await tester.tap(find.text(nextLabel));
     await _settle(tester);
