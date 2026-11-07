@@ -192,6 +192,40 @@ abstract final class AppQuizSizes {
   /// 4 dp — the clear gap between the right answer and its ring, so the ring
   /// reads as a ring rather than a thicker edge.
   static const double ringGap = 4;
+
+  /// 4 dp — the corners of the square shape, so it is not a sharp-edged box
+  /// beside a circle and a triangle.
+  static const double squareShapeRadius = 4;
+
+  /// An answer's padding: wider on the shape's side, where the design leaves
+  /// room for the shape to sit clear of the rounded corner.
+  static const double answerPadStart = 22;
+  static const double answerPadEnd = 16;
+  static const double answerPadVertical = 12;
+
+  /// 15 dp — *Not this one* under a wrong answer: secondary to the answer,
+  /// still above [AppTypeScale.caption] because a child reads it.
+  static const double note = 15;
+
+  /// 22 dp — the `3 / 10` counter and the try-again message.
+  static const double counter = 22;
+  static const double message = 22;
+
+  /// 26 dp — *Yes! Well done!*.
+  static const double praise = 26;
+
+  /// 36 dp and 30 dp — the try-again smiley and the praise star.
+  static const double smileyIcon = 36;
+  static const double starIcon = 30;
+
+  /// 76 dp — the try-again box's least height, so a short message still
+  /// reads as a box rather than a line.
+  static const double tryAgainMinHeight = 76;
+
+  /// The counter's own text-scale limit, lower than [textCeiling]: at the full
+  /// ceiling the counter takes the progress bar's room on a 360 dp phone at
+  /// 200 %, and the bar says the same thing.
+  static const double counterMaxScale = 1.25;
 }
 
 /// A seed colour per surface role, for one brightness.

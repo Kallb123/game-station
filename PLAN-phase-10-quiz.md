@@ -65,7 +65,7 @@ right. There is no timer and no way to lose.
 | Text only: no cover art, character pictures, logos, stills or theme tunes | Every series named in the ask is someone else's copyright and trademark. Factual questions written in this repository's own words, naming a title as a title, are the narrowest use; a picture of Elsa or a clip of a theme tune is not. Series are drawn with a Material icon and a colour. `app/assets/quiz/` holds JSON only, and the content test (§4.3) fails on any non-`.json` file in it. |
 | Private packs never ship in a store build | The named series are someone else's trademarks, and the owner wants some of them for home use only. A private pack is left out of the store build's asset bundle, not hidden at runtime, so it is not in the binary a store or anyone unzipping it receives. CI unzips the store APK and fails on any `assets/quiz/private/` entry (§4.9). |
 | No quotation longer than a short phrase | Same reason. A question may name a character, place or object; it may not reproduce a sentence of the book or a line of a script. The content test refuses a question or answer over its length cap (below), which bounds the damage mechanically; whether a short phrase is a quotation is the reviewer's check. |
-| Minimal reading, as far as a quiz allows | `AGENTS.md` asks for minimal reading, and a quiz is reading. This is the one game in the app built for readers, roughly six and over, or a grown-up reading aloud. It reads as little as it can: three options, not four; a question of at most 60 characters and an answer of at most 30, enforced by the content test; and every question and answer exposed as semantics, so TalkBack and VoiceOver read them aloud with no new dependency. The question cap was 100 until PR 6 measured it at 200 % text (§4.8). |
+| Minimal reading, as far as a quiz allows | `AGENTS.md` asks for minimal reading, and a quiz is reading. This is the one game in the app built for readers, roughly six and over, or a grown-up reading aloud. It reads as little as it can: three options, not four; a question of at most 80 characters and an answer of at most 30, enforced by the content test; and every question and answer exposed as semantics, so TalkBack and VoiceOver read them aloud with no new dependency. The question cap was 100 until PR 6 measured it at 200 % text (§4.8), and 60 until the play screen was redesigned and re-measured (`PLAN-quiz-screen.md`). |
 | No time pressure, no scary failure | `PLAN.md` §1 and `AGENTS.md`. No timer, no lives, no streak to break. A wrong answer is shown gently — the right answer is highlighted and the child taps Next when ready — and every finished round ends on the same celebration, whatever the score. |
 | A question never spoils a title the child has not ticked | Narnia, Faraway Tree and Rainbow Magic are series, and a question about book four answered on the strength of book one gives book four away. Every question belongs to exactly one title — the earliest a reader would need to answer it — and a mixed round draws only from ticked titles (§4.1, §4.6). Disney's three titles each span many films, so they ask only what a film's opening shows, never how it ends (§4.4). |
 | No network, no new package | `PLAN.md` §1. Questions are bundled assets parsed with `dart:convert`. `app/pubspec.yaml` gains one asset directory and no dependency, so `tool/check_offline.dart` has no new graph to audit. `check_offline.dart` scans `app/lib` for URLs and not `assets/`, so the content test refuses `://` in any question, answer or source itself (§4.3). |
@@ -260,7 +260,7 @@ the parse moves to `compute`.
 - a series id that is not its file name, or a `collection` other than `book`, `tv`, `film` or `topic`;
 - a title or question id that breaks §4.1's or §4.2's shape, does not start with its parent's id, or
   is duplicated anywhere in the bank;
-- a question over 60 characters or an answer over 30, or empty text (§4.8 says why 60);
+- a question over 80 characters or an answer over 30, or empty text (§4.8 and `PLAN-quiz-screen.md` §11 say why 80);
 - `wrong` not exactly three; any two of the four answers equal after trimming and case-folding;
 - an answer of the form "all of the above", "none of the above", "both", or naming an option's
   position — options are shuffled (§4.6), so these become nonsense;
@@ -366,7 +366,8 @@ Home ─ Arcade ─┬─ Invaders
   button with the same confirmation the arcade's `GameShell` uses. After an answer, the buttons lock,
   the right one shows a tick in the theme's success colour, a wrong choice shows in the theme's
   `wrong` colour with no cross, and **Next** appears. No auto-advance: reading the right answer takes
-  as long as it takes.
+  as long as it takes. *Superseded by `PLAN-quiz-screen.md`:* a wrong answer greys out with *Not
+  this one* and the child tries again; the score counts answers right first go.
 - **Round end** reuses `CompletionCard` and `Confetti` from `core/ui/` with the score as *7 out of
   10* and stars, `backLabel` *Back to Quiz*, and a *Play again* that starts a new round of the same
   kind. Confetti plays for every finished round (§1: no failure state).
@@ -460,6 +461,11 @@ the proof the move changed nothing.
   test doing its job.
 
 ### 4.8 Text size and layout
+
+*Superseded by `PLAN-quiz-screen.md` §4.4:* the redesigned screen is measured at 100 % text on
+360 x 760 and 960 x 528 dp with no scrolling, and at 200 % on 360 x 640 dp for no overflow, with
+question and answer text held at 36 dp at most. The question cap is 80. What follows is PR 6's
+measurement, kept because code comments cite it.
 
 The 100- and 30-character caps were guesses until measured. PR 6 adds a widget test that renders the
 play screen at 200 % text on a 360 x 640 dp window with the longest question and the three longest
@@ -830,15 +836,17 @@ copied into §8, with every title under the threshold named — those are hidden
 - [ ] `dart tool/check_offline.dart` passes and `git diff <plan commit> -- '*/pubspec.yaml'` shows only
       the `version:` line and the `assets/quiz/` declaration.
 - [ ] `layout_sweep_test.dart` covers `/quiz`, `/quiz/shelf`, `/quiz/pick` and `/quiz/play`, and the
-      longest-content test passes at 200 % text on 360 x 640 dp. *(PR 6.)*
+      longest-content test passes at 200 % text on 360 x 640 dp. *(PR 6; the guarantee is now
+      `PLAN-quiz-screen.md` §4.4's.)*
 - [ ] `tool/verify.sh` time before and after the phase recorded here: before ___, after ___.
 - [ ] The coverage table at the close is copied here, with every title under the threshold named.
 - [ ] A test pins every title id that exists at the close. *(PR 13.)*
 - [ ] *(Device)* `quiz_smoke_test.dart` passes on an Android phone; device named in PR 13.
 - [ ] *(Device)* A six-year-old who has read or watched one launch title finds it on the shelf, ticks
       it and plays a round unaided after one demonstration.
-- [ ] *(Device)* At 200 % system text on a 360 dp phone, every answer of every question in one round
-      of each collection is readable without scrolling.
+- [ ] *(Device)* At 100 % system text on a 360 dp phone and a Fire HD 8 sideways, every answer of
+      every question in one round of each collection is readable without scrolling; at 200 % the
+      page scrolls and *Next* scrolls into view (`PLAN-quiz-screen.md` §8).
 - [ ] *(Device)* TalkBack reads a question and its three answers in order, and announces which answer
       was right.
 - [ ] *(Device)* A players file exported with ticks and scores imports on a second device with the same

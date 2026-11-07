@@ -1,5 +1,8 @@
 # Quiz play screen for young readers
 
+> **Closed.** Built in one pull request of three phases; what was measured and what differed is in
+> §11. The *(Device)* line in §8 is open.
+
 The quiz play screen built in phase 10 PR 6 (`PLAN-phase-10-quiz.md` §4.5, §4.8) draws the question
 at body size (18 dp) in regular weight, the answers as plain purple buttons, and the progress as
 14 dp dots. It was squeezed that small to fit a 360 x 640 dp window at 200 % text without scrolling,
@@ -86,7 +89,7 @@ Top to bottom on a phone:
    `primary` over `primaryContainer`, the rest `surfaceContainerHighest`), and a `3 / 10` counter.
    One `Semantics` label, *Question 3 of 10*, as the dots had.
 2. **Question card**, radius 28, the arcade scheme's `surfaceContainerHigh` with `onSurface` text,
-   padding 24/22: a tinted surface rather than a container colour, so the card cannot be mistaken for
+   padding 16 (measured down from the design's 24/22, §11): a tinted surface rather than a container colour, so the card cannot be mistaken for
    the second answer, which is the arcade container. A `Semantics(header: true)` text. The debug-only
    *unchecked* chip stays above it.
 3. **Three answers**, gap 12. Each a `Material` + `InkWell` (kept from PR 6: a disabled button would
@@ -138,8 +141,7 @@ its own three longest answers, and a run at exactly the caps. Changed:
 
 The estimate behind the windows, at Roboto Bold's roughly 0.53 em average advance: a 60-character
 question takes four lines of 30 dp in the phone card's 288 dp, and the worst answer state about
-320 dp, for roughly 760 dp in all. That is why 360 x 760 is the phone window and why the question
-cap may not rise on phones; the test decides.
+320 dp, for roughly 760 dp in all. The test decides; §11 has what it measured.
 
 ## 5. Repository layout
 
@@ -178,25 +180,26 @@ day to a day; wide because the two-column layout and the reserved slot are new.*
 **Phase 3 — measure and set the caps.** §4.4; the caps raised as far as both windows allow;
 `PLAN-phase-10-quiz.md` reconciled and this plan's outcome written. *Two to three hours.*
 **Done when:** `quiz_play_layout_test.dart` passes for every bank question in both windows and at
-200 % on 360 x 640; the content test enforces the new caps; the measured numbers are in §10;
+200 % on 360 x 640; the content test enforces the new caps; the measured numbers are in §11;
 `tool/verify.sh` passes.
 
 ## 7. Risks
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| 60 characters does not fit 360 x 760 at 100 % in the worst state | Medium | Trim chrome before type, in this order: gaps 16 → 12, card padding 24 → 16, the idle hint's height. The phone type sizes do not go down. If it still fails, the phone window stays as measured and the gap is reported in the pull request rather than hidden. |
+| 60 characters does not fit 360 x 760 at 100 % in the worst state | Medium | Trim chrome before type, in this order: gaps 16 → 12, card padding 24 → 16, the idle hint's height (§11: the slot's height is set by the solved state, not the hint). The phone type sizes do not go down. If it still fails, the phone window stays as measured and the gap is reported in the pull request rather than hidden. |
 | A child at 200 % text never scrolls to the third answer | Medium | Visible scrollbar thumb; the 36 dp ceiling keeps the page about two screens at most. Checked only on a device (§8). |
 | Faded answers at 40 % fall below contrast | Low | They are no longer actionable and the right answer carries the ring, tick and label; the semantics still read every answer. Accepted, not mitigated. |
 | A saved best from the one-try model reads differently | Low | Same number by construction (§1); `applyTo`'s best comparison is unchanged and tested. |
 
 ## 8. Verification checklist
 
-- [ ] `tool/verify.sh` passes.
-- [ ] `quiz_play_layout_test.dart` prints *Next*'s bottom edge for the caps in both windows; the
-      numbers are copied into §10.
-- [ ] Screenshots of the four states (idle, try again, solved, two columns), day and night, taken in a
-      widget test with Roboto loaded, attached to the pull request and not committed.
+- [x] `tool/verify.sh` passes.
+- [x] `quiz_play_layout_test.dart` prints *Next*'s bottom edge for the caps in both windows; the
+      numbers are copied into §11.
+- [x] Screenshots of the four states (idle, try again, solved, two columns), day and night, taken in a
+      widget test with Roboto loaded and reviewed; not committed. The session that built this could not
+      upload images to GitHub, so they went to the owner directly rather than onto the pull request.
 - [ ] *(Device)* On a Fire HD 8 sideways and a 360 dp phone at 100 % text, a round plays with no
       scrolling; at 200 % the scrollbar shows and *Next* scrolls into view. Not answerable in CI.
 
@@ -216,4 +219,28 @@ day to a day; wide because the two-column layout and the reserved slot are new.*
 2. Phase 2: rebuild `QuizQuestionView` against the new model.
 3. Phase 3: rewrite the layout test, raise the caps, reconcile `PLAN-phase-10-quiz.md`.
 
-*Outcome:* to be written in phase 3.
+## 11. Outcome
+
+Built as planned in three phases, with these differences and measurements.
+
+- **Caps: question 80 (from 60), answer 30 (unchanged).** At 80/30 in the worst state — two wrong
+  tries, then the right answer — *Next* ends at 752 of 760 dp on the phone window and 520 of 528 on
+  the tablet window; at 200 % on 360 x 640 it is scrolled into view and ends at 640. Question 85
+  fails the phone window by 34 dp. The tablet window is not the limit for the question: it held up
+  to 100 characters. Answers at 35 fit only beside a 60-character question (80/35 fails the phone
+  by 26 dp), and the longer question was preferred because it is what the ask was about. The real
+  bank's longest question is 60 characters; nothing had to be rewritten.
+- **An answer cap is a count of characters, not a width.** Answers of 33–34 characters built round
+  one 15-letter word overflowed the phone by 30 dp in a probe. At 30 they fit, and the per-question
+  layout test remains the guard for any content pull request.
+- **Chrome trimmed, type untouched:** gaps between sections 16 → 12 (`AppQuizSizes.gap`), page
+  padding top and bottom 12 → 8, praise line to *Next* 8 → 4, question card padding 24/22 → 16 all
+  round. The idle hint was not a lever: the feedback slot's height is the solved state's.
+- **The `3 / 10` counter** clamps its text scale at 1.25 rather than the 36 dp ceiling: at 200 % it
+  squeezed the progress bar out of a 360 dp row in `layout_sweep_test.dart`. The bar and the
+  semantics label say the same thing.
+- **The praise line and *Next*** take the Sudoku role scheme's teal, as the design's Next does,
+  through a `Theme` around the `BigButton`, so it is still the screen's one `FilledButton`.
+- **The two-column layout** drops `ContentWidthCap`, which the one-column phone layout never used.
+- Screenshots were taken in a widget test with Roboto loaded, not on a device. The *(Device)* line
+  in §8 is open.

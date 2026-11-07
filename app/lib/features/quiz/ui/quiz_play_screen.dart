@@ -501,9 +501,9 @@ ColorScheme _role(BuildContext context, Color Function(AppPalette) seed) {
   return AppTheme.roleScheme(seed(AppPalette.of(brightness)), brightness);
 }
 
-/// The system text scale, held to [AppQuizSizes.textCeiling] for text drawn at
-/// [fontSize], so the quiz never draws below its design size and never
-/// beyond the ceiling.
+/// The system text scale, held so that text drawn at [fontSize] never grows
+/// past [AppQuizSizes.textCeiling]. Only the top is clamped: a child who has
+/// chosen smaller text still gets it.
 TextScaler _scaler(BuildContext context, double fontSize) => MediaQuery.of(
   context,
 ).textScaler.clamp(maxScaleFactor: AppQuizSizes.textCeiling / fontSize);
@@ -548,14 +548,11 @@ class _TopRow extends StatelessWidget {
                     const SizedBox(width: AppSpacing.lg),
                     Text(
                       '${round.index + 1} / $count',
-                      // Held lower than the question: the bar says the same
-                      // thing, and at the full ceiling the counter would take
-                      // the bar's room on a 360 dp phone.
-                      textScaler: MediaQuery.of(
-                        context,
-                      ).textScaler.clamp(maxScaleFactor: 1.25),
+                      textScaler: MediaQuery.of(context).textScaler.clamp(
+                        maxScaleFactor: AppQuizSizes.counterMaxScale,
+                      ),
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: AppQuizSizes.counter,
                         fontWeight: FontWeight.w600,
                         color: colors.onSurface,
                       ),
@@ -704,7 +701,12 @@ class _AnswerButton extends StatelessWidget {
             minHeight: AppQuizSizes.answerMinHeight,
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 12, 16, 12),
+            padding: const EdgeInsets.fromLTRB(
+              AppQuizSizes.answerPadStart,
+              AppQuizSizes.answerPadVertical,
+              AppQuizSizes.answerPadEnd,
+              AppQuizSizes.answerPadVertical,
+            ),
             child: Row(
               children: [
                 _shape(foreground),
@@ -728,7 +730,7 @@ class _AnswerButton extends StatelessWidget {
                         Text(
                           notThisOneNote,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppQuizSizes.note,
                             fontWeight: FontWeight.w500,
                             color: foreground,
                           ),
@@ -797,7 +799,9 @@ class _AnswerButton extends StatelessWidget {
     final ShapeBorder border = switch (index % 3) {
       0 => const CircleBorder(),
       1 => StarBorder.polygon(sides: 3),
-      _ => RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      _ => RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppQuizSizes.squareShapeRadius),
+      ),
     };
     return SizedBox.square(
       dimension: AppQuizSizes.shape,
@@ -859,7 +863,9 @@ class _TryAgainBox extends StatelessWidget {
       liveRegion: true,
       container: true,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 76),
+        constraints: const BoxConstraints(
+          minHeight: AppQuizSizes.tryAgainMinHeight,
+        ),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.xl - AppSpacing.xs,
           vertical: AppSpacing.sm,
@@ -870,13 +876,17 @@ class _TryAgainBox extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(Icons.sentiment_satisfied, size: 36, color: colors.primary),
+            Icon(
+              Icons.sentiment_satisfied,
+              size: AppQuizSizes.smileyIcon,
+              color: colors.primary,
+            ),
             const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Text(
                 tryAgainMessage,
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: AppQuizSizes.message,
                   fontWeight: FontWeight.w700,
                   color: colors.onSurface,
                 ),
@@ -913,13 +923,17 @@ class _SolvedFeedback extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.star, size: 30, color: success.primary),
+              Icon(
+                Icons.star,
+                size: AppQuizSizes.starIcon,
+                color: success.primary,
+              ),
               const SizedBox(width: AppSpacing.sm),
               Flexible(
                 child: Text(
                   wellDoneMessage,
                   style: TextStyle(
-                    fontSize: 26,
+                    fontSize: AppQuizSizes.praise,
                     height: AppTypeScale.headingHeight,
                     fontWeight: FontWeight.w600,
                     color: success.primary,
