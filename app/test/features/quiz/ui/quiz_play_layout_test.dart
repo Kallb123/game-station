@@ -35,10 +35,11 @@ import '../../../app_harness.dart';
 /// cap is only as good as the words it was measured with: three answers of
 /// 34 characters each built round one 15-letter word wrap to a line more and
 /// overflow the phone window, which is what the real-bank tests below are for.
+/// (At 35 they fit with a 60-character question but not an 80-character one.)
 const _atAnswerCap = [
-  'The enormous friendly mountain lion',
-  "Professor Kirke's big country house",
-  'The silver chair in the dark castle',
+  'The enormous friendly mountain',
+  "Professor Digory Kirke's house",
+  'The silver chair in the castle',
 ];
 
 /// Every question of every pack in the bank, as raw text.
@@ -334,7 +335,7 @@ void main() {
 
   test('the caps used below are the caps in the catalog', () {
     expect(_questionOf(maxQuestionLength).length, maxQuestionLength);
-    for (final n in [40, 60, 65, 80, 99, 100]) {
+    for (final n in [40, 60, 65, 80, 85, 99, 100]) {
       expect(_questionOf(n).length, n);
     }
     for (final a in _atAnswerCap) {

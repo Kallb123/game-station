@@ -630,12 +630,7 @@ class _QuestionCard extends StatelessWidget {
         color: arcade.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(AppQuizSizes.radius),
       ),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl - 2,
-        AppSpacing.xl,
-        AppSpacing.xl - 2,
-        AppSpacing.xl - AppSpacing.xs,
-      ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       alignment: Alignment.topLeft,
       child: Semantics(
         header: true,
