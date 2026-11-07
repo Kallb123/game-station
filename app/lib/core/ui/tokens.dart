@@ -161,6 +161,14 @@ abstract final class AppQuizSizes {
   /// 12 dp — between two answers.
   static const double answerGap = 12;
 
+  /// 12 dp — between the top row, the question, the answers and the feedback
+  /// slot. Not [AppSpacing.lg]: the worst state on a 960x528 tablet was 18 dp
+  /// too tall with 16 dp gaps (`PLAN-quiz-screen.md` §7), and chrome is the
+  /// cheapest thing to give up before the type. The page's top and bottom
+  /// padding and the gap under the praise line were trimmed for the same
+  /// reason.
+  static const double gap = 12;
+
   /// 26 dp — the circle, triangle or square on an answer. Colour never says
   /// which answer is which on its own, so the shape does too.
   static const double shape = 26;

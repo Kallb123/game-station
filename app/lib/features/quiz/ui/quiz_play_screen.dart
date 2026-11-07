@@ -356,15 +356,15 @@ class _QuizQuestionViewState extends State<QuizQuestionView> {
           // of the question on a small window.
           padding: EdgeInsets.fromLTRB(
             wide ? AppSpacing.xl : AppSpacing.lg,
-            AppSpacing.md,
+            AppSpacing.sm,
             wide ? AppSpacing.xl : AppSpacing.lg,
-            AppSpacing.md,
+            AppSpacing.sm,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _TopRow(round: round, onBack: widget.onBack),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppQuizSizes.gap),
               // Debug and profile builds only: an unchecked question is one a
               // reviewer has not signed off, and a child never sees it
               // (`PLAN-phase-10-quiz.md` §4.2).
@@ -391,7 +391,7 @@ class _QuizQuestionViewState extends State<QuizQuestionView> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 _answers(current, solved, wrong),
-                                const SizedBox(height: AppSpacing.lg),
+                                const SizedBox(height: AppQuizSizes.gap),
                                 _feedback(solved, wrong),
                               ],
                             ),
@@ -407,9 +407,9 @@ class _QuizQuestionViewState extends State<QuizQuestionView> {
                               fontSize: AppQuizSizes.question,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppQuizSizes.gap),
                           _answers(current, solved, wrong),
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppQuizSizes.gap),
                           _feedback(solved, wrong),
                         ],
                       ),
@@ -934,7 +934,7 @@ class _SolvedFeedback extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.xs),
         Theme(
           data: theme.copyWith(colorScheme: success),
           child: BigButton(

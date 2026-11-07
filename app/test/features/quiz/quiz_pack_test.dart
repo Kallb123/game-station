@@ -101,7 +101,7 @@ void main() {
     test('trims before checking length and emptiness', () {
       expect(_answerProblems(a: '  Blue  '), isEmpty);
       expect(_answerProblems(a: ' ' * 40), [contains('a is empty')]);
-      expect(_answerProblems(a: '${'y' * 30}   '), isEmpty);
+      expect(_answerProblems(a: '${'y' * 35}   '), isEmpty);
     });
 
     test('compares answers after trimming and lowercasing', () {
