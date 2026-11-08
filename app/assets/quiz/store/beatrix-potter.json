@@ -11,7 +11,7 @@
         {
           "id": "beatrix-potter.peter-rabbit.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What are the names of Peter's three sisters?",
           "a": "Flopsy, Mopsy and Cotton-tail",
           "wrong": [
@@ -24,7 +24,7 @@
         {
           "id": "beatrix-potter.peter-rabbit.002",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Where was Peter not allowed to go?",
           "a": "Mr. McGregor's garden",
           "wrong": [
@@ -37,7 +37,7 @@
         {
           "id": "beatrix-potter.peter-rabbit.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What colour was Peter's jacket?",
           "a": "Blue",
           "wrong": [
@@ -63,7 +63,7 @@
         {
           "id": "beatrix-potter.peter-rabbit.005",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What did the good little rabbits go to gather in the lane?",
           "a": "Blackberries",
           "wrong": [
