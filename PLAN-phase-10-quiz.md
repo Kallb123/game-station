@@ -789,6 +789,24 @@ every topic question keeping to facts that do not change (§4.2). The same done-
 (with 40 per topic in place of 20), plus a loader test over the real store directory: with every question
 unchecked the store catalog offers nothing and the Arcade menu shows no Quiz card (§4.5); with ten
 of one title's questions checked, it offers that title and the card appears.
+*Outcome:* built as above. The title ids, frozen from the first release that offers them (§3), are
+`beatrix-potter.peter-rabbit`, and `general-knowledge.animals`, `general-knowledge.uk` and
+`general-knowledge.world`, in that shelf order. Peter Rabbit has 9 of 20 questions at level 1, and
+the topics 19, 18 and 18 of 40. Every question is drafted with `checked: false`. A store release build
+therefore still has no Quiz card, which is the done-when's first case holding today. Debug builds
+show the four titles, so the shelf's collection switch now has a *Topics* position. Drafting kept
+to facts that were safe to state from memory. It left out contested conventions (how many
+continents, whether the Nile or the Amazon is longer, countries with more than one capital) and any
+wrong answer that could be argued right: a pea is a seed, so it is not offered as a wrong answer to
+"what did the mouse have in her mouth". The checker's notes on each pack are in the pull request.
+Every question fitted the phone window with its own answers. But `quiz_play_layout_test.dart`'s
+worst case, the bank's longest question beside its three longest answers, failed 360 x 760 by
+26 dp with a 66-character question beside the Faraway Tree's 30-character answers. Five questions
+over 60 characters, and one 30-character answer, were therefore shortened to bring the bank's
+longest question back to 60. The caps themselves were not changed.
+`store_bank_test.dart` reads the real store directory and none of the private one, because that is
+what a store build carries. It forces every question's `checked` in memory, so it keeps testing the
+same claim after the owner starts checking.
 
 **PR 13 — smoke test, device pass, close.** `app/integration_test/quiz_smoke_test.dart` drives home,
 Arcade, Quiz, the shelf, a tick, *Quiz me* and a full round to the round-end card, and checks the
