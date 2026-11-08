@@ -1,0 +1,274 @@
+{
+  "format": 1,
+  "series": "beatrix-potter",
+  "name": "Beatrix Potter",
+  "collection": "book",
+  "titles": [
+    {
+      "id": "beatrix-potter.peter-rabbit",
+      "name": "The Tale of Peter Rabbit",
+      "questions": [
+        {
+          "id": "beatrix-potter.peter-rabbit.001",
+          "level": 1,
+          "checked": false,
+          "q": "What are the names of Peter's three sisters?",
+          "a": "Flopsy, Mopsy and Cotton-tail",
+          "wrong": [
+            "Hopsy, Popsy and Fluffy-tail",
+            "Lily, Rose and Daisy",
+            "Hoppy, Skippy and Bunty"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the opening pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.002",
+          "level": 1,
+          "checked": false,
+          "q": "Where was Peter not allowed to go?",
+          "a": "Mr. McGregor's garden",
+          "wrong": [
+            "The farmyard",
+            "The pond",
+            "The baker's shop"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the opening pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.003",
+          "level": 1,
+          "checked": false,
+          "q": "What colour was Peter's jacket?",
+          "a": "Blue",
+          "wrong": [
+            "Red",
+            "Green",
+            "Brown"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the opening pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.004",
+          "level": 1,
+          "checked": false,
+          "q": "What happened to Peter's father in the garden?",
+          "a": "He was put in a pie",
+          "wrong": [
+            "He fell down a well",
+            "He was kept in a cage",
+            "He got lost in the wood"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the opening pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.005",
+          "level": 1,
+          "checked": false,
+          "q": "What did the good little rabbits go to gather in the lane?",
+          "a": "Blackberries",
+          "wrong": [
+            "Mushrooms",
+            "Nuts",
+            "Apples"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the opening pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.006",
+          "level": 1,
+          "checked": false,
+          "q": "Where did the rabbit family live?",
+          "a": "Under a big fir-tree",
+          "wrong": [
+            "In a hollow oak",
+            "Under a haystack",
+            "In a barn"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the opening pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.007",
+          "level": 1,
+          "checked": false,
+          "q": "How did Peter get into the garden?",
+          "a": "He squeezed under the gate",
+          "wrong": [
+            "He climbed over the wall",
+            "He dug under the hedge",
+            "He jumped through a window"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the opening pages, Mr. McGregor's garden"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.008",
+          "level": 1,
+          "checked": false,
+          "q": "Which of these vegetables did Peter eat?",
+          "a": "Radishes",
+          "wrong": [
+            "Carrots",
+            "Turnips",
+            "Celery"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.009",
+          "level": 1,
+          "checked": false,
+          "q": "What did Mrs. Rabbit give Peter when he was ill?",
+          "a": "Camomile tea",
+          "wrong": [
+            "Hot milk",
+            "Honey and lemon",
+            "Cough sweets"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the closing pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.010",
+          "level": 2,
+          "checked": false,
+          "q": "What did Flopsy, Mopsy and Cotton-tail have for supper?",
+          "a": "Bread, milk and blackberries",
+          "wrong": [
+            "Cake and lemonade",
+            "Lettuce and beans",
+            "Porridge and honey"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the closing pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.011",
+          "level": 2,
+          "checked": false,
+          "q": "What did Mrs. Rabbit buy at the baker's?",
+          "a": "A loaf and five currant buns",
+          "wrong": [
+            "A loaf and three jam tarts",
+            "Two pies and a cake",
+            "Six eggs and a pie"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), the opening pages"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.012",
+          "level": 2,
+          "checked": false,
+          "q": "What was Mr. McGregor doing when Peter first met him?",
+          "a": "Planting out cabbages",
+          "wrong": [
+            "Digging potatoes",
+            "Picking apples",
+            "Sweeping the path"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.013",
+          "level": 2,
+          "checked": false,
+          "q": "Why did Peter go to look for parsley?",
+          "a": "He felt rather sick",
+          "wrong": [
+            "He was still hungry",
+            "His mother asked him to",
+            "He wanted to hide in it"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.014",
+          "level": 2,
+          "checked": false,
+          "q": "Among which vegetables did Peter lose his two shoes?",
+          "a": "Cabbages and potatoes",
+          "wrong": [
+            "Lettuces and beans",
+            "Radishes and onions",
+            "Carrots and parsley"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden, the chase"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.015",
+          "level": 2,
+          "checked": false,
+          "q": "What caught Peter by the buttons of his jacket?",
+          "a": "A gooseberry net",
+          "wrong": [
+            "A rose bush",
+            "A garden gate",
+            "A wire fence"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden, the chase"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.016",
+          "level": 2,
+          "checked": false,
+          "q": "Which birds begged Peter to try harder to get free?",
+          "a": "Sparrows",
+          "wrong": [
+            "Blackbirds",
+            "Robins",
+            "Crows"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden, the chase"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.017",
+          "level": 2,
+          "checked": false,
+          "q": "Where did Peter hide from Mr. McGregor?",
+          "a": "In a can in the tool-shed",
+          "wrong": [
+            "Up a plum tree",
+            "In a rabbit hole",
+            "In the greenhouse"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden, the tool-shed"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.018",
+          "level": 2,
+          "checked": false,
+          "q": "What did Peter do that gave away his hiding place?",
+          "a": "He sneezed",
+          "wrong": [
+            "He coughed",
+            "He called for help",
+            "He dropped his shoe"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden, the tool-shed"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.019",
+          "level": 2,
+          "checked": false,
+          "q": "What did the mouse have in her mouth?",
+          "a": "A large pea",
+          "wrong": [
+            "A nut",
+            "A crumb",
+            "A cherry"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden, looking for the gate"
+        },
+        {
+          "id": "beatrix-potter.peter-rabbit.020",
+          "level": 2,
+          "checked": false,
+          "q": "What did Mr. McGregor hang up as a scarecrow?",
+          "a": "Peter's jacket and shoes",
+          "wrong": [
+            "An old hat and coat",
+            "A sack and a broom",
+            "A bucket and a rake"
+          ],
+          "source": "The Tale of Peter Rabbit (1902), Mr. McGregor's garden, after the escape"
+        }
+      ]
+    }
+  ]
+}

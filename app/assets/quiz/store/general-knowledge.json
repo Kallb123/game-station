@@ -1,0 +1,1586 @@
+{
+  "format": 1,
+  "series": "general-knowledge",
+  "name": "General knowledge",
+  "collection": "topic",
+  "titles": [
+    {
+      "id": "general-knowledge.animals",
+      "name": "Animals",
+      "questions": [
+        {
+          "id": "general-knowledge.animals.001",
+          "level": 1,
+          "checked": false,
+          "q": "What do cows mainly eat?",
+          "a": "Grass",
+          "wrong": [
+            "Fish",
+            "Meat",
+            "Cheese"
+          ],
+          "source": "Children's encyclopedia, 'Cow'"
+        },
+        {
+          "id": "general-knowledge.animals.002",
+          "level": 1,
+          "checked": false,
+          "q": "What is a baby dog called?",
+          "a": "Puppy",
+          "wrong": [
+            "Kitten",
+            "Calf",
+            "Lamb"
+          ],
+          "source": "Children's encyclopedia, 'Dog'"
+        },
+        {
+          "id": "general-knowledge.animals.003",
+          "level": 1,
+          "checked": false,
+          "q": "What is a baby sheep called?",
+          "a": "Lamb",
+          "wrong": [
+            "Foal",
+            "Piglet",
+            "Duckling"
+          ],
+          "source": "Children's encyclopedia, 'Sheep'"
+        },
+        {
+          "id": "general-knowledge.animals.004",
+          "level": 1,
+          "checked": false,
+          "q": "How many legs does a spider have?",
+          "a": "Eight",
+          "wrong": [
+            "Six",
+            "Four",
+            "Ten"
+          ],
+          "source": "Encyclopaedia Britannica, 'Spider'"
+        },
+        {
+          "id": "general-knowledge.animals.005",
+          "level": 1,
+          "checked": false,
+          "q": "Which animal says moo?",
+          "a": "Cow",
+          "wrong": [
+            "Pig",
+            "Horse",
+            "Hen"
+          ],
+          "source": "Children's encyclopedia, 'Cow'"
+        },
+        {
+          "id": "general-knowledge.animals.006",
+          "level": 1,
+          "checked": false,
+          "q": "What is a baby cat called?",
+          "a": "Kitten",
+          "wrong": [
+            "Puppy",
+            "Calf",
+            "Chick"
+          ],
+          "source": "Children's encyclopedia, 'Cat'"
+        },
+        {
+          "id": "general-knowledge.animals.007",
+          "level": 1,
+          "checked": false,
+          "q": "Which animal has a long trunk?",
+          "a": "Elephant",
+          "wrong": [
+            "Giraffe",
+            "Lion",
+            "Hippo"
+          ],
+          "source": "Children's encyclopedia, 'Elephant'"
+        },
+        {
+          "id": "general-knowledge.animals.008",
+          "level": 1,
+          "checked": false,
+          "q": "Where does a fish live?",
+          "a": "In water",
+          "wrong": [
+            "In a tree",
+            "In a burrow",
+            "In a nest"
+          ],
+          "source": "Children's encyclopedia, 'Fish'"
+        },
+        {
+          "id": "general-knowledge.animals.009",
+          "level": 1,
+          "checked": false,
+          "q": "What do bees make?",
+          "a": "Honey",
+          "wrong": [
+            "Milk",
+            "Silk",
+            "Jam"
+          ],
+          "source": "Children's encyclopedia, 'Honeybee'"
+        },
+        {
+          "id": "general-knowledge.animals.010",
+          "level": 1,
+          "checked": false,
+          "q": "Which of these animals lays eggs?",
+          "a": "Hen",
+          "wrong": [
+            "Cow",
+            "Cat",
+            "Horse"
+          ],
+          "source": "Children's encyclopedia, 'Hen'"
+        },
+        {
+          "id": "general-knowledge.animals.011",
+          "level": 1,
+          "checked": false,
+          "q": "How many legs does a dog have?",
+          "a": "Four",
+          "wrong": [
+            "Two",
+            "Six",
+            "Eight"
+          ],
+          "source": "Children's encyclopedia, 'Dog'"
+        },
+        {
+          "id": "general-knowledge.animals.012",
+          "level": 1,
+          "checked": false,
+          "q": "What is a baby horse called?",
+          "a": "Foal",
+          "wrong": [
+            "Calf",
+            "Lamb",
+            "Piglet"
+          ],
+          "source": "Children's encyclopedia, 'Horse'"
+        },
+        {
+          "id": "general-knowledge.animals.013",
+          "level": 1,
+          "checked": false,
+          "q": "What does a baby frog start life as?",
+          "a": "A tadpole",
+          "wrong": [
+            "A caterpillar",
+            "A cub",
+            "A chick"
+          ],
+          "source": "Encyclopaedia Britannica, 'Frog'"
+        },
+        {
+          "id": "general-knowledge.animals.014",
+          "level": 1,
+          "checked": false,
+          "q": "Which of these animals can fly?",
+          "a": "Owl",
+          "wrong": [
+            "Rabbit",
+            "Pig",
+            "Cat"
+          ],
+          "source": "Children's encyclopedia, 'Owl'"
+        },
+        {
+          "id": "general-knowledge.animals.015",
+          "level": 1,
+          "checked": false,
+          "q": "What covers a sheep's body?",
+          "a": "Wool",
+          "wrong": [
+            "Feathers",
+            "Scales",
+            "Shells"
+          ],
+          "source": "Children's encyclopedia, 'Sheep'"
+        },
+        {
+          "id": "general-knowledge.animals.016",
+          "level": 1,
+          "checked": false,
+          "q": "What is a baby duck called?",
+          "a": "Duckling",
+          "wrong": [
+            "Piglet",
+            "Foal",
+            "Kitten"
+          ],
+          "source": "Children's encyclopedia, 'Duck'"
+        },
+        {
+          "id": "general-knowledge.animals.017",
+          "level": 1,
+          "checked": false,
+          "q": "What does a hedgehog have on its back?",
+          "a": "Spines",
+          "wrong": [
+            "Shells",
+            "Feathers",
+            "Scales"
+          ],
+          "source": "Children's encyclopedia, 'Hedgehog'"
+        },
+        {
+          "id": "general-knowledge.animals.018",
+          "level": 1,
+          "checked": false,
+          "q": "What is a baby cow called?",
+          "a": "Calf",
+          "wrong": [
+            "Foal",
+            "Lamb",
+            "Kitten"
+          ],
+          "source": "Children's encyclopedia, 'Cow'"
+        },
+        {
+          "id": "general-knowledge.animals.019",
+          "level": 1,
+          "checked": false,
+          "q": "Which bird says quack?",
+          "a": "Duck",
+          "wrong": [
+            "Owl",
+            "Hen",
+            "Robin"
+          ],
+          "source": "Children's encyclopedia, 'Duck'"
+        },
+        {
+          "id": "general-knowledge.animals.020",
+          "level": 2,
+          "checked": false,
+          "q": "How many legs does an insect have?",
+          "a": "Six",
+          "wrong": [
+            "Four",
+            "Eight",
+            "Ten"
+          ],
+          "source": "Encyclopaedia Britannica, 'Insect'"
+        },
+        {
+          "id": "general-knowledge.animals.021",
+          "level": 2,
+          "checked": false,
+          "q": "How many hearts does an octopus have?",
+          "a": "Three",
+          "wrong": [
+            "One",
+            "Two",
+            "Eight"
+          ],
+          "source": "Encyclopaedia Britannica, 'Octopus'"
+        },
+        {
+          "id": "general-knowledge.animals.022",
+          "level": 2,
+          "checked": false,
+          "q": "What do giant pandas mostly eat?",
+          "a": "Bamboo",
+          "wrong": [
+            "Fish",
+            "Honey",
+            "Berries"
+          ],
+          "source": "Encyclopaedia Britannica, 'Giant panda'"
+        },
+        {
+          "id": "general-knowledge.animals.023",
+          "level": 2,
+          "checked": false,
+          "q": "What is a group of lions called?",
+          "a": "A pride",
+          "wrong": [
+            "A herd",
+            "A flock",
+            "A pack"
+          ],
+          "source": "Encyclopaedia Britannica, 'Lion'"
+        },
+        {
+          "id": "general-knowledge.animals.024",
+          "level": 2,
+          "checked": false,
+          "q": "What is a baby swan called?",
+          "a": "Cygnet",
+          "wrong": [
+            "Gosling",
+            "Duckling",
+            "Fawn"
+          ],
+          "source": "Encyclopaedia Britannica, 'Swan'"
+        },
+        {
+          "id": "general-knowledge.animals.025",
+          "level": 2,
+          "checked": false,
+          "q": "What is a baby goat called?",
+          "a": "Kid",
+          "wrong": [
+            "Lamb",
+            "Calf",
+            "Foal"
+          ],
+          "source": "Children's encyclopedia, 'Goat'"
+        },
+        {
+          "id": "general-knowledge.animals.026",
+          "level": 2,
+          "checked": false,
+          "q": "What is a bee's home called?",
+          "a": "A hive",
+          "wrong": [
+            "A sett",
+            "A drey",
+            "A den"
+          ],
+          "source": "Encyclopaedia Britannica, 'Honeybee'"
+        },
+        {
+          "id": "general-knowledge.animals.027",
+          "level": 2,
+          "checked": false,
+          "q": "What is a squirrel's nest called?",
+          "a": "A drey",
+          "wrong": [
+            "A sett",
+            "A holt",
+            "A form"
+          ],
+          "source": "Encyclopaedia Britannica, 'Squirrel'"
+        },
+        {
+          "id": "general-knowledge.animals.028",
+          "level": 2,
+          "checked": false,
+          "q": "What is a baby kangaroo called?",
+          "a": "Joey",
+          "wrong": [
+            "Calf",
+            "Cub",
+            "Foal"
+          ],
+          "source": "Encyclopaedia Britannica, 'Kangaroo'"
+        },
+        {
+          "id": "general-knowledge.animals.029",
+          "level": 2,
+          "checked": false,
+          "q": "Which animal carries its baby in a pouch?",
+          "a": "Kangaroo",
+          "wrong": [
+            "Rabbit",
+            "Squirrel",
+            "Hedgehog"
+          ],
+          "source": "Encyclopaedia Britannica, 'Kangaroo'"
+        },
+        {
+          "id": "general-knowledge.animals.030",
+          "level": 2,
+          "checked": false,
+          "q": "What kind of animal is a whale?",
+          "a": "A mammal",
+          "wrong": [
+            "A fish",
+            "A reptile",
+            "A bird"
+          ],
+          "source": "Encyclopaedia Britannica, 'Whale'"
+        },
+        {
+          "id": "general-knowledge.animals.031",
+          "level": 2,
+          "checked": false,
+          "q": "What kind of animal is a frog?",
+          "a": "An amphibian",
+          "wrong": [
+            "A reptile",
+            "A mammal",
+            "An insect"
+          ],
+          "source": "Encyclopaedia Britannica, 'Frog'"
+        },
+        {
+          "id": "general-knowledge.animals.032",
+          "level": 2,
+          "checked": false,
+          "q": "What does a ladybird mostly eat?",
+          "a": "Greenfly (aphids)",
+          "wrong": [
+            "Honey",
+            "Seeds",
+            "Fish"
+          ],
+          "source": "Encyclopaedia Britannica, 'Ladybug'"
+        },
+        {
+          "id": "general-knowledge.animals.033",
+          "level": 2,
+          "checked": false,
+          "q": "Which UK animal hibernates in winter?",
+          "a": "Hedgehog",
+          "wrong": [
+            "Fox",
+            "Rabbit",
+            "Robin"
+          ],
+          "source": "Encyclopaedia Britannica, 'Hedgehog'"
+        },
+        {
+          "id": "general-knowledge.animals.034",
+          "level": 2,
+          "checked": false,
+          "q": "What is a baby hedgehog called?",
+          "a": "Hoglet",
+          "wrong": [
+            "Leveret",
+            "Cub",
+            "Foal"
+          ],
+          "source": "Encyclopaedia Britannica, 'Hedgehog'"
+        },
+        {
+          "id": "general-knowledge.animals.035",
+          "level": 2,
+          "checked": false,
+          "q": "What is a baby hare called?",
+          "a": "Leveret",
+          "wrong": [
+            "Joey",
+            "Cygnet",
+            "Piglet"
+          ],
+          "source": "Encyclopaedia Britannica, 'Hare'"
+        },
+        {
+          "id": "general-knowledge.animals.036",
+          "level": 2,
+          "checked": false,
+          "q": "What is a male sheep called?",
+          "a": "A ram",
+          "wrong": [
+            "A bull",
+            "A stag",
+            "A boar"
+          ],
+          "source": "Children's encyclopedia, 'Sheep'"
+        },
+        {
+          "id": "general-knowledge.animals.037",
+          "level": 2,
+          "checked": false,
+          "q": "What is a female pig called?",
+          "a": "A sow",
+          "wrong": [
+            "A ewe",
+            "A mare",
+            "A hen"
+          ],
+          "source": "Children's encyclopedia, 'Pig'"
+        },
+        {
+          "id": "general-knowledge.animals.038",
+          "level": 2,
+          "checked": false,
+          "q": "Which of these birds cannot fly?",
+          "a": "Penguin",
+          "wrong": [
+            "Swan",
+            "Robin",
+            "Owl"
+          ],
+          "source": "Encyclopaedia Britannica, 'Penguin'"
+        },
+        {
+          "id": "general-knowledge.animals.039",
+          "level": 2,
+          "checked": false,
+          "q": "What is a rabbit's underground home called?",
+          "a": "A warren",
+          "wrong": [
+            "A sett",
+            "A drey",
+            "A lodge"
+          ],
+          "source": "Encyclopaedia Britannica, 'Rabbit'"
+        },
+        {
+          "id": "general-knowledge.animals.040",
+          "level": 2,
+          "checked": false,
+          "q": "Which animal builds dams across streams?",
+          "a": "Beaver",
+          "wrong": [
+            "Otter",
+            "Mole",
+            "Badger"
+          ],
+          "source": "Encyclopaedia Britannica, 'Beaver'"
+        }
+      ]
+    },
+    {
+      "id": "general-knowledge.uk",
+      "name": "The UK",
+      "questions": [
+        {
+          "id": "general-knowledge.uk.001",
+          "level": 1,
+          "checked": false,
+          "q": "Which city is the capital of England?",
+          "a": "London",
+          "wrong": [
+            "Cardiff",
+            "Edinburgh",
+            "Belfast"
+          ],
+          "source": "Encyclopaedia Britannica, 'London'"
+        },
+        {
+          "id": "general-knowledge.uk.002",
+          "level": 1,
+          "checked": false,
+          "q": "Which city is the capital of Scotland?",
+          "a": "Edinburgh",
+          "wrong": [
+            "Cardiff",
+            "London",
+            "Belfast"
+          ],
+          "source": "Encyclopaedia Britannica, 'Edinburgh'"
+        },
+        {
+          "id": "general-knowledge.uk.003",
+          "level": 1,
+          "checked": false,
+          "q": "Which city is the capital of Wales?",
+          "a": "Cardiff",
+          "wrong": [
+            "Edinburgh",
+            "London",
+            "Belfast"
+          ],
+          "source": "Encyclopaedia Britannica, 'Cardiff'"
+        },
+        {
+          "id": "general-knowledge.uk.004",
+          "level": 1,
+          "checked": false,
+          "q": "Which city is the capital of Northern Ireland?",
+          "a": "Belfast",
+          "wrong": [
+            "Cardiff",
+            "Edinburgh",
+            "London"
+          ],
+          "source": "Encyclopaedia Britannica, 'Belfast'"
+        },
+        {
+          "id": "general-knowledge.uk.005",
+          "level": 1,
+          "checked": false,
+          "q": "Which river flows through London?",
+          "a": "The Thames",
+          "wrong": [
+            "The Severn",
+            "The Clyde",
+            "The Tyne"
+          ],
+          "source": "Encyclopaedia Britannica, 'River Thames'"
+        },
+        {
+          "id": "general-knowledge.uk.006",
+          "level": 1,
+          "checked": false,
+          "q": "Which flower is the emblem of England?",
+          "a": "A rose",
+          "wrong": [
+            "A thistle",
+            "A daffodil",
+            "A shamrock"
+          ],
+          "source": "Encyclopaedia Britannica, 'National emblems of the United Kingdom'"
+        },
+        {
+          "id": "general-knowledge.uk.007",
+          "level": 1,
+          "checked": false,
+          "q": "Which flower is the emblem of Scotland?",
+          "a": "A thistle",
+          "wrong": [
+            "A rose",
+            "A daffodil",
+            "A tulip"
+          ],
+          "source": "Encyclopaedia Britannica, 'National emblems of the United Kingdom'"
+        },
+        {
+          "id": "general-knowledge.uk.008",
+          "level": 1,
+          "checked": false,
+          "q": "Which flower is the emblem of Wales?",
+          "a": "A daffodil",
+          "wrong": [
+            "A thistle",
+            "A rose",
+            "A tulip"
+          ],
+          "source": "Encyclopaedia Britannica, 'National emblems of the United Kingdom'"
+        },
+        {
+          "id": "general-knowledge.uk.009",
+          "level": 1,
+          "checked": false,
+          "q": "In which country is Loch Ness?",
+          "a": "Scotland",
+          "wrong": [
+            "Wales",
+            "England",
+            "Northern Ireland"
+          ],
+          "source": "Encyclopaedia Britannica, 'Loch Ness'"
+        },
+        {
+          "id": "general-knowledge.uk.010",
+          "level": 1,
+          "checked": false,
+          "q": "In which country is the Giant's Causeway?",
+          "a": "Northern Ireland",
+          "wrong": [
+            "Scotland",
+            "Wales",
+            "England"
+          ],
+          "source": "Encyclopaedia Britannica, 'Giant's Causeway'"
+        },
+        {
+          "id": "general-knowledge.uk.011",
+          "level": 1,
+          "checked": false,
+          "q": "Which stretch of water lies between England and France?",
+          "a": "The English Channel",
+          "wrong": [
+            "The Irish Sea",
+            "The North Sea",
+            "The Bristol Channel"
+          ],
+          "source": "Encyclopaedia Britannica, 'English Channel'"
+        },
+        {
+          "id": "general-knowledge.uk.012",
+          "level": 1,
+          "checked": false,
+          "q": "Which colours are on the Union Jack?",
+          "a": "Red, white and blue",
+          "wrong": [
+            "Red, white and green",
+            "Red, yellow and blue",
+            "Blue, white and green"
+          ],
+          "source": "Encyclopaedia Britannica, 'Union Jack'"
+        },
+        {
+          "id": "general-knowledge.uk.013",
+          "level": 1,
+          "checked": false,
+          "q": "Big Ben is a famous bell in which city?",
+          "a": "London",
+          "wrong": [
+            "Edinburgh",
+            "Cardiff",
+            "York"
+          ],
+          "source": "Encyclopaedia Britannica, 'Big Ben'"
+        },
+        {
+          "id": "general-knowledge.uk.014",
+          "level": 1,
+          "checked": false,
+          "q": "What do people celebrate with fireworks on 5 November?",
+          "a": "Bonfire Night",
+          "wrong": [
+            "Pancake Day",
+            "Harvest Festival",
+            "May Day"
+          ],
+          "source": "Encyclopaedia Britannica, 'Guy Fawkes Day'"
+        },
+        {
+          "id": "general-knowledge.uk.015",
+          "level": 1,
+          "checked": false,
+          "q": "In which country is Snowdon, a mountain?",
+          "a": "Wales",
+          "wrong": [
+            "Scotland",
+            "England",
+            "Northern Ireland"
+          ],
+          "source": "Encyclopaedia Britannica, 'Snowdon'"
+        },
+        {
+          "id": "general-knowledge.uk.016",
+          "level": 1,
+          "checked": false,
+          "q": "What is the flag of the United Kingdom often called?",
+          "a": "The Union Jack",
+          "wrong": [
+            "The Stars and Stripes",
+            "The Tricolour",
+            "The Maple Leaf"
+          ],
+          "source": "Encyclopaedia Britannica, 'Union Jack'"
+        },
+        {
+          "id": "general-knowledge.uk.017",
+          "level": 1,
+          "checked": false,
+          "q": "In which country is Stonehenge?",
+          "a": "England",
+          "wrong": [
+            "Wales",
+            "Scotland",
+            "Northern Ireland"
+          ],
+          "source": "Encyclopaedia Britannica, 'Stonehenge'"
+        },
+        {
+          "id": "general-knowledge.uk.018",
+          "level": 1,
+          "checked": false,
+          "q": "What is the giant wheel beside the Thames in London called?",
+          "a": "The London Eye",
+          "wrong": [
+            "The Edinburgh Eye",
+            "The Cardiff Wheel",
+            "The Tower Wheel"
+          ],
+          "source": "Encyclopaedia Britannica, 'London Eye'"
+        },
+        {
+          "id": "general-knowledge.uk.019",
+          "level": 2,
+          "checked": false,
+          "q": "Which is the longest river in Great Britain?",
+          "a": "The Severn",
+          "wrong": [
+            "The Thames",
+            "The Trent",
+            "The Clyde"
+          ],
+          "source": "Encyclopaedia Britannica, 'Severn River'"
+        },
+        {
+          "id": "general-knowledge.uk.020",
+          "level": 2,
+          "checked": false,
+          "q": "Which is the highest mountain in the United Kingdom?",
+          "a": "Ben Nevis",
+          "wrong": [
+            "Snowdon",
+            "Scafell Pike",
+            "Slieve Donard"
+          ],
+          "source": "Encyclopaedia Britannica, 'Ben Nevis'"
+        },
+        {
+          "id": "general-knowledge.uk.021",
+          "level": 2,
+          "checked": false,
+          "q": "Which saint is the patron saint of Wales?",
+          "a": "Saint David",
+          "wrong": [
+            "Saint George",
+            "Saint Andrew",
+            "Saint Patrick"
+          ],
+          "source": "Encyclopaedia Britannica, 'Saint David'"
+        },
+        {
+          "id": "general-knowledge.uk.022",
+          "level": 2,
+          "checked": false,
+          "q": "Which saint is the patron saint of Scotland?",
+          "a": "Saint Andrew",
+          "wrong": [
+            "Saint George",
+            "Saint David",
+            "Saint Patrick"
+          ],
+          "source": "Encyclopaedia Britannica, 'Saint Andrew'"
+        },
+        {
+          "id": "general-knowledge.uk.023",
+          "level": 2,
+          "checked": false,
+          "q": "Which saint is the patron saint of England?",
+          "a": "Saint George",
+          "wrong": [
+            "Saint Andrew",
+            "Saint David",
+            "Saint Patrick"
+          ],
+          "source": "Encyclopaedia Britannica, 'Saint George'"
+        },
+        {
+          "id": "general-knowledge.uk.024",
+          "level": 2,
+          "checked": false,
+          "q": "Whose saint's day is on 17 March?",
+          "a": "Saint Patrick",
+          "wrong": [
+            "Saint George",
+            "Saint David",
+            "Saint Andrew"
+          ],
+          "source": "Encyclopaedia Britannica, 'Saint Patrick'"
+        },
+        {
+          "id": "general-knowledge.uk.025",
+          "level": 2,
+          "checked": false,
+          "q": "On which date is Saint David's Day?",
+          "a": "1 March",
+          "wrong": [
+            "23 April",
+            "30 November",
+            "17 March"
+          ],
+          "source": "Encyclopaedia Britannica, 'Saint David'"
+        },
+        {
+          "id": "general-knowledge.uk.026",
+          "level": 2,
+          "checked": false,
+          "q": "Which sea lies between Great Britain and Ireland?",
+          "a": "The Irish Sea",
+          "wrong": [
+            "The North Sea",
+            "The English Channel",
+            "The Black Sea"
+          ],
+          "source": "Encyclopaedia Britannica, 'Irish Sea'"
+        },
+        {
+          "id": "general-knowledge.uk.027",
+          "level": 2,
+          "checked": false,
+          "q": "Which sea is off the east coast of England?",
+          "a": "The North Sea",
+          "wrong": [
+            "The Irish Sea",
+            "The Black Sea",
+            "The Red Sea"
+          ],
+          "source": "Encyclopaedia Britannica, 'North Sea'"
+        },
+        {
+          "id": "general-knowledge.uk.028",
+          "level": 2,
+          "checked": false,
+          "q": "Which islands lie just off the south-west tip of Cornwall?",
+          "a": "The Isles of Scilly",
+          "wrong": [
+            "The Orkney Islands",
+            "The Hebrides",
+            "The Shetland Islands"
+          ],
+          "source": "Encyclopaedia Britannica, 'Scilly Isles'"
+        },
+        {
+          "id": "general-knowledge.uk.029",
+          "level": 2,
+          "checked": false,
+          "q": "Which island lies just off Portsmouth?",
+          "a": "The Isle of Wight",
+          "wrong": [
+            "Anglesey",
+            "Skye",
+            "Orkney"
+          ],
+          "source": "Encyclopaedia Britannica, 'Isle of Wight'"
+        },
+        {
+          "id": "general-knowledge.uk.030",
+          "level": 2,
+          "checked": false,
+          "q": "Which island lies off the north-west coast of Wales?",
+          "a": "Anglesey",
+          "wrong": [
+            "The Isle of Wight",
+            "Skye",
+            "Orkney"
+          ],
+          "source": "Encyclopaedia Britannica, 'Anglesey'"
+        },
+        {
+          "id": "general-knowledge.uk.031",
+          "level": 2,
+          "checked": false,
+          "q": "Who built Hadrian's Wall?",
+          "a": "The Romans",
+          "wrong": [
+            "The Vikings",
+            "The Normans",
+            "The Victorians"
+          ],
+          "source": "Encyclopaedia Britannica, 'Hadrian's Wall'"
+        },
+        {
+          "id": "general-knowledge.uk.032",
+          "level": 2,
+          "checked": false,
+          "q": "Which Scottish city has a street called the Royal Mile?",
+          "a": "Edinburgh",
+          "wrong": [
+            "Glasgow",
+            "Aberdeen",
+            "Dundee"
+          ],
+          "source": "Encyclopaedia Britannica, 'Edinburgh'"
+        },
+        {
+          "id": "general-knowledge.uk.033",
+          "level": 2,
+          "checked": false,
+          "q": "Which English city is famous for its Roman Baths?",
+          "a": "Bath",
+          "wrong": [
+            "Leeds",
+            "Manchester",
+            "Liverpool"
+          ],
+          "source": "Encyclopaedia Britannica, 'Bath'"
+        },
+        {
+          "id": "general-knowledge.uk.034",
+          "level": 2,
+          "checked": false,
+          "q": "What is the Welsh name for Wales?",
+          "a": "Cymru",
+          "wrong": [
+            "Alba",
+            "Eire",
+            "Albion"
+          ],
+          "source": "Encyclopaedia Britannica, 'Wales'"
+        },
+        {
+          "id": "general-knowledge.uk.035",
+          "level": 2,
+          "checked": false,
+          "q": "What is the Scottish word for a lake?",
+          "a": "Loch",
+          "wrong": [
+            "Glen",
+            "Ben",
+            "Brae"
+          ],
+          "source": "Encyclopaedia Britannica, 'Loch'"
+        },
+        {
+          "id": "general-knowledge.uk.036",
+          "level": 2,
+          "checked": false,
+          "q": "In which country is the Forth Bridge?",
+          "a": "Scotland",
+          "wrong": [
+            "Wales",
+            "England",
+            "Northern Ireland"
+          ],
+          "source": "Encyclopaedia Britannica, 'Forth Bridge'"
+        },
+        {
+          "id": "general-knowledge.uk.037",
+          "level": 2,
+          "checked": false,
+          "q": "Hogmanay is the Scottish name for which night?",
+          "a": "New Year's Eve",
+          "wrong": [
+            "Christmas Eve",
+            "Bonfire Night",
+            "Halloween"
+          ],
+          "source": "Encyclopaedia Britannica, 'Hogmanay'"
+        },
+        {
+          "id": "general-knowledge.uk.038",
+          "level": 2,
+          "checked": false,
+          "q": "Which vegetable is an emblem of Wales?",
+          "a": "A leek",
+          "wrong": [
+            "A carrot",
+            "A potato",
+            "A turnip"
+          ],
+          "source": "Encyclopaedia Britannica, 'National emblems of the United Kingdom'"
+        },
+        {
+          "id": "general-knowledge.uk.039",
+          "level": 2,
+          "checked": false,
+          "q": "The Eisteddfod is a festival held in which country?",
+          "a": "Wales",
+          "wrong": [
+            "Scotland",
+            "England",
+            "Northern Ireland"
+          ],
+          "source": "Encyclopaedia Britannica, 'Eisteddfod'"
+        },
+        {
+          "id": "general-knowledge.uk.040",
+          "level": 2,
+          "checked": false,
+          "q": "Which islands lie off the north coast of Scotland?",
+          "a": "The Orkney Islands",
+          "wrong": [
+            "The Isles of Scilly",
+            "The Channel Islands",
+            "The Isle of Wight"
+          ],
+          "source": "Encyclopaedia Britannica, 'Orkney Islands'"
+        }
+      ]
+    },
+    {
+      "id": "general-knowledge.world",
+      "name": "The world",
+      "questions": [
+        {
+          "id": "general-knowledge.world.001",
+          "level": 1,
+          "checked": false,
+          "q": "Which country is the Eiffel Tower in?",
+          "a": "France",
+          "wrong": [
+            "Italy",
+            "Spain",
+            "Germany"
+          ],
+          "source": "World atlas, France"
+        },
+        {
+          "id": "general-knowledge.world.002",
+          "level": 1,
+          "checked": false,
+          "q": "Which country are the pyramids of Giza in?",
+          "a": "Egypt",
+          "wrong": [
+            "Peru",
+            "India",
+            "Brazil"
+          ],
+          "source": "World atlas, Egypt"
+        },
+        {
+          "id": "general-knowledge.world.003",
+          "level": 1,
+          "checked": false,
+          "q": "Which country is the Great Wall in?",
+          "a": "China",
+          "wrong": [
+            "Japan",
+            "India",
+            "Brazil"
+          ],
+          "source": "World atlas, China"
+        },
+        {
+          "id": "general-knowledge.world.004",
+          "level": 1,
+          "checked": false,
+          "q": "Which country is the Statue of Liberty in?",
+          "a": "The USA",
+          "wrong": [
+            "Canada",
+            "Mexico",
+            "Brazil"
+          ],
+          "source": "World atlas, United States"
+        },
+        {
+          "id": "general-knowledge.world.005",
+          "level": 1,
+          "checked": false,
+          "q": "Which country is the Sydney Opera House in?",
+          "a": "Australia",
+          "wrong": [
+            "New Zealand",
+            "Canada",
+            "Ireland"
+          ],
+          "source": "World atlas, Australia"
+        },
+        {
+          "id": "general-knowledge.world.006",
+          "level": 1,
+          "checked": false,
+          "q": "In which direction does the Sun rise?",
+          "a": "East",
+          "wrong": [
+            "West",
+            "North",
+            "South"
+          ],
+          "source": "Encyclopaedia Britannica, 'Sunrise'"
+        },
+        {
+          "id": "general-knowledge.world.007",
+          "level": 1,
+          "checked": false,
+          "q": "What does the Earth go round?",
+          "a": "The Sun",
+          "wrong": [
+            "The Moon",
+            "Mars",
+            "Jupiter"
+          ],
+          "source": "Encyclopaedia Britannica, 'Earth'"
+        },
+        {
+          "id": "general-knowledge.world.008",
+          "level": 1,
+          "checked": false,
+          "q": "What goes round the Earth?",
+          "a": "The Moon",
+          "wrong": [
+            "The Sun",
+            "Mars",
+            "Jupiter"
+          ],
+          "source": "Encyclopaedia Britannica, 'Moon'"
+        },
+        {
+          "id": "general-knowledge.world.009",
+          "level": 1,
+          "checked": false,
+          "q": "Which season comes after winter?",
+          "a": "Spring",
+          "wrong": [
+            "Summer",
+            "Autumn",
+            "Winter"
+          ],
+          "source": "Encyclopaedia Britannica, 'Season'"
+        },
+        {
+          "id": "general-knowledge.world.010",
+          "level": 1,
+          "checked": false,
+          "q": "A compass needle points to which direction?",
+          "a": "North",
+          "wrong": [
+            "South",
+            "East",
+            "West"
+          ],
+          "source": "Encyclopaedia Britannica, 'Compass'"
+        },
+        {
+          "id": "general-knowledge.world.011",
+          "level": 1,
+          "checked": false,
+          "q": "What is the line around the middle of the Earth called?",
+          "a": "The equator",
+          "wrong": [
+            "The North Pole",
+            "The South Pole",
+            "The Sahara"
+          ],
+          "source": "Encyclopaedia Britannica, 'Equator'"
+        },
+        {
+          "id": "general-knowledge.world.012",
+          "level": 1,
+          "checked": false,
+          "q": "Which pole is at the very top of the Earth?",
+          "a": "The North Pole",
+          "wrong": [
+            "The South Pole",
+            "The equator",
+            "The Sahara"
+          ],
+          "source": "Encyclopaedia Britannica, 'North Pole'"
+        },
+        {
+          "id": "general-knowledge.world.013",
+          "level": 1,
+          "checked": false,
+          "q": "What is the Sahara?",
+          "a": "A hot desert",
+          "wrong": [
+            "A big river",
+            "A tall mountain",
+            "A deep sea"
+          ],
+          "source": "Encyclopaedia Britannica, 'Sahara'"
+        },
+        {
+          "id": "general-knowledge.world.014",
+          "level": 1,
+          "checked": false,
+          "q": "On which continent is the River Nile?",
+          "a": "Africa",
+          "wrong": [
+            "Asia",
+            "Europe",
+            "South America"
+          ],
+          "source": "Encyclopaedia Britannica, 'Nile River'"
+        },
+        {
+          "id": "general-knowledge.world.015",
+          "level": 1,
+          "checked": false,
+          "q": "Which is the biggest ocean?",
+          "a": "The Pacific Ocean",
+          "wrong": [
+            "The Atlantic Ocean",
+            "The Indian Ocean",
+            "The Arctic Ocean"
+          ],
+          "source": "Encyclopaedia Britannica, 'Pacific Ocean'"
+        },
+        {
+          "id": "general-knowledge.world.016",
+          "level": 1,
+          "checked": false,
+          "q": "What is the capital city of France?",
+          "a": "Paris",
+          "wrong": [
+            "Rome",
+            "Madrid",
+            "Berlin"
+          ],
+          "source": "World atlas, France"
+        },
+        {
+          "id": "general-knowledge.world.017",
+          "level": 1,
+          "checked": false,
+          "q": "What is the capital city of Italy?",
+          "a": "Rome",
+          "wrong": [
+            "Paris",
+            "Madrid",
+            "Athens"
+          ],
+          "source": "World atlas, Italy"
+        },
+        {
+          "id": "general-knowledge.world.018",
+          "level": 1,
+          "checked": false,
+          "q": "What is the capital city of Japan?",
+          "a": "Tokyo",
+          "wrong": [
+            "Beijing",
+            "Seoul",
+            "Cairo"
+          ],
+          "source": "World atlas, Japan"
+        },
+        {
+          "id": "general-knowledge.world.019",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of Spain?",
+          "a": "Madrid",
+          "wrong": [
+            "Lisbon",
+            "Rome",
+            "Athens"
+          ],
+          "source": "World atlas, Spain"
+        },
+        {
+          "id": "general-knowledge.world.020",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of Germany?",
+          "a": "Berlin",
+          "wrong": [
+            "Vienna",
+            "Warsaw",
+            "Prague"
+          ],
+          "source": "World atlas, Germany"
+        },
+        {
+          "id": "general-knowledge.world.021",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of Egypt?",
+          "a": "Cairo",
+          "wrong": [
+            "Alexandria",
+            "Tunis",
+            "Nairobi"
+          ],
+          "source": "World atlas, Egypt"
+        },
+        {
+          "id": "general-knowledge.world.022",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of Australia?",
+          "a": "Canberra",
+          "wrong": [
+            "Sydney",
+            "Melbourne",
+            "Perth"
+          ],
+          "source": "World atlas, Australia"
+        },
+        {
+          "id": "general-knowledge.world.023",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of Canada?",
+          "a": "Ottawa",
+          "wrong": [
+            "Toronto",
+            "Vancouver",
+            "Montreal"
+          ],
+          "source": "World atlas, Canada"
+        },
+        {
+          "id": "general-knowledge.world.024",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of Greece?",
+          "a": "Athens",
+          "wrong": [
+            "Rome",
+            "Cairo",
+            "Lisbon"
+          ],
+          "source": "World atlas, Greece"
+        },
+        {
+          "id": "general-knowledge.world.025",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of Kenya?",
+          "a": "Nairobi",
+          "wrong": [
+            "Lagos",
+            "Cairo",
+            "Accra"
+          ],
+          "source": "World atlas, Kenya"
+        },
+        {
+          "id": "general-knowledge.world.026",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of Argentina?",
+          "a": "Buenos Aires",
+          "wrong": [
+            "Lima",
+            "Santiago",
+            "Bogota"
+          ],
+          "source": "World atlas, Argentina"
+        },
+        {
+          "id": "general-knowledge.world.027",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of India?",
+          "a": "New Delhi",
+          "wrong": [
+            "Mumbai",
+            "Kolkata",
+            "Karachi"
+          ],
+          "source": "World atlas, India"
+        },
+        {
+          "id": "general-knowledge.world.028",
+          "level": 2,
+          "checked": false,
+          "q": "What is the capital city of the USA?",
+          "a": "Washington, D.C.",
+          "wrong": [
+            "New York",
+            "Los Angeles",
+            "Chicago"
+          ],
+          "source": "World atlas, United States"
+        },
+        {
+          "id": "general-knowledge.world.029",
+          "level": 2,
+          "checked": false,
+          "q": "Mount Everest is in which mountain range?",
+          "a": "The Himalayas",
+          "wrong": [
+            "The Alps",
+            "The Andes",
+            "The Rockies"
+          ],
+          "source": "Encyclopaedia Britannica, 'Mount Everest'"
+        },
+        {
+          "id": "general-knowledge.world.030",
+          "level": 2,
+          "checked": false,
+          "q": "On which continent is the Amazon River?",
+          "a": "South America",
+          "wrong": [
+            "Africa",
+            "Asia",
+            "Europe"
+          ],
+          "source": "Encyclopaedia Britannica, 'Amazon River'"
+        },
+        {
+          "id": "general-knowledge.world.031",
+          "level": 2,
+          "checked": false,
+          "q": "On which continent is Japan?",
+          "a": "Asia",
+          "wrong": [
+            "Europe",
+            "Africa",
+            "South America"
+          ],
+          "source": "World atlas, Japan"
+        },
+        {
+          "id": "general-knowledge.world.032",
+          "level": 2,
+          "checked": false,
+          "q": "On which continent is the South Pole?",
+          "a": "Antarctica",
+          "wrong": [
+            "Australia",
+            "Africa",
+            "Asia"
+          ],
+          "source": "Encyclopaedia Britannica, 'South Pole'"
+        },
+        {
+          "id": "general-knowledge.world.033",
+          "level": 2,
+          "checked": false,
+          "q": "Which ocean is between Europe and North America?",
+          "a": "The Atlantic Ocean",
+          "wrong": [
+            "The Pacific Ocean",
+            "The Indian Ocean",
+            "The Southern Ocean"
+          ],
+          "source": "Encyclopaedia Britannica, 'Atlantic Ocean'"
+        },
+        {
+          "id": "general-knowledge.world.034",
+          "level": 2,
+          "checked": false,
+          "q": "Which ocean is around the North Pole?",
+          "a": "The Arctic Ocean",
+          "wrong": [
+            "The Indian Ocean",
+            "The Pacific Ocean",
+            "The Mediterranean Sea"
+          ],
+          "source": "Encyclopaedia Britannica, 'Arctic Ocean'"
+        },
+        {
+          "id": "general-knowledge.world.035",
+          "level": 2,
+          "checked": false,
+          "q": "Which country is Mount Fuji in?",
+          "a": "Japan",
+          "wrong": [
+            "China",
+            "India",
+            "Peru"
+          ],
+          "source": "World atlas, Japan"
+        },
+        {
+          "id": "general-knowledge.world.036",
+          "level": 2,
+          "checked": false,
+          "q": "Which country is the Taj Mahal in?",
+          "a": "India",
+          "wrong": [
+            "Egypt",
+            "Mexico",
+            "Brazil"
+          ],
+          "source": "World atlas, India"
+        },
+        {
+          "id": "general-knowledge.world.037",
+          "level": 2,
+          "checked": false,
+          "q": "Which country is the Colosseum in?",
+          "a": "Italy",
+          "wrong": [
+            "Greece",
+            "Spain",
+            "France"
+          ],
+          "source": "World atlas, Italy"
+        },
+        {
+          "id": "general-knowledge.world.038",
+          "level": 2,
+          "checked": false,
+          "q": "Which country is the Christ the Redeemer statue in?",
+          "a": "Brazil",
+          "wrong": [
+            "Mexico",
+            "Peru",
+            "Spain"
+          ],
+          "source": "World atlas, Brazil"
+        },
+        {
+          "id": "general-knowledge.world.039",
+          "level": 2,
+          "checked": false,
+          "q": "Which country is Machu Picchu in?",
+          "a": "Peru",
+          "wrong": [
+            "Mexico",
+            "Brazil",
+            "Egypt"
+          ],
+          "source": "World atlas, Peru"
+        },
+        {
+          "id": "general-knowledge.world.040",
+          "level": 2,
+          "checked": false,
+          "q": "What makes day and night on Earth?",
+          "a": "The Earth spinning",
+          "wrong": [
+            "The Moon hiding the Sun",
+            "The Sun going round us",
+            "Clouds covering the Sun"
+          ],
+          "source": "Encyclopaedia Britannica, 'Earth'"
+        }
+      ]
+    }
+  ]
+}
