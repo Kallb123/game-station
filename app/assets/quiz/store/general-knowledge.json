@@ -11,7 +11,7 @@
         {
           "id": "general-knowledge.animals.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What do cows mainly eat?",
           "a": "Grass",
           "wrong": [
@@ -24,7 +24,7 @@
         {
           "id": "general-knowledge.animals.002",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby dog called?",
           "a": "Puppy",
           "wrong": [
@@ -37,7 +37,7 @@
         {
           "id": "general-knowledge.animals.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby sheep called?",
           "a": "Lamb",
           "wrong": [
@@ -50,7 +50,7 @@
         {
           "id": "general-knowledge.animals.004",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "How many legs does a spider have?",
           "a": "Eight",
           "wrong": [
@@ -63,7 +63,7 @@
         {
           "id": "general-knowledge.animals.005",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which animal says moo?",
           "a": "Cow",
           "wrong": [
@@ -76,7 +76,7 @@
         {
           "id": "general-knowledge.animals.006",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby cat called?",
           "a": "Kitten",
           "wrong": [
@@ -89,7 +89,7 @@
         {
           "id": "general-knowledge.animals.007",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which animal has a long trunk?",
           "a": "Elephant",
           "wrong": [
@@ -102,7 +102,7 @@
         {
           "id": "general-knowledge.animals.008",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Where does a fish live?",
           "a": "In water",
           "wrong": [
@@ -115,7 +115,7 @@
         {
           "id": "general-knowledge.animals.009",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What do bees make?",
           "a": "Honey",
           "wrong": [
@@ -128,7 +128,7 @@
         {
           "id": "general-knowledge.animals.010",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which of these animals lays eggs?",
           "a": "Hen",
           "wrong": [
@@ -141,7 +141,7 @@
         {
           "id": "general-knowledge.animals.011",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "How many legs does a dog have?",
           "a": "Four",
           "wrong": [
@@ -154,7 +154,7 @@
         {
           "id": "general-knowledge.animals.012",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby horse called?",
           "a": "Foal",
           "wrong": [
@@ -167,7 +167,7 @@
         {
           "id": "general-knowledge.animals.013",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does a baby frog start life as?",
           "a": "A tadpole",
           "wrong": [
@@ -180,7 +180,7 @@
         {
           "id": "general-knowledge.animals.014",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which of these animals can fly?",
           "a": "Owl",
           "wrong": [
@@ -193,7 +193,7 @@
         {
           "id": "general-knowledge.animals.015",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What covers a sheep's body?",
           "a": "Wool",
           "wrong": [
@@ -206,7 +206,7 @@
         {
           "id": "general-knowledge.animals.016",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby duck called?",
           "a": "Duckling",
           "wrong": [
@@ -219,7 +219,7 @@
         {
           "id": "general-knowledge.animals.017",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does a hedgehog have on its back?",
           "a": "Spines",
           "wrong": [
@@ -232,7 +232,7 @@
         {
           "id": "general-knowledge.animals.018",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby cow called?",
           "a": "Calf",
           "wrong": [
@@ -245,7 +245,7 @@
         {
           "id": "general-knowledge.animals.019",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which bird says quack?",
           "a": "Duck",
           "wrong": [
@@ -258,7 +258,7 @@
         {
           "id": "general-knowledge.animals.020",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How many legs does an insect have?",
           "a": "Six",
           "wrong": [
@@ -271,7 +271,7 @@
         {
           "id": "general-knowledge.animals.021",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How many hearts does an octopus have?",
           "a": "Three",
           "wrong": [
@@ -284,7 +284,7 @@
         {
           "id": "general-knowledge.animals.022",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What do giant pandas mostly eat?",
           "a": "Bamboo",
           "wrong": [
@@ -297,7 +297,7 @@
         {
           "id": "general-knowledge.animals.023",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a group of lions called?",
           "a": "A pride",
           "wrong": [
@@ -310,7 +310,7 @@
         {
           "id": "general-knowledge.animals.024",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby swan called?",
           "a": "Cygnet",
           "wrong": [
@@ -323,7 +323,7 @@
         {
           "id": "general-knowledge.animals.025",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby goat called?",
           "a": "Kid",
           "wrong": [
@@ -336,7 +336,7 @@
         {
           "id": "general-knowledge.animals.026",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a bee's home called?",
           "a": "A hive",
           "wrong": [
@@ -349,7 +349,7 @@
         {
           "id": "general-knowledge.animals.027",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a squirrel's nest called?",
           "a": "A drey",
           "wrong": [
@@ -362,7 +362,7 @@
         {
           "id": "general-knowledge.animals.028",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby kangaroo called?",
           "a": "Joey",
           "wrong": [
@@ -375,7 +375,7 @@
         {
           "id": "general-knowledge.animals.029",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which animal carries its baby in a pouch?",
           "a": "Kangaroo",
           "wrong": [
@@ -388,7 +388,7 @@
         {
           "id": "general-knowledge.animals.030",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is a whale?",
           "a": "A mammal",
           "wrong": [
@@ -401,7 +401,7 @@
         {
           "id": "general-knowledge.animals.031",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is a frog?",
           "a": "An amphibian",
           "wrong": [
@@ -414,7 +414,7 @@
         {
           "id": "general-knowledge.animals.032",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does a ladybird mostly eat?",
           "a": "Greenfly (aphids)",
           "wrong": [
@@ -427,7 +427,7 @@
         {
           "id": "general-knowledge.animals.033",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which UK animal hibernates in winter?",
           "a": "Hedgehog",
           "wrong": [
@@ -440,7 +440,7 @@
         {
           "id": "general-knowledge.animals.034",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby hedgehog called?",
           "a": "Hoglet",
           "wrong": [
@@ -453,7 +453,7 @@
         {
           "id": "general-knowledge.animals.035",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a baby hare called?",
           "a": "Leveret",
           "wrong": [
@@ -466,7 +466,7 @@
         {
           "id": "general-knowledge.animals.036",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a male sheep called?",
           "a": "A ram",
           "wrong": [
@@ -479,7 +479,7 @@
         {
           "id": "general-knowledge.animals.037",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is a female pig called?",
           "a": "A sow",
           "wrong": [
@@ -492,7 +492,7 @@
         {
           "id": "general-knowledge.animals.038",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which of these birds cannot fly?",
           "a": "Penguin",
           "wrong": [
@@ -518,7 +518,7 @@
         {
           "id": "general-knowledge.animals.040",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which animal builds dams across streams?",
           "a": "Beaver",
           "wrong": [
@@ -537,7 +537,7 @@
         {
           "id": "general-knowledge.uk.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which city is the capital of England?",
           "a": "London",
           "wrong": [
@@ -550,7 +550,7 @@
         {
           "id": "general-knowledge.uk.002",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which city is the capital of Scotland?",
           "a": "Edinburgh",
           "wrong": [
@@ -563,7 +563,7 @@
         {
           "id": "general-knowledge.uk.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which city is the capital of Wales?",
           "a": "Cardiff",
           "wrong": [
@@ -576,7 +576,7 @@
         {
           "id": "general-knowledge.uk.004",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which city is the capital of Northern Ireland?",
           "a": "Belfast",
           "wrong": [
@@ -589,7 +589,7 @@
         {
           "id": "general-knowledge.uk.005",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which river flows through London?",
           "a": "The Thames",
           "wrong": [
@@ -602,7 +602,7 @@
         {
           "id": "general-knowledge.uk.006",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which flower is the emblem of England?",
           "a": "A rose",
           "wrong": [
@@ -615,7 +615,7 @@
         {
           "id": "general-knowledge.uk.007",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which flower is the emblem of Scotland?",
           "a": "A thistle",
           "wrong": [
@@ -628,7 +628,7 @@
         {
           "id": "general-knowledge.uk.008",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which flower is the emblem of Wales?",
           "a": "A daffodil",
           "wrong": [
@@ -641,7 +641,7 @@
         {
           "id": "general-knowledge.uk.009",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "In which country is Loch Ness?",
           "a": "Scotland",
           "wrong": [
@@ -654,7 +654,7 @@
         {
           "id": "general-knowledge.uk.010",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "In which country is the Giant's Causeway?",
           "a": "Northern Ireland",
           "wrong": [
@@ -667,7 +667,7 @@
         {
           "id": "general-knowledge.uk.011",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which stretch of water lies between England and France?",
           "a": "The English Channel",
           "wrong": [
@@ -693,7 +693,7 @@
         {
           "id": "general-knowledge.uk.013",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Big Ben is a famous bell in which city?",
           "a": "London",
           "wrong": [
@@ -706,7 +706,7 @@
         {
           "id": "general-knowledge.uk.014",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What do people celebrate with fireworks on 5 November?",
           "a": "Bonfire Night",
           "wrong": [
@@ -719,7 +719,7 @@
         {
           "id": "general-knowledge.uk.015",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "In which country is Snowdon, a mountain?",
           "a": "Wales",
           "wrong": [
@@ -732,7 +732,7 @@
         {
           "id": "general-knowledge.uk.016",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the flag of the United Kingdom often called?",
           "a": "The Union Jack",
           "wrong": [
@@ -745,7 +745,7 @@
         {
           "id": "general-knowledge.uk.017",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "In which country is Stonehenge?",
           "a": "England",
           "wrong": [
@@ -758,7 +758,7 @@
         {
           "id": "general-knowledge.uk.018",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the giant wheel beside the Thames in London called?",
           "a": "The London Eye",
           "wrong": [
@@ -771,7 +771,7 @@
         {
           "id": "general-knowledge.uk.019",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which is the longest river in Great Britain?",
           "a": "The Severn",
           "wrong": [
@@ -784,7 +784,7 @@
         {
           "id": "general-knowledge.uk.020",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which is the highest mountain in the United Kingdom?",
           "a": "Ben Nevis",
           "wrong": [
@@ -823,7 +823,7 @@
         {
           "id": "general-knowledge.uk.023",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which saint is the patron saint of England?",
           "a": "Saint George",
           "wrong": [
@@ -862,7 +862,7 @@
         {
           "id": "general-knowledge.uk.026",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which sea lies between Great Britain and Ireland?",
           "a": "The Irish Sea",
           "wrong": [
@@ -875,7 +875,7 @@
         {
           "id": "general-knowledge.uk.027",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which sea is off the east coast of England?",
           "a": "The North Sea",
           "wrong": [
@@ -927,7 +927,7 @@
         {
           "id": "general-knowledge.uk.031",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who built Hadrian's Wall?",
           "a": "The Romans",
           "wrong": [
@@ -953,7 +953,7 @@
         {
           "id": "general-knowledge.uk.033",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which English city is famous for its Roman Baths?",
           "a": "Bath",
           "wrong": [
@@ -1063,7 +1063,7 @@
         {
           "id": "general-knowledge.world.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which country is the Eiffel Tower in?",
           "a": "France",
           "wrong": [
@@ -1076,7 +1076,7 @@
         {
           "id": "general-knowledge.world.002",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which country are the pyramids of Giza in?",
           "a": "Egypt",
           "wrong": [
@@ -1089,7 +1089,7 @@
         {
           "id": "general-knowledge.world.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which country is the Great Wall in?",
           "a": "China",
           "wrong": [
@@ -1102,7 +1102,7 @@
         {
           "id": "general-knowledge.world.004",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which country is the Statue of Liberty in?",
           "a": "The USA",
           "wrong": [
@@ -1115,7 +1115,7 @@
         {
           "id": "general-knowledge.world.005",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which country is the Sydney Opera House in?",
           "a": "Australia",
           "wrong": [
@@ -1128,7 +1128,7 @@
         {
           "id": "general-knowledge.world.006",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "In which direction does the Sun rise?",
           "a": "East",
           "wrong": [
@@ -1141,7 +1141,7 @@
         {
           "id": "general-knowledge.world.007",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does the Earth go round?",
           "a": "The Sun",
           "wrong": [
@@ -1154,7 +1154,7 @@
         {
           "id": "general-knowledge.world.008",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What goes round the Earth?",
           "a": "The Moon",
           "wrong": [
@@ -1167,7 +1167,7 @@
         {
           "id": "general-knowledge.world.009",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which season comes after winter?",
           "a": "Spring",
           "wrong": [
@@ -1180,7 +1180,7 @@
         {
           "id": "general-knowledge.world.010",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "A compass needle points to which direction?",
           "a": "North",
           "wrong": [
@@ -1193,7 +1193,7 @@
         {
           "id": "general-knowledge.world.011",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the line around the middle of the Earth called?",
           "a": "The equator",
           "wrong": [
@@ -1206,7 +1206,7 @@
         {
           "id": "general-knowledge.world.012",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which pole is at the very top of the Earth?",
           "a": "The North Pole",
           "wrong": [
@@ -1219,7 +1219,7 @@
         {
           "id": "general-knowledge.world.013",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the Sahara?",
           "a": "A hot desert",
           "wrong": [
@@ -1232,7 +1232,7 @@
         {
           "id": "general-knowledge.world.014",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "On which continent is the River Nile?",
           "a": "Africa",
           "wrong": [
@@ -1245,7 +1245,7 @@
         {
           "id": "general-knowledge.world.015",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which is the biggest ocean?",
           "a": "The Pacific Ocean",
           "wrong": [
@@ -1258,7 +1258,7 @@
         {
           "id": "general-knowledge.world.016",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of France?",
           "a": "Paris",
           "wrong": [
@@ -1271,7 +1271,7 @@
         {
           "id": "general-knowledge.world.017",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of Italy?",
           "a": "Rome",
           "wrong": [
@@ -1284,7 +1284,7 @@
         {
           "id": "general-knowledge.world.018",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of Japan?",
           "a": "Tokyo",
           "wrong": [
@@ -1297,7 +1297,7 @@
         {
           "id": "general-knowledge.world.019",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of Spain?",
           "a": "Madrid",
           "wrong": [
@@ -1310,7 +1310,7 @@
         {
           "id": "general-knowledge.world.020",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of Germany?",
           "a": "Berlin",
           "wrong": [
@@ -1323,7 +1323,7 @@
         {
           "id": "general-knowledge.world.021",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of Egypt?",
           "a": "Cairo",
           "wrong": [
@@ -1336,7 +1336,7 @@
         {
           "id": "general-knowledge.world.022",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of Australia?",
           "a": "Canberra",
           "wrong": [
@@ -1349,7 +1349,7 @@
         {
           "id": "general-knowledge.world.023",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of Canada?",
           "a": "Ottawa",
           "wrong": [
@@ -1362,7 +1362,7 @@
         {
           "id": "general-knowledge.world.024",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of Greece?",
           "a": "Athens",
           "wrong": [
@@ -1414,7 +1414,7 @@
         {
           "id": "general-knowledge.world.028",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the capital city of the USA?",
           "a": "Washington, D.C.",
           "wrong": [
@@ -1466,7 +1466,7 @@
         {
           "id": "general-knowledge.world.032",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "On which continent is the South Pole?",
           "a": "Antarctica",
           "wrong": [
