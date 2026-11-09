@@ -67,7 +67,7 @@ right. There is no timer and no way to lose.
 | No quotation longer than a short phrase | Same reason. A question may name a character, place or object; it may not reproduce a sentence of the book or a line of a script. The content test refuses a question or answer over its length cap (below), which bounds the damage mechanically; whether a short phrase is a quotation is the reviewer's check. |
 | Minimal reading, as far as a quiz allows | `AGENTS.md` asks for minimal reading, and a quiz is reading. This is the one game in the app built for readers, roughly six and over, or a grown-up reading aloud. It reads as little as it can: three options, not four; a question of at most 80 characters and an answer of at most 30, enforced by the content test; and every question and answer exposed as semantics, so TalkBack and VoiceOver read them aloud with no new dependency. The question cap was 100 until PR 6 measured it at 200 % text (§4.8), and 60 until the play screen was redesigned and re-measured (`PLAN-quiz-screen.md`). |
 | No time pressure, no scary failure | `PLAN.md` §1 and `AGENTS.md`. No timer, no lives, no streak to break. A wrong answer is shown gently — the right answer is highlighted and the child taps Next when ready — and every finished round ends on the same celebration, whatever the score. |
-| A question never spoils a title the child has not ticked | Narnia, Faraway Tree and Rainbow Magic are series, and a question about book four answered on the strength of book one gives book four away. Every question belongs to exactly one title — the earliest a reader would need to answer it — and a mixed round draws only from ticked titles (§4.1, §4.6). Disney's three titles each span many films, so they ask only what a film's opening shows, never how it ends (§4.4). |
+| A question never spoils a title the child has not ticked | Every question belongs to exactly one title and a mixed round draws only from ticked titles (§4.1, §4.6). A book series — the Faraway Tree, Narnia, Rainbow Magic, Kitty — is one title, at the owner's request, so ticking it says the child has read the whole series: a question may draw on any book in it, and a child part-way through is not protected from the later books (§4.4). Disney's three titles each span many films, so they ask only what a film's opening shows, never how it ends (§4.4). |
 | No network, no new package | `PLAN.md` §1. Questions are bundled assets parsed with `dart:convert`. `app/pubspec.yaml` gains one asset directory and no dependency, so `tool/check_offline.dart` has no new graph to audit. `check_offline.dart` scans `app/lib` for URLs and not `assets/`, so the content test refuses `://` in any question, answer or source itself (§4.3). |
 | No ambient randomness | `app/test/no_random_test.dart`. Question order and answer order come from `GameRng`, moved from `features/arcade/shared/` to `core/` unchanged (§4.6). |
 | The save stays additive | `PLAN.md` §5.2. One optional profile field with an empty default; `schemaVersion` stays 1 and an old save loads unchanged (§4.7). |
@@ -89,7 +89,7 @@ right. There is no timer and no way to lose.
 | Resuming a round after a force-quit | A round is ten questions and about two minutes. Persisting one means an in-progress record, a codec and a resume path for a loss of at most nine answers. Progress is written at the end of each round (§4.7). |
 | Questions written or edited by a parent in the app | An editor, a validation UI and a second content source. The content format is plain JSON, so a parent who wants their own pack can have one added as a file. |
 | New questions downloaded after install | No network, ever (`PLAN.md` §1). New questions arrive with an app update. |
-| One tick per Rainbow Magic book | Rainbow Magic has more than two hundred books in sets, mostly of seven. A tick per book is a shelf of hundreds and a content job of thousands of questions. The set is the title (§4.1), as the owner confirmed. |
+| One tick per book in a series | The owner asked for a book series' questions to be one group rather than split by book. A tick per book is a longer shelf, and for Rainbow Magic — more than two hundred books — a shelf of hundreds. The series is the title (§4.1, §4.4). |
 | One tick per Disney or Pixar film | The owner asked for general questions. Three broad titles keep the shelf short; a film-by-film list is dozens of titles to tick and to fill. A film that earns its own title later is a content-only addition (§4.4). |
 | *Witch Detectives* | Left out by the owner: it may be too new to have much to ask about. A content-only addition later, as `cbeebies-witch-detectives`, if wanted. |
 | One tick per TV episode | The same arithmetic for Bluey and Hey Duggee. A show is one title. |
@@ -106,7 +106,7 @@ right. There is no timer and no way to lose.
 Build the plumbing first against a small real pack, then fill it with content one group at a time,
 books before screens: the order the ask gives.
 
-1. **The content format, the loader and the content test**, with the four Faraway Tree books as the
+1. **The content format, the loader and the content test**, with the Faraway Tree as the
    first pack, before anything can display a question.
 2. **The save field**, before anything can write it.
 3. **The round model** — question selection, option order, scoring — as plain Dart.
@@ -166,10 +166,12 @@ collection   book | tv | film | topic     fixed in code; sets the tick's word an
     title    dahl.bfg, narnia.prince-caspian … what a child ticks and what a question belongs to
 ```
 
-- A **title** is the unit a child ticks and picks: one book (*Matilda*), one Rainbow Magic set (*the
-  Rainbow Fairies*), one show (*Bluey*), one group of films (*Pixar films*), or one
-  general-knowledge topic (*Animals*). For a show, the series and the title are the same thing, and
-  the series file holds one title.
+- A **title** is the unit a child ticks and picks: one standalone book (*Matilda*), one book series
+  (*the Faraway Tree books*), one show (*Bluey*), one group of films (*Pixar films*), or one
+  general-knowledge topic (*Animals*). For a book series or a show, the series and the title are the
+  same thing, and the series file holds one title. A series file holds several titles only when its
+  books stand alone — Roald Dahl's, Beatrix Potter's tales — or its films are grouped, as Disney's
+  are.
 - A **topic** is a title with no story behind it. It is ticked like any other — the tick reads *quiz
   me on this* rather than *read* or *watched* — so a mixed round draws from it only if the child
   chose it. Reading order and §1's spoiler rule do not apply to topics.
@@ -178,13 +180,9 @@ collection   book | tv | film | topic     fixed in code; sets the tick's word an
   dot). Frozen once shipped (§3). A title that must go is **withdrawn**, by listing its id in
   `withdrawnTitles` in the catalog, never by deleting or renaming it: a withdrawn title stays ticked
   in saves and is simply not shown, so restoring it later restores every child's tick.
-- Titles in a series are in **reading order**, and the series' shelf order is the catalog's. Narnia's
-  two launch books, *The Lion, the Witch and the Wardrobe* then *Prince Caspian*, are in that order
-  under both the current numbering and publication order; the choice between them is §9's, and
-  matters only once *The Magician's Nephew* or *The Horse and His Boy* joins. Order matters for one
-  rule: a question that needs more than one title belongs to the latest of them, so it is asked only
-  of a child who has reached it; a question about the series as a whole ("Who made Narnia?") belongs
-  to the earliest title that answers it.
+- Titles in a series are in **reading order**, and the series' shelf order is the catalog's. A
+  series title's questions are in the books' reading order too, by id, and each question's `source`
+  names the book it comes from, so a checker knows which book to open.
 
 ### 4.2 Pack format and loading
 
@@ -284,17 +282,28 @@ to the store is a deliberate `git mv` by the owner, never a default.
 
 | Collection | Series | Titles | Count | Target |
 |---|---|---|---|---|
-| Book | The Magic Faraway Tree (Enid Blyton) | *The Enchanted Wood*, *The Magic Faraway Tree*, *The Folk of the Faraway Tree*, *Up the Faraway Tree* | 4 | 20 each |
-| Book | The Chronicles of Narnia (C. S. Lewis) | *The Lion, the Witch and the Wardrobe*, *Prince Caspian* — for now; the other five are later content | 2 | 20 each |
+| Book | The Magic Faraway Tree (Enid Blyton) | *The Faraway Tree books*, covering *The Enchanted Wood*, *The Magic Faraway Tree*, *The Folk of the Faraway Tree* and *Up the Faraway Tree* | 1 | 80 |
+| Book | The Chronicles of Narnia (C. S. Lewis) | One title, covering *The Lion, the Witch and the Wardrobe* and *Prince Caspian* for now; the other five are later content | 1 | 40 |
 | Book | Roald Dahl | *James and the Giant Peach*, *Charlie and the Chocolate Factory*, *The BFG*, *Matilda* — in publication order | 4 | 20 each |
-| Book | Rainbow Magic | *The Rainbow Fairies* (the colour fairies) and *the Weather Fairies*, one title per set of seven | 2 | 20 each |
-| Book | Kitty (Paula Harrison) | One title per book, in publication order from *Kitty and the Moonlight Rescue* (2019). A dozen or more are out; PR 9 takes the list from Oxford University Press's and the owner trims it to the books the family has | per PR 9 | 20 each |
+| Book | Rainbow Magic | One title, covering *The Rainbow Fairies* (the colour fairies) and *the Weather Fairies* | 1 | 40 |
+| Book | Kitty (Paula Harrison) | One title, covering the books from *Kitty and the Moonlight Rescue* (2019) on. A dozen or more are out; PR 9 takes the list from Oxford University Press's and the owner trims it to the books the family has | 1 | 20 per book |
 | TV | CBeebies | *Bluey*, *Topsy and Tim*, *Hey Duggee*, *Waffle the Wonder Dog* (the ask's *Waffle the Dog*) — one title each | 4 | 20 each |
 | Film | Disney | *Mickey and friends*, *Disney films*, *Pixar films* — general questions, three broad titles | 3 | 40 each |
 | Film | KPop Demon Hunters (Sony Pictures Animation, 2025) | *KPop Demon Hunters* — one film, one title | 1 | 20 |
 
-That is 20 titles before Kitty: 460 questions at target and 200 checked to offer them all, plus 20
-to draft and 10 to check per Kitty book.
+That is 15 titles before Kitty: 460 questions at target and 150 checked to offer them all, plus 20
+to draft per Kitty book and 10 checked to offer Kitty.
+
+**A book series is one title.** The plan first gave each book in a series its own title, and PR 2
+built the Faraway Tree as four. The owner asked for a series' questions to be one group instead,
+so the Faraway Tree's four titles became one, `faraway-tree.faraway-tree`, named *The Faraway Tree
+books*, and the rest of the launch list's series follow the same rule. A series title's target is
+20 questions per book it covers, so the content to draft is unchanged. What it gives up is §1's
+per-book spoiler protection inside a series: ticking *read* says the child has read every book in
+it. What it gains is a shorter shelf, and an end to deciding which book a question belongs to — the
+guess PR 2 cut questions over. The four old ids were retired rather than withdrawn (§4.1) because
+no release had offered them: title ids freeze from the first release that offers them, and the quiz
+has not been released.
 
 *Wonka* is read as *Charlie and the Chocolate Factory*, the Dahl book Willy Wonka is from; *Charlie
 and the Great Glass Elevator*, and the 2023 film *Wonka*, which is not Dahl's, are content-only
@@ -642,8 +651,8 @@ the loader, which needs `rootBundle`, is the only part of the catalog in `data/`
 Estimates assume one developer, or one agent session with review, working on this full time, as
 phase 9's did. **Checking content is separate and is the owner's time**: verifying a question, its
 answer and its three wrong answers against the book or episode takes about two to three minutes with
-the source to hand, so the launch threshold of 200 checked questions is roughly 7–10 hours, plus
-about half an hour per Kitty book, and the full target of 460 a little over twice that. The store packs need 40 checked questions to offer all four titles,
+the source to hand, so the launch threshold of 160 checked questions, Kitty's included, is roughly
+5½–8 hours, and the full target of 460, plus 20 per Kitty book, about three times that. The store packs need 40 checked questions to offer all four titles,
 about two hours, and 140 at target. That is the phase's real critical path, and why the release line does
 not wait for it.
 
@@ -689,6 +698,9 @@ left for a checker to catch, because a wrong guess there breaks §1's spoiler ru
 Their titles and ids are in the pack, so the remaining questions are a content-only change, drafted
 from the books in the same way PRs 7–12 are. All four are hidden until each has ten checked
 questions, so nothing reaches a child in the meantime.
+*Later:* the four titles were merged into one, `faraway-tree.faraway-tree`, at the owner's request
+(§4.4). Its 31 questions keep their text and `checked`, renumbered in reading order, so the 7
+checked questions from the later three books are now offered alongside *The Enchanted Wood*'s 20.
 
 **PR 3 — store and private builds.** The two Android product flavours, `--flavor store` in CI and
 `README.md`, the `app-store-release.apk` rename everywhere, `tool/check_quiz_audience.sh` with its
@@ -832,14 +844,14 @@ copied into §8, with every title under the threshold named — those are hidden
 | Switching a tablet between a sideloaded and an Amazon-installed build deletes its save | Medium | Android refuses to replace an app signed with a different key without an uninstall. `README.md` tells the owner to export players to a file first (`PLAN-transfer.md`); the transfer round trip is already tested. |
 | A general-knowledge answer goes out of date | Low | Topic questions ask only for facts that do not change (§4.2), a reviewer's rule rather than a mechanism; `source` names the reference, so a reported error is rechecked quickly. |
 | Adding flavours breaks an existing build or a habit | Medium | Android only; PR 3's done-when requires the other four CI legs green with unchanged commands and every `app-release.apk` reference moved; an unflagged Android build's behaviour is checked and made to fail or build the store rather than the private variant. |
-| A question spoils a book the child has not read | Medium | One title per question, the latest a reader needs (§4.1); mixed rounds draw only from ticked titles (§4.6). Review is the only check on which title a question belongs to; no mechanism can judge it. |
+| A question spoils a book the child has not read | Medium | Mixed rounds draw only from ticked titles (§4.6). Inside a book series, which is one title (§4.4), nothing protects a child part-way through: accepted by the owner. A grown-up waits to tick a series until the child has finished it. |
 | The text is too much for the youngest players | Medium | Three options; length caps enforced by the content test and measured in PR 6 (§4.8); level-1 questions first in every round; the screen reader reads it all. Proven only by §8's device line with a six-year-old. |
 | Questions repeat so often a child is bored | Low | §4.6's per-title order asks every question before any repeat; PR 5's test proves it over three cycles. |
 | A pack ships malformed and the quiz breaks on a device | Low | The content test in CI; the loader skips a bad pack and keeps the rest (PR 2's test). |
 | Renaming a title id unticks it on every shelf | Medium | Ids are frozen once shipped (§3); withdrawal is the only removal (§4.1). The content test cannot know what shipped, so PR 13 adds a test pinning every title id that exists at the close: removing or renaming one then fails the build. |
 | A broad Disney title spoils a film the child has not seen | Medium | Ticking *Pixar films* does not mean every Pixar film has been watched, so the per-title rule of §1 cannot protect it. §4.4's reviewer rule — a question asks only what a film's opening shows — is checked with every `checked` flip, and `source` names the film. A film a child wants asked about in depth becomes its own title. |
 | Kitty is drafted against books the family does not have | Low | PR 9 takes the list from the publisher's and the owner trims it before drafting; a book left out is a content-only addition later. |
-| The shelf is too long to scroll comfortably on a phone | Low | Grouped by collection behind a four-way switch, so the longest list is Books at 13 titles plus Kitty's; *I've read them all* per series. Checked in §8. |
+| The shelf is too long to scroll comfortably on a phone | Low | Grouped by collection behind a four-way switch, so the longest list is Books at 9 titles; *I've read them all* per series. Checked in §8. |
 
 ---
 
@@ -894,7 +906,6 @@ copied into §8, with every title under the threshold named — those are hidden
 | The game's label. "Quiz" is the working name and the route prefix; the label is not frozen. | The owner. Held in one constant, as `tracksMenuTitle` is. |
 | Which series, if any, move from private to the store. All start private (§4.4). | The owner, per series, at any time: a `git mv` between the two directories, keeping title ids and every child's ticks. Advice is the owner's to seek; the plan does not claim naming a series in a store build is legally safe. |
 | Which other Beatrix Potter tales, and which further topics (the sea, space, the body), join the store packs. | The owner, any time; each is a content-only change. |
-| Narnia's order once *The Magician's Nephew* or *The Horse and His Boy* joins: current numbering (*The Magician's Nephew* first) or publication order. It decides which title a series-wide question belongs to (§4.1). The two launch books are in the same order either way. | The owner, before either book is drafted. |
 | Which Kitty books, from Oxford University Press's list. | The owner, in PR 9. |
 | *Wonka* is read as *Charlie and the Chocolate Factory* (§4.4). Is that right, and is *Charlie and the Great Glass Elevator* wanted too? | The owner, before PR 8. |
 | *Topsy and Tim* began as Jean and Gareth Adamson's books. TV only, as the ask lists it, or a book series too? | The owner. TV only until told otherwise. |
@@ -917,8 +928,8 @@ the world, the UK and animals (§4.4). And, closing the planning (§4.4, §4.5):
   — and *James and the Giant Peach*.
 - **Disney:** general questions about Mickey and friends and about other Disney titles, Pixar's
   included — three broad titles, not a title per film or per Mickey show.
-- **Rainbow Magic:** the colour fairies (*the Rainbow Fairies*) and *the Weather Fairies*, one tick
-  per set.
+- **Rainbow Magic:** the colour fairies (*the Rainbow Fairies*) and *the Weather Fairies*.
+- **Book series:** one title per series, not one per book or set (§4.4).
 - **Narnia:** *The Lion, the Witch and the Wardrobe* and *Prince Caspian*, for now.
 
 ---

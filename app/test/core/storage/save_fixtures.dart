@@ -35,9 +35,9 @@ SaveData fullSave() => SaveData(
       // One id no build carries: a players file from a later build must keep it
       // (`PLAN-phase-10-quiz.md` §4.7).
       quiz: const QuizProgress(
-        known: {'faraway-tree.enchanted-wood', 'someday.unknown-title'},
+        known: {'faraway-tree.faraway-tree', 'someday.unknown-title'},
         titles: {
-          'faraway-tree.enchanted-wood': QuizTitleProgress(
+          'faraway-tree.faraway-tree': QuizTitleProgress(
             seed: 912873,
             next: 14,
             pool: 24,

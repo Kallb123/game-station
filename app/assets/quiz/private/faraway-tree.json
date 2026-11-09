@@ -5,11 +5,11 @@
   "collection": "book",
   "titles": [
     {
-      "id": "faraway-tree.enchanted-wood",
-      "name": "The Enchanted Wood",
+      "id": "faraway-tree.faraway-tree",
+      "name": "The Faraway Tree books",
       "questions": [
         {
-          "id": "faraway-tree.enchanted-wood.001",
+          "id": "faraway-tree.faraway-tree.001",
           "level": 1,
           "checked": true,
           "q": "Who lives in a round house at the top of the Faraway Tree?",
@@ -22,7 +22,7 @@
           "source": "The Enchanted Wood, throughout"
         },
         {
-          "id": "faraway-tree.enchanted-wood.002",
+          "id": "faraway-tree.faraway-tree.002",
           "level": 1,
           "checked": true,
           "q": "Who wrote the Faraway Tree stories?",
@@ -35,7 +35,7 @@
           "source": "The Enchanted Wood, throughout"
         },
         {
-          "id": "faraway-tree.enchanted-wood.003",
+          "id": "faraway-tree.faraway-tree.003",
           "level": 1,
           "checked": true,
           "q": "What is the wood the children find called?",
@@ -48,7 +48,7 @@
           "source": "The Enchanted Wood, throughout"
         },
         {
-          "id": "faraway-tree.enchanted-wood.004",
+          "id": "faraway-tree.faraway-tree.004",
           "level": 1,
           "checked": true,
           "q": "What is the tree in the middle of the wood called?",
@@ -61,7 +61,7 @@
           "source": "The Enchanted Wood, throughout"
         },
         {
-          "id": "faraway-tree.enchanted-wood.005",
+          "id": "faraway-tree.faraway-tree.005",
           "level": 1,
           "checked": true,
           "q": "How many children move to the cottage near the wood?",
@@ -74,7 +74,7 @@
           "source": "The Enchanted Wood, the first chapters"
         },
         {
-          "id": "faraway-tree.enchanted-wood.006",
+          "id": "faraway-tree.faraway-tree.006",
           "level": 1,
           "checked": true,
           "q": "Where does the family move to at the start?",
@@ -87,7 +87,7 @@
           "source": "The Enchanted Wood, the first chapters"
         },
         {
-          "id": "faraway-tree.enchanted-wood.007",
+          "id": "faraway-tree.faraway-tree.007",
           "level": 1,
           "checked": true,
           "q": "What is the slide inside the tree trunk called?",
@@ -100,7 +100,7 @@
           "source": "The Enchanted Wood, the chapters about Moon-Face's home"
         },
         {
-          "id": "faraway-tree.enchanted-wood.008",
+          "id": "faraway-tree.faraway-tree.008",
           "level": 1,
           "checked": true,
           "q": "Where does the slippery-slip take you?",
@@ -113,7 +113,7 @@
           "source": "The Enchanted Wood, the chapters about Moon-Face's home"
         },
         {
-          "id": "faraway-tree.enchanted-wood.009",
+          "id": "faraway-tree.faraway-tree.009",
           "level": 1,
           "checked": true,
           "q": "What does Dame Washalot do all day?",
@@ -126,7 +126,7 @@
           "source": "The Enchanted Wood, throughout"
         },
         {
-          "id": "faraway-tree.enchanted-wood.010",
+          "id": "faraway-tree.faraway-tree.010",
           "level": 1,
           "checked": true,
           "q": "What splashes down the tree from Dame Washalot's house?",
@@ -139,7 +139,7 @@
           "source": "The Enchanted Wood, throughout"
         },
         {
-          "id": "faraway-tree.enchanted-wood.011",
+          "id": "faraway-tree.faraway-tree.011",
           "level": 1,
           "checked": true,
           "q": "What is hung all over the Saucepan Man?",
@@ -152,7 +152,7 @@
           "source": "The Enchanted Wood, the chapters where the children meet him"
         },
         {
-          "id": "faraway-tree.enchanted-wood.012",
+          "id": "faraway-tree.faraway-tree.012",
           "level": 1,
           "checked": true,
           "q": "What makes it hard to chat with the Saucepan Man?",
@@ -165,7 +165,7 @@
           "source": "The Enchanted Wood, the chapters where the children meet him"
         },
         {
-          "id": "faraway-tree.enchanted-wood.013",
+          "id": "faraway-tree.faraway-tree.013",
           "level": 1,
           "checked": true,
           "q": "What sort of creature is Silky?",
@@ -178,7 +178,7 @@
           "source": "The Enchanted Wood, the chapters where the children meet her"
         },
         {
-          "id": "faraway-tree.enchanted-wood.014",
+          "id": "faraway-tree.faraway-tree.014",
           "level": 1,
           "checked": true,
           "q": "How do the children reach the lands above the tree?",
@@ -191,7 +191,7 @@
           "source": "The Enchanted Wood, the chapters about the first land"
         },
         {
-          "id": "faraway-tree.enchanted-wood.015",
+          "id": "faraway-tree.faraway-tree.015",
           "level": 2,
           "checked": true,
           "q": "What happens when a land has been at the top for a while?",
@@ -204,7 +204,7 @@
           "source": "The Enchanted Wood, the chapters about the lands"
         },
         {
-          "id": "faraway-tree.enchanted-wood.016",
+          "id": "faraway-tree.faraway-tree.016",
           "level": 2,
           "checked": true,
           "q": "What can happen to a child still in a land when it moves on?",
@@ -217,7 +217,7 @@
           "source": "The Enchanted Wood, the chapters about the lands"
         },
         {
-          "id": "faraway-tree.enchanted-wood.017",
+          "id": "faraway-tree.faraway-tree.017",
           "level": 2,
           "checked": true,
           "q": "What is the Angry Pixie like?",
@@ -230,7 +230,7 @@
           "source": "The Enchanted Wood, the chapters about the tree folk"
         },
         {
-          "id": "faraway-tree.enchanted-wood.018",
+          "id": "faraway-tree.faraway-tree.018",
           "level": 2,
           "checked": true,
           "q": "Which of these lives in the Faraway Tree?",
@@ -243,7 +243,7 @@
           "source": "The Enchanted Wood, the chapters about the tree folk"
         },
         {
-          "id": "faraway-tree.enchanted-wood.019",
+          "id": "faraway-tree.faraway-tree.019",
           "level": 2,
           "checked": true,
           "q": "What do the trees of the Enchanted Wood seem to do?",
@@ -256,7 +256,7 @@
           "source": "The Enchanted Wood, throughout"
         },
         {
-          "id": "faraway-tree.enchanted-wood.020",
+          "id": "faraway-tree.faraway-tree.020",
           "level": 2,
           "checked": true,
           "q": "Which of these is a land at the top of the tree?",
@@ -267,15 +267,9 @@
             "The Land of Silver Spoons"
           ],
           "source": "The Enchanted Wood, the chapter about the Land of Birthdays"
-        }
-      ]
-    },
-    {
-      "id": "faraway-tree.magic-faraway-tree",
-      "name": "The Magic Faraway Tree",
-      "questions": [
+        },
         {
-          "id": "faraway-tree.magic-faraway-tree.001",
+          "id": "faraway-tree.faraway-tree.021",
           "level": 1,
           "checked": true,
           "q": "Which relative comes to stay with the children?",
@@ -288,7 +282,7 @@
           "source": "The Magic Faraway Tree, the early chapters"
         },
         {
-          "id": "faraway-tree.magic-faraway-tree.002",
+          "id": "faraway-tree.faraway-tree.022",
           "level": 1,
           "checked": false,
           "q": "What do you find in the Land of Giants?",
@@ -301,7 +295,7 @@
           "source": "The Magic Faraway Tree, the chapter about the Land of Giants"
         },
         {
-          "id": "faraway-tree.magic-faraway-tree.003",
+          "id": "faraway-tree.faraway-tree.023",
           "level": 1,
           "checked": true,
           "q": "How are things in the Land of Topsy-Turvy?",
@@ -314,7 +308,7 @@
           "source": "The Magic Faraway Tree, the chapter about the Land of Topsy-Turvy"
         },
         {
-          "id": "faraway-tree.magic-faraway-tree.004",
+          "id": "faraway-tree.faraway-tree.024",
           "level": 1,
           "checked": true,
           "q": "Which of these is a land at the top of the tree?",
@@ -327,7 +321,7 @@
           "source": "The Magic Faraway Tree, the chapter about that land"
         },
         {
-          "id": "faraway-tree.magic-faraway-tree.005",
+          "id": "faraway-tree.faraway-tree.025",
           "level": 2,
           "checked": true,
           "q": "Which of these is a land at the top of the tree?",
@@ -338,15 +332,9 @@
             "The Land of Red Bridges"
           ],
           "source": "The Magic Faraway Tree, the chapter about that land"
-        }
-      ]
-    },
-    {
-      "id": "faraway-tree.folk-of-the-faraway-tree",
-      "name": "The Folk of the Faraway Tree",
-      "questions": [
+        },
         {
-          "id": "faraway-tree.folk-of-the-faraway-tree.001",
+          "id": "faraway-tree.faraway-tree.026",
           "level": 1,
           "checked": true,
           "q": "Which of these is a land at the top of the tree?",
@@ -359,7 +347,7 @@
           "source": "The Folk of the Faraway Tree, the chapter about that land"
         },
         {
-          "id": "faraway-tree.folk-of-the-faraway-tree.002",
+          "id": "faraway-tree.faraway-tree.027",
           "level": 2,
           "checked": true,
           "q": "Which of these is a land at the top of the tree?",
@@ -370,15 +358,9 @@
             "The Land of Silver Spoons"
           ],
           "source": "The Folk of the Faraway Tree, the chapter about that land"
-        }
-      ]
-    },
-    {
-      "id": "faraway-tree.up-the-faraway-tree",
-      "name": "Up the Faraway Tree",
-      "questions": [
+        },
         {
-          "id": "faraway-tree.up-the-faraway-tree.001",
+          "id": "faraway-tree.faraway-tree.028",
           "level": 1,
           "checked": true,
           "q": "Which of these is a land at the top of the tree?",
@@ -391,7 +373,7 @@
           "source": "Up the Faraway Tree, the chapter about that land"
         },
         {
-          "id": "faraway-tree.up-the-faraway-tree.002",
+          "id": "faraway-tree.faraway-tree.029",
           "level": 1,
           "checked": false,
           "q": "Which of these is a land at the top of the tree?",
@@ -404,7 +386,7 @@
           "source": "Up the Faraway Tree, the chapter about that land"
         },
         {
-          "id": "faraway-tree.up-the-faraway-tree.003",
+          "id": "faraway-tree.faraway-tree.030",
           "level": 2,
           "checked": false,
           "q": "Which of these is a land at the top of the tree?",
@@ -417,7 +399,7 @@
           "source": "Up the Faraway Tree, the chapter about that land"
         },
         {
-          "id": "faraway-tree.up-the-faraway-tree.004",
+          "id": "faraway-tree.faraway-tree.031",
           "level": 2,
           "checked": false,
           "q": "Which of these is a land at the top of the tree?",

@@ -125,7 +125,7 @@ Profile fullSecondProfile() => Profile(
         rounds: 2,
         best: 7,
       ),
-      'faraway-tree.enchanted-wood': QuizTitleProgress(
+      'faraway-tree.faraway-tree': QuizTitleProgress(
         seed: 912873,
         next: 24,
         pool: 24,
@@ -247,7 +247,7 @@ void main() {
       expect(back.quiz.known, contains('someday.unknown-title'));
       expect(back.quiz.titles.keys, [
         'dahl.matilda',
-        'faraway-tree.enchanted-wood',
+        'faraway-tree.faraway-tree',
       ]);
       expect(back.quiz.titles['dahl.matilda']!.best, 7);
       expect(back.quiz.mixed, const QuizMixedProgress(rounds: 4, best: 8));
