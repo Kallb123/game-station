@@ -794,6 +794,17 @@ corrections go in the same commit as the flip.
 questions (§4.4), at least 30 % of them at level 1; the coverage table is in the description; no
 title id outside the pull request's series changed (`git diff --stat` touches only its own files and
 `index.json`).
+*PR 8 outcome:* `private/dahl.json`, listed after the Faraway Tree in `private/index.json`. The title
+ids, in publication order, are `dahl.james-and-the-giant-peach`, `dahl.charlie-and-the-chocolate-factory`,
+`dahl.bfg` and `dahl.matilda`, with 23, 24, 21 and 26 drafted questions, 11, 13, 9 and 10 of them at
+level 1. Each title is drafted over its target of 20 so a checker can cut what does not survive
+checking, as *KPop Demon Hunters* was. Every question is `checked: false`, so all four are hidden in
+release builds until ten of each are checked. The owner's ask named *Charlie and the Chocolate
+Factory* directly, which settles §9's *Wonka* question. Drafting was from memory with no copy of the
+books to hand, so `source` names a part of the book rather than a chapter title, and questions whose
+detail differs between editions — the coin Charlie finds, which is a dollar in some and a fifty-pence
+piece in others — ask about something that does not. The questions stay under 60 characters, the
+bank's current longest, so `quiz_play_layout_test.dart`'s worst case is unchanged.
 
 **PR 12 — store packs.** `store/beatrix-potter.json` with *The Tale of Peter Rabbit* at 20 drafted
 questions, and `store/general-knowledge.json` with *Animals*, *The UK* and *The world* at 40 each,
@@ -907,7 +918,7 @@ copied into §8, with every title under the threshold named — those are hidden
 | Which series, if any, move from private to the store. All start private (§4.4). | The owner, per series, at any time: a `git mv` between the two directories, keeping title ids and every child's ticks. Advice is the owner's to seek; the plan does not claim naming a series in a store build is legally safe. |
 | Which other Beatrix Potter tales, and which further topics (the sea, space, the body), join the store packs. | The owner, any time; each is a content-only change. |
 | Which Kitty books, from Oxford University Press's list. | The owner, in PR 9. |
-| *Wonka* is read as *Charlie and the Chocolate Factory* (§4.4). Is that right, and is *Charlie and the Great Glass Elevator* wanted too? | The owner, before PR 8. |
+| Is *Charlie and the Great Glass Elevator* wanted too? (*Wonka* was confirmed as *Charlie and the Chocolate Factory* in PR 8.) | The owner, any time; a content-only change. |
 | *Topsy and Tim* began as Jean and Gareth Adamson's books. TV only, as the ask lists it, or a book series too? | The owner. TV only until told otherwise. |
 | Further Narnia, Dahl and Rainbow Magic books, Disney or Pixar films as titles of their own, and *Witch Detectives*. | The owner, any time; each is a content-only change. |
 | Who checks the questions, and are 10 to offer and 20 as the target the right numbers? | The owner. Both are constants. |
