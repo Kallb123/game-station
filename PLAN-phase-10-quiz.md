@@ -67,7 +67,7 @@ right. There is no timer and no way to lose.
 | No quotation longer than a short phrase | Same reason. A question may name a character, place or object; it may not reproduce a sentence of the book or a line of a script. The content test refuses a question or answer over its length cap (below), which bounds the damage mechanically; whether a short phrase is a quotation is the reviewer's check. |
 | Minimal reading, as far as a quiz allows | `AGENTS.md` asks for minimal reading, and a quiz is reading. This is the one game in the app built for readers, roughly six and over, or a grown-up reading aloud. It reads as little as it can: three options, not four; a question of at most 80 characters and an answer of at most 30, enforced by the content test; and every question and answer exposed as semantics, so TalkBack and VoiceOver read them aloud with no new dependency. The question cap was 100 until PR 6 measured it at 200 % text (§4.8), and 60 until the play screen was redesigned and re-measured (`PLAN-quiz-screen.md`). |
 | No time pressure, no scary failure | `PLAN.md` §1 and `AGENTS.md`. No timer, no lives, no streak to break. A wrong answer is shown gently — the right answer is highlighted and the child taps Next when ready — and every finished round ends on the same celebration, whatever the score. |
-| A question never spoils a title the child has not ticked | Every question belongs to exactly one title and a mixed round draws only from ticked titles (§4.1, §4.6). A book series — the Faraway Tree, Narnia, Rainbow Magic, Kitty — is one title, at the owner's request, so ticking it says the child has read the whole series: a question may draw on any book in it, and a child part-way through is not protected from the later books (§4.4). Disney's three titles each span many films, so they ask only what a film's opening shows, never how it ends (§4.4). |
+| A question never spoils a title the child has not ticked | Every question belongs to exactly one title and a mixed round draws only from ticked titles (§4.1, §4.6). A book series — the Faraway Tree, Narnia, Rainbow Magic, Kitty — is one title, at the owner's request, so ticking it says the child has read the whole series: a question may draw on any book in it, and a child part-way through is not protected from the later books (§4.4). Disney's titles each span many films, so they ask only what a film's opening shows, never how it ends (§4.4). |
 | No network, no new package | `PLAN.md` §1. Questions are bundled assets parsed with `dart:convert`. `app/pubspec.yaml` gains one asset directory and no dependency, so `tool/check_offline.dart` has no new graph to audit. `check_offline.dart` scans `app/lib` for URLs and not `assets/`, so the content test refuses `://` in any question, answer or source itself (§4.3). |
 | No ambient randomness | `app/test/no_random_test.dart`. Question order and answer order come from `GameRng`, moved from `features/arcade/shared/` to `core/` unchanged (§4.6). |
 | The save stays additive | `PLAN.md` §5.2. One optional profile field with an empty default; `schemaVersion` stays 1 and an old save loads unchanged (§4.7). |
@@ -288,10 +288,10 @@ to the store is a deliberate `git mv` by the owner, never a default.
 | Book | Rainbow Magic | One title, covering *The Rainbow Fairies* (the colour fairies) and *the Weather Fairies* | 1 | 40 |
 | Book | Kitty (Paula Harrison) | One title, covering the books from *Kitty and the Moonlight Rescue* (2019) on. A dozen or more are out; PR 9 takes the list from Oxford University Press's and the owner trims it to the books the family has | 1 | 20 per book |
 | TV | CBeebies | *Bluey*, *Topsy and Tim*, *Hey Duggee*, *Waffle the Wonder Dog* (the ask's *Waffle the Dog*) — one title each | 4 | 20 each |
-| Film | Disney | *Mickey and friends*, *Disney films*, *Pixar films* — general questions, three broad titles | 3 | 40 each |
+| Film | Disney | *Mickey and Friends*, *Disney Princesses*, *Disney films*, *Pixar films* — general questions, four broad titles | 4 | 40 each |
 | Film | KPop Demon Hunters (Sony Pictures Animation, 2025) | *KPop Demon Hunters* — one film, one title | 1 | 20 |
 
-That is 15 titles before Kitty: 460 questions at target and 150 checked to offer them all, plus 20
+That is 16 titles before Kitty: 500 questions at target and 160 checked to offer them all, plus 20
 to draft per Kitty book and 10 checked to offer Kitty.
 
 **A book series is one title.** The plan first gave each book in a series its own title, and PR 2
@@ -318,13 +318,16 @@ drafted at 28 questions against its target of 20, so a checker can cut the ones 
 checking and still reach the target.
 
 **Disney's titles are broad.** The owner asked for general questions about Mickey and friends and
-about other Disney titles, Pixar's included, rather than a title per film:
+about other Disney titles, Pixar's included, rather than a title per film, and later for the
+princesses as a title of their own:
 
-- *Mickey and friends* covers Mickey, Minnie, Donald, Daisy, Goofy and Pluto across the classic
+- *Mickey and Friends* covers Mickey, Minnie, Donald, Daisy, Goofy and Pluto across the classic
   shorts and the current shows, asking only what holds across them — who is whose friend, Pluto is
   a dog — never an episode's plot.
-- *Disney films* covers Walt Disney Animation's films, starting with the ones the ask named: *Frozen*,
-  *Frozen II* and the Princess films. *Pixar films* covers Pixar's: *Toy Story*, *Finding Nemo*,
+- *Disney Princesses* covers the princess films, from *Snow White and the Seven Dwarfs* to *Moana*,
+  with *Brave* (a Pixar film) and *Frozen* among them, because Anna and Elsa are princesses when the
+  film opens and are the ones a child asks for.
+- *Disney films* covers Walt Disney Animation's other films. *Pixar films* covers Pixar's: *Toy Story*, *Finding Nemo*,
   *Monsters, Inc.*, *Cars*, *Inside Out* and the like.
 - A broad title spans films a child may not have seen, so §1's spoiler rule becomes a reviewer's rule
   for it: **a question asks only what a film's opening shows** — who the characters are, where it is
@@ -639,7 +642,7 @@ app/integration_test/quiz_smoke_test.dart
 
 Packs are one per series rather than one file per collection so a content pull request touches only
 its own series' file, and two can be written in parallel without conflicting. CBeebies shows get a
-file each for the same reason; Disney's three broad titles share one, because they are drafted
+file each for the same reason; Disney's broad titles share one, because they are drafted
 together and a film moving into a title of its own stays inside it (§4.4). `model/`
 imports nothing from Flutter so the round logic is tested in plain `test()` and runs in milliseconds;
 the loader, which needs `rootBundle`, is the only part of the catalog in `data/`.
@@ -651,8 +654,8 @@ the loader, which needs `rootBundle`, is the only part of the catalog in `data/`
 Estimates assume one developer, or one agent session with review, working on this full time, as
 phase 9's did. **Checking content is separate and is the owner's time**: verifying a question, its
 answer and its three wrong answers against the book or episode takes about two to three minutes with
-the source to hand, so the launch threshold of 160 checked questions, Kitty's included, is roughly
-5½–8 hours, and the full target of 460, plus 20 per Kitty book, about three times that. The store packs need 40 checked questions to offer all four titles,
+the source to hand, so the launch threshold of 170 checked questions, Kitty's included, is roughly
+6–8½ hours, and the full target of 500, plus 20 per Kitty book, about three times that. The store packs need 40 checked questions to offer all four titles,
 about two hours, and 140 at target. That is the phase's real critical path, and why the release line does
 not wait for it.
 
@@ -794,6 +797,27 @@ corrections go in the same commit as the flip.
 questions (§4.4), at least 30 % of them at level 1; the coverage table is in the description; no
 title id outside the pull request's series changed (`git diff --stat` touches only its own files and
 `index.json`).
+*PR 8 outcome:* `private/dahl.json`, listed after the Faraway Tree in `private/index.json`. The title
+ids, in publication order, are `dahl.james-and-the-giant-peach`, `dahl.charlie-and-the-chocolate-factory`,
+`dahl.bfg` and `dahl.matilda`, with 23, 24, 21 and 26 drafted questions, 11, 13, 9 and 10 of them at
+level 1. Each title is drafted over its target of 20 so a checker can cut what does not survive
+checking, as *KPop Demon Hunters* was. Every question is `checked: false`, so all four are hidden in
+release builds until ten of each are checked. The owner's ask named *Charlie and the Chocolate
+Factory* directly, which settles §9's *Wonka* question. Drafting was from memory with no copy of the
+books to hand, so `source` names a part of the book rather than a chapter title, and questions whose
+detail differs between editions — the coin Charlie finds, which is a dollar in some and a fifty-pence
+piece in others — ask about something that does not. The questions stay under 60 characters, the
+bank's current longest, so `quiz_play_layout_test.dart`'s worst case is unchanged.
+*PR 11 outcome, in part:* `private/disney.json`, listed after Dahl in `private/index.json`, with
+`disney.mickey-and-friends` (40 drafted questions, 25 at level 1) and `disney.princesses` (46, 21 at
+level 1), all `checked: false`. It went in the same pull request as PR 8 at the owner's request, so
+that pull request's diff touches two series. *Disney films* and *Pixar films* are not drafted yet; their
+titles are added with their questions, not as empty placeholders, so their ids are chosen beside the
+content they name.
+Princess questions keep to §4.4's rule for broad titles: who a film's characters are, where it is
+set and what they want. Wrong answers that could be argued right were cut in drafting: Pascal is not
+offered "a lizard", because a chameleon is one, and Moana is not offered "Te Fiti" for whom she
+sails to find.
 
 **PR 12 — store packs.** `store/beatrix-potter.json` with *The Tale of Peter Rabbit* at 20 drafted
 questions, and `store/general-knowledge.json` with *Animals*, *The UK* and *The world* at 40 each,
@@ -907,7 +931,7 @@ copied into §8, with every title under the threshold named — those are hidden
 | Which series, if any, move from private to the store. All start private (§4.4). | The owner, per series, at any time: a `git mv` between the two directories, keeping title ids and every child's ticks. Advice is the owner's to seek; the plan does not claim naming a series in a store build is legally safe. |
 | Which other Beatrix Potter tales, and which further topics (the sea, space, the body), join the store packs. | The owner, any time; each is a content-only change. |
 | Which Kitty books, from Oxford University Press's list. | The owner, in PR 9. |
-| *Wonka* is read as *Charlie and the Chocolate Factory* (§4.4). Is that right, and is *Charlie and the Great Glass Elevator* wanted too? | The owner, before PR 8. |
+| Is *Charlie and the Great Glass Elevator* wanted too? (*Wonka* was confirmed as *Charlie and the Chocolate Factory* in PR 8.) | The owner, any time; a content-only change. |
 | *Topsy and Tim* began as Jean and Gareth Adamson's books. TV only, as the ask lists it, or a book series too? | The owner. TV only until told otherwise. |
 | Further Narnia, Dahl and Rainbow Magic books, Disney or Pixar films as titles of their own, and *Witch Detectives*. | The owner, any time; each is a content-only change. |
 | Who checks the questions, and are 10 to offer and 20 as the target the right numbers? | The owner. Both are constants. |
@@ -927,7 +951,8 @@ the world, the UK and animals (§4.4). And, closing the planning (§4.4, §4.5):
 - **Roald Dahl:** *The BFG*, *Matilda*, *Wonka* — read here as *Charlie and the Chocolate Factory*
   — and *James and the Giant Peach*.
 - **Disney:** general questions about Mickey and friends and about other Disney titles, Pixar's
-  included — three broad titles, not a title per film or per Mickey show.
+  included — broad titles, not a title per film or per Mickey show. The princesses were later
+  asked for as a title of their own (§4.4).
 - **Rainbow Magic:** the colour fairies (*the Rainbow Fairies*) and *the Weather Fairies*.
 - **Book series:** one title per series, not one per book or set (§4.4).
 - **Narnia:** *The Lion, the Witch and the Wardrobe* and *Prince Caspian*, for now.

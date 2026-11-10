@@ -1,0 +1,1254 @@
+{
+  "format": 1,
+  "series": "dahl",
+  "name": "Roald Dahl",
+  "collection": "book",
+  "titles": [
+    {
+      "id": "dahl.james-and-the-giant-peach",
+      "name": "James and the Giant Peach",
+      "questions": [
+        {
+          "id": "dahl.james-and-the-giant-peach.001",
+          "level": 1,
+          "checked": true,
+          "q": "What ate James's mother and father?",
+          "a": "A rhinoceros",
+          "wrong": [
+            "A lion",
+            "A crocodile",
+            "A shark"
+          ],
+          "source": "James and the Giant Peach, the first chapter"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.002",
+          "level": 2,
+          "checked": true,
+          "q": "How old was James when he went to live with his aunts?",
+          "a": "Four",
+          "wrong": [
+            "Two",
+            "Six",
+            "Eight"
+          ],
+          "source": "James and the Giant Peach, the first chapter"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.003",
+          "level": 1,
+          "checked": true,
+          "q": "What are the names of James's two cruel aunts?",
+          "a": "Sponge and Spiker",
+          "wrong": [
+            "Spindle and Spoon",
+            "Sponge and Sparrow",
+            "Spiker and Spoon"
+          ],
+          "source": "James and the Giant Peach, the first chapters"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.004",
+          "level": 1,
+          "checked": true,
+          "q": "What does the little old man give James?",
+          "a": "Magic green crystals",
+          "wrong": [
+            "Chocolate apples",
+            "Gold coins",
+            "A box of sweets"
+          ],
+          "source": "James and the Giant Peach, the chapters before the peach grows"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.005",
+          "level": 1,
+          "checked": true,
+          "q": "What fruit grows enormous on the aunts' tree?",
+          "a": "A peach",
+          "wrong": [
+            "An apple",
+            "A pear",
+            "A plum"
+          ],
+          "source": "James and the Giant Peach, the chapters before the peach grows"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.006",
+          "level": 2,
+          "checked": true,
+          "q": "How does James first get inside the peach?",
+          "a": "He crawls through a hole",
+          "wrong": [
+            "He climbs down the stalk",
+            "He opens a little door",
+            "The aunts push him in"
+          ],
+          "source": "James and the Giant Peach, the chapter where James goes into the peach"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.007",
+          "level": 1,
+          "checked": true,
+          "q": "Which boastful friend wears lots of boots?",
+          "a": "The Centipede",
+          "wrong": [
+            "The Earthworm",
+            "The Ladybird",
+            "The Glow-worm"
+          ],
+          "source": "James and the Giant Peach, throughout"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.008",
+          "level": 1,
+          "checked": true,
+          "q": "Which friend is blind and always gloomy?",
+          "a": "The Earthworm",
+          "wrong": [
+            "The Grasshopper",
+            "The Centipede",
+            "Miss Spider"
+          ],
+          "source": "James and the Giant Peach, throughout"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.009",
+          "level": 1,
+          "checked": true,
+          "q": "Which friend lights up the inside of the peach?",
+          "a": "The Glow-worm",
+          "wrong": [
+            "The Ladybird",
+            "The Silkworm",
+            "Miss Spider"
+          ],
+          "source": "James and the Giant Peach, throughout"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.010",
+          "level": 2,
+          "checked": true,
+          "q": "Which friend plays music like a violin?",
+          "a": "The Old-Green-Grasshopper",
+          "wrong": [
+            "The Centipede",
+            "The Earthworm",
+            "The Ladybird"
+          ],
+          "source": "James and the Giant Peach, throughout"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.011",
+          "level": 2,
+          "checked": true,
+          "q": "How many spots does the Ladybird have?",
+          "a": "Nine",
+          "wrong": [
+            "Two",
+            "Five",
+            "Twelve"
+          ],
+          "source": "James and the Giant Peach, the chapter where James meets the creatures"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.012",
+          "level": 1,
+          "checked": true,
+          "q": "What happens to the aunts when the peach rolls away?",
+          "a": "They are squashed flat",
+          "wrong": [
+            "They chase it to the sea",
+            "They ride on top of it",
+            "They fall in a pond"
+          ],
+          "source": "James and the Giant Peach, the chapter where the peach breaks free"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.013",
+          "level": 1,
+          "checked": true,
+          "q": "Where does the peach roll to after leaving the hill?",
+          "a": "The sea",
+          "wrong": [
+            "A lake",
+            "A river",
+            "A swimming pool"
+          ],
+          "source": "James and the Giant Peach, the chapter where the peach breaks free"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.014",
+          "level": 2,
+          "checked": true,
+          "q": "What attacks the peach while it floats on the sea?",
+          "a": "Sharks",
+          "wrong": [
+            "Whales",
+            "Octopuses",
+            "Jellyfish"
+          ],
+          "source": "James and the Giant Peach, the chapters at sea"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.015",
+          "level": 1,
+          "checked": true,
+          "q": "Which birds lift the peach up into the sky?",
+          "a": "Seagulls",
+          "wrong": [
+            "Eagles",
+            "Swans",
+            "Pigeons"
+          ],
+          "source": "James and the Giant Peach, the chapters at sea"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.016",
+          "level": 2,
+          "checked": true,
+          "q": "Whose idea is it to use the birds to lift the peach?",
+          "a": "James",
+          "wrong": [
+            "The Centipede",
+            "The Ladybird",
+            "Miss Spider"
+          ],
+          "source": "James and the Giant Peach, the chapters at sea"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.017",
+          "level": 2,
+          "checked": true,
+          "q": "Which friend is used as bait to catch the birds?",
+          "a": "The Earthworm",
+          "wrong": [
+            "The Glow-worm",
+            "The Centipede",
+            "The Silkworm"
+          ],
+          "source": "James and the Giant Peach, the chapters at sea"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.018",
+          "level": 2,
+          "checked": true,
+          "q": "Who throws hailstones at the peach from the clouds?",
+          "a": "The Cloud-Men",
+          "wrong": [
+            "The Snow Giants",
+            "The Storm Witches",
+            "The Sky Pirates"
+          ],
+          "source": "James and the Giant Peach, the chapters about the Cloud-Men"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.019",
+          "level": 2,
+          "checked": true,
+          "q": "Who gets covered in rainbow paint by the Cloud-Men?",
+          "a": "The Centipede",
+          "wrong": [
+            "The Earthworm",
+            "The Ladybird",
+            "James"
+          ],
+          "source": "James and the Giant Peach, the chapters about the Cloud-Men"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.020",
+          "level": 2,
+          "checked": true,
+          "q": "What do the travellers eat on their long journey?",
+          "a": "The peach",
+          "wrong": [
+            "Fish",
+            "Bread",
+            "Seaweed"
+          ],
+          "source": "James and the Giant Peach, the chapters at sea"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.021",
+          "level": 1,
+          "checked": true,
+          "q": "In which city does the peach finally land?",
+          "a": "New York",
+          "wrong": [
+            "London",
+            "Paris",
+            "Sydney"
+          ],
+          "source": "James and the Giant Peach, the last chapters"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.022",
+          "level": 2,
+          "checked": true,
+          "q": "What tall building does the peach land on top of?",
+          "a": "The Empire State Building",
+          "wrong": [
+            "The Statue of Liberty",
+            "A big ship",
+            "A tall church"
+          ],
+          "source": "James and the Giant Peach, the last chapters"
+        },
+        {
+          "id": "dahl.james-and-the-giant-peach.023",
+          "level": 2,
+          "checked": true,
+          "q": "What becomes James's home in Central Park?",
+          "a": "The peach stone",
+          "wrong": [
+            "A tree house",
+            "A giant boot",
+            "A glass hut"
+          ],
+          "source": "James and the Giant Peach, the last chapter"
+        }
+      ]
+    },
+    {
+      "id": "dahl.charlie-and-the-chocolate-factory",
+      "name": "Charlie and the Chocolate Factory",
+      "questions": [
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.001",
+          "level": 1,
+          "checked": true,
+          "q": "What is Charlie's surname?",
+          "a": "Bucket",
+          "wrong": [
+            "Spade",
+            "Wonka",
+            "Salt"
+          ],
+          "source": "Charlie and the Chocolate Factory, throughout"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.002",
+          "level": 1,
+          "checked": true,
+          "q": "How many grandparents share one bed in Charlie's house?",
+          "a": "Four",
+          "wrong": [
+            "Two",
+            "Three",
+            "Six"
+          ],
+          "source": "Charlie and the Chocolate Factory, the first chapters"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.003",
+          "level": 1,
+          "checked": true,
+          "q": "What does Charlie get for his birthday each year?",
+          "a": "One chocolate bar",
+          "wrong": [
+            "A new coat",
+            "A toy car",
+            "A big cake"
+          ],
+          "source": "Charlie and the Chocolate Factory, the first chapters"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.004",
+          "level": 2,
+          "checked": false,
+          "q": "What does Charlie's father screw onto things at work?",
+          "a": "Toothpaste caps",
+          "wrong": [
+            "Light bulbs",
+            "Jam jar lids",
+            "Door handles"
+          ],
+          "source": "Charlie and the Chocolate Factory, the first chapters"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.005",
+          "level": 1,
+          "checked": true,
+          "q": "Who owns the chocolate factory?",
+          "a": "Willy Wonka",
+          "wrong": [
+            "Mr Slugworth",
+            "Mr Salt",
+            "Mr Bucket"
+          ],
+          "source": "Charlie and the Chocolate Factory, throughout"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.006",
+          "level": 1,
+          "checked": true,
+          "q": "What must a child find to visit the factory?",
+          "a": "A Golden Ticket",
+          "wrong": [
+            "A silver coin",
+            "A secret key",
+            "A gold star"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapters about the Golden Tickets"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.007",
+          "level": 1,
+          "checked": true,
+          "q": "How many Golden Tickets are there?",
+          "a": "Five",
+          "wrong": [
+            "Three",
+            "Ten",
+            "One hundred"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapters about the Golden Tickets"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.008",
+          "level": 2,
+          "checked": true,
+          "q": "Who unwraps bars to find Veruca's ticket?",
+          "a": "Her dad's factory workers",
+          "wrong": [
+            "Her teachers",
+            "Her nanny",
+            "Oompa-Loompas"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapters about the Golden Tickets"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.009",
+          "level": 2,
+          "checked": false,
+          "q": "Where does Charlie find the money for his lucky bar?",
+          "a": "In the snow",
+          "wrong": [
+            "Under his bed",
+            "In a teapot",
+            "On a bus"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapter where Charlie finds his ticket"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.010",
+          "level": 1,
+          "checked": true,
+          "q": "Which grandparent goes to the factory with Charlie?",
+          "a": "Grandpa Joe",
+          "wrong": [
+            "Grandpa George",
+            "Grandma Josephine",
+            "Grandma Georgina"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapters before the factory visit"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.011",
+          "level": 1,
+          "checked": true,
+          "q": "Who works in Willy Wonka's factory?",
+          "a": "Oompa-Loompas",
+          "wrong": [
+            "Elves",
+            "Robots",
+            "Goblins"
+          ],
+          "source": "Charlie and the Chocolate Factory, throughout the factory visit"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.012",
+          "level": 2,
+          "checked": true,
+          "q": "What land do the Oompa-Loompas come from?",
+          "a": "Loompaland",
+          "wrong": [
+            "Wonkaland",
+            "Chocolatia",
+            "Sweetland"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapter about the Oompa-Loompas"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.013",
+          "level": 2,
+          "checked": false,
+          "q": "Which beans did the Oompa-Loompas long to eat?",
+          "a": "Cacao beans",
+          "wrong": [
+            "Baked beans",
+            "Jelly beans",
+            "Coffee beans"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapter about the Oompa-Loompas"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.014",
+          "level": 2,
+          "checked": true,
+          "q": "What mixes the chocolate in the chocolate river?",
+          "a": "A waterfall",
+          "wrong": [
+            "A giant spoon",
+            "A windmill",
+            "A big whisk"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapters about the Chocolate Room"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.015",
+          "level": 1,
+          "checked": true,
+          "q": "Who falls into the chocolate river?",
+          "a": "Augustus Gloop",
+          "wrong": [
+            "Violet Beauregarde",
+            "Veruca Salt",
+            "Mike Teavee"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapters about the Chocolate Room"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.016",
+          "level": 1,
+          "checked": true,
+          "q": "What does Violet Beauregarde never stop chewing?",
+          "a": "Gum",
+          "wrong": [
+            "Toffee",
+            "Liquorice",
+            "Her pencil"
+          ],
+          "source": "Charlie and the Chocolate Factory, throughout"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.017",
+          "level": 2,
+          "checked": false,
+          "q": "Which part of the gum dinner turns Violet into a berry?",
+          "a": "Blueberry pie and cream",
+          "wrong": [
+            "Tomato soup",
+            "Roast beef",
+            "Baked potato"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapter about the Inventing Room"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.018",
+          "level": 1,
+          "checked": true,
+          "q": "Who swells up into a giant blueberry?",
+          "a": "Violet Beauregarde",
+          "wrong": [
+            "Veruca Salt",
+            "Augustus Gloop",
+            "Mike Teavee"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapter about the Inventing Room"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.019",
+          "level": 2,
+          "checked": false,
+          "q": "What are the squirrels doing in the Nut Room?",
+          "a": "Checking for bad nuts",
+          "wrong": [
+            "Painting nuts",
+            "Burying nuts",
+            "Counting sweets"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapter about the Nut Room"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.020",
+          "level": 1,
+          "checked": true,
+          "q": "Who do the squirrels push down the rubbish chute?",
+          "a": "Veruca Salt",
+          "wrong": [
+            "Violet Beauregarde",
+            "Augustus Gloop",
+            "Mike Teavee"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapter about the Nut Room"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.021",
+          "level": 2,
+          "checked": true,
+          "q": "What does Mike Teavee love most of all?",
+          "a": "Television",
+          "wrong": [
+            "Football",
+            "Chewing gum",
+            "Ice cream"
+          ],
+          "source": "Charlie and the Chocolate Factory, throughout"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.022",
+          "level": 2,
+          "checked": true,
+          "q": "What happens to Mike Teavee in the Television Room?",
+          "a": "He is shrunk very small",
+          "wrong": [
+            "He turns purple",
+            "He floats away",
+            "He falls asleep"
+          ],
+          "source": "Charlie and the Chocolate Factory, the chapters about the Television Room"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.023",
+          "level": 2,
+          "checked": true,
+          "q": "What does Charlie fly in above the factory at the end?",
+          "a": "The Great Glass Elevator",
+          "wrong": [
+            "A hot-air balloon",
+            "A chocolate plane",
+            "A flying boat"
+          ],
+          "source": "Charlie and the Chocolate Factory, the last chapters"
+        },
+        {
+          "id": "dahl.charlie-and-the-chocolate-factory.024",
+          "level": 1,
+          "checked": true,
+          "q": "Who does Willy Wonka give his factory to?",
+          "a": "Charlie",
+          "wrong": [
+            "Grandpa Joe",
+            "Veruca Salt",
+            "Mike Teavee"
+          ],
+          "source": "Charlie and the Chocolate Factory, the last chapter"
+        }
+      ]
+    },
+    {
+      "id": "dahl.bfg",
+      "name": "The BFG",
+      "questions": [
+        {
+          "id": "dahl.bfg.001",
+          "level": 1,
+          "checked": true,
+          "q": "What do the letters BFG stand for?",
+          "a": "Big Friendly Giant",
+          "wrong": [
+            "Big Funny Giant",
+            "Brave Friendly Giant",
+            "Big Fierce Giant"
+          ],
+          "source": "The BFG, throughout"
+        },
+        {
+          "id": "dahl.bfg.002",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of the girl the BFG takes away?",
+          "a": "Sophie",
+          "wrong": [
+            "Lucy",
+            "Emily",
+            "Matilda"
+          ],
+          "source": "The BFG, throughout"
+        },
+        {
+          "id": "dahl.bfg.003",
+          "level": 1,
+          "checked": true,
+          "q": "Where does Sophie live at the start of the story?",
+          "a": "An orphanage",
+          "wrong": [
+            "A farm",
+            "A castle",
+            "A boat"
+          ],
+          "source": "The BFG, the first chapter"
+        },
+        {
+          "id": "dahl.bfg.004",
+          "level": 2,
+          "checked": true,
+          "q": "What is the special time in the middle of the night called?",
+          "a": "The witching hour",
+          "wrong": [
+            "Bedtime",
+            "Teatime",
+            "Sunrise"
+          ],
+          "source": "The BFG, the first chapter"
+        },
+        {
+          "id": "dahl.bfg.005",
+          "level": 2,
+          "checked": true,
+          "q": "Why does the BFG carry Sophie away?",
+          "a": "Because she saw him",
+          "wrong": [
+            "To eat her",
+            "To be his cook",
+            "Because she was lost"
+          ],
+          "source": "The BFG, the first chapters"
+        },
+        {
+          "id": "dahl.bfg.006",
+          "level": 1,
+          "checked": true,
+          "q": "What does the BFG blow into children's bedrooms?",
+          "a": "Dreams",
+          "wrong": [
+            "Snowflakes",
+            "Bubbles",
+            "Feathers"
+          ],
+          "source": "The BFG, throughout"
+        },
+        {
+          "id": "dahl.bfg.007",
+          "level": 1,
+          "checked": true,
+          "q": "Which part of the BFG is extra good at hearing?",
+          "a": "His ears",
+          "wrong": [
+            "His nose",
+            "His eyes",
+            "His feet"
+          ],
+          "source": "The BFG, the chapter about the BFG's ears"
+        },
+        {
+          "id": "dahl.bfg.008",
+          "level": 2,
+          "checked": true,
+          "q": "Why does the BFG speak in a muddled way?",
+          "a": "He never went to school",
+          "wrong": [
+            "He is very old",
+            "He has a sore throat",
+            "He is from the moon"
+          ],
+          "source": "The BFG, throughout"
+        },
+        {
+          "id": "dahl.bfg.009",
+          "level": 1,
+          "checked": true,
+          "q": "What disgusting vegetable does the BFG eat?",
+          "a": "Snozzcumbers",
+          "wrong": [
+            "Frobscottles",
+            "Whizzpoppers",
+            "Trogglehumpers"
+          ],
+          "source": "The BFG, the chapter about snozzcumbers"
+        },
+        {
+          "id": "dahl.bfg.010",
+          "level": 1,
+          "checked": true,
+          "q": "What is the BFG's fizzy drink called?",
+          "a": "Frobscottle",
+          "wrong": [
+            "Snozzcumber",
+            "Lemonade",
+            "Bubblyfizz"
+          ],
+          "source": "The BFG, the chapter about frobscottle"
+        },
+        {
+          "id": "dahl.bfg.011",
+          "level": 2,
+          "checked": true,
+          "q": "Which way do the bubbles in frobscottle go?",
+          "a": "Downwards",
+          "wrong": [
+            "Upwards",
+            "Round and round",
+            "Sideways"
+          ],
+          "source": "The BFG, the chapter about frobscottle"
+        },
+        {
+          "id": "dahl.bfg.012",
+          "level": 2,
+          "checked": true,
+          "q": "How many man-eating giants live near the BFG?",
+          "a": "Nine",
+          "wrong": [
+            "Three",
+            "Five",
+            "Twenty"
+          ],
+          "source": "The BFG, the chapters about the giants"
+        },
+        {
+          "id": "dahl.bfg.013",
+          "level": 2,
+          "checked": true,
+          "q": "Which giant is the biggest and most horrible?",
+          "a": "The Fleshlumpeater",
+          "wrong": [
+            "The Bloodbottler",
+            "The Childchewer",
+            "The Meatdripper"
+          ],
+          "source": "The BFG, the chapters about the giants"
+        },
+        {
+          "id": "dahl.bfg.014",
+          "level": 2,
+          "checked": true,
+          "q": "Which giant bites the snozzcumber Sophie hides in?",
+          "a": "The Bloodbottler",
+          "wrong": [
+            "The Fleshlumpeater",
+            "The Bonecruncher",
+            "The Childchewer"
+          ],
+          "source": "The BFG, the chapter where a giant visits the cave"
+        },
+        {
+          "id": "dahl.bfg.015",
+          "level": 2,
+          "checked": true,
+          "q": "Where does the BFG go to catch dreams?",
+          "a": "Dream Country",
+          "wrong": [
+            "Giant Country",
+            "Dreamland Lake",
+            "Moon Valley"
+          ],
+          "source": "The BFG, the chapters about dream-catching"
+        },
+        {
+          "id": "dahl.bfg.016",
+          "level": 2,
+          "checked": true,
+          "q": "What does the BFG catch dreams with?",
+          "a": "A net",
+          "wrong": [
+            "A fishing rod",
+            "A hat",
+            "A sack"
+          ],
+          "source": "The BFG, the chapters about dream-catching"
+        },
+        {
+          "id": "dahl.bfg.017",
+          "level": 2,
+          "checked": true,
+          "q": "Where does the BFG keep the dreams he catches?",
+          "a": "In glass jars",
+          "wrong": [
+            "In a sack",
+            "In his pockets",
+            "Under his bed"
+          ],
+          "source": "The BFG, the chapters about the dream jars"
+        },
+        {
+          "id": "dahl.bfg.018",
+          "level": 2,
+          "checked": true,
+          "q": "Which hero do the giants fear most in their dreams?",
+          "a": "Jack the giant-killer",
+          "wrong": [
+            "Robin Hood",
+            "Saint George",
+            "Captain Hook"
+          ],
+          "source": "The BFG, the chapters about the dream jars"
+        },
+        {
+          "id": "dahl.bfg.019",
+          "level": 1,
+          "checked": true,
+          "q": "Who do Sophie and the BFG ask for help?",
+          "a": "The Queen",
+          "wrong": [
+            "The Prime Minister",
+            "A wizard",
+            "The police"
+          ],
+          "source": "The BFG, the chapters at the palace"
+        },
+        {
+          "id": "dahl.bfg.020",
+          "level": 1,
+          "checked": true,
+          "q": "Where are the bad giants kept at the end?",
+          "a": "In a huge pit",
+          "wrong": [
+            "In a castle",
+            "On an island",
+            "In a zoo"
+          ],
+          "source": "The BFG, the last chapters"
+        },
+        {
+          "id": "dahl.bfg.021",
+          "level": 2,
+          "checked": true,
+          "q": "Who does the end of the book say wrote the story?",
+          "a": "The BFG",
+          "wrong": [
+            "Sophie",
+            "The Queen",
+            "Mary the maid"
+          ],
+          "source": "The BFG, the last chapter"
+        }
+      ]
+    },
+    {
+      "id": "dahl.matilda",
+      "name": "Matilda",
+      "questions": [
+        {
+          "id": "dahl.matilda.001",
+          "level": 1,
+          "checked": true,
+          "q": "What is Matilda's surname?",
+          "a": "Wormwood",
+          "wrong": [
+            "Honey",
+            "Phelps",
+            "Bucket"
+          ],
+          "source": "Matilda, throughout"
+        },
+        {
+          "id": "dahl.matilda.002",
+          "level": 2,
+          "checked": true,
+          "q": "What is the name of Matilda's brother?",
+          "a": "Michael",
+          "wrong": [
+            "Bruce",
+            "Nigel",
+            "Fred"
+          ],
+          "source": "Matilda, throughout"
+        },
+        {
+          "id": "dahl.matilda.003",
+          "level": 1,
+          "checked": true,
+          "q": "Where does Matilda go to find books?",
+          "a": "The library",
+          "wrong": [
+            "The market",
+            "A toy shop",
+            "The post office"
+          ],
+          "source": "Matilda, the first chapters"
+        },
+        {
+          "id": "dahl.matilda.004",
+          "level": 2,
+          "checked": true,
+          "q": "What is the name of the kind librarian?",
+          "a": "Mrs Phelps",
+          "wrong": [
+            "Mrs Wormwood",
+            "Miss Honey",
+            "Mrs Thripp"
+          ],
+          "source": "Matilda, the first chapters"
+        },
+        {
+          "id": "dahl.matilda.005",
+          "level": 1,
+          "checked": true,
+          "q": "How do the Wormwoods eat their supper?",
+          "a": "In front of the telly",
+          "wrong": [
+            "At a big table",
+            "In the garden",
+            "At a restaurant"
+          ],
+          "source": "Matilda, the first chapters"
+        },
+        {
+          "id": "dahl.matilda.006",
+          "level": 2,
+          "checked": true,
+          "q": "What does Mr Wormwood sell?",
+          "a": "Second-hand cars",
+          "wrong": [
+            "Houses",
+            "Sweets",
+            "Televisions"
+          ],
+          "source": "Matilda, the first chapters"
+        },
+        {
+          "id": "dahl.matilda.007",
+          "level": 2,
+          "checked": true,
+          "q": "What does Mr Wormwood put in gearboxes to cheat?",
+          "a": "Sawdust",
+          "wrong": [
+            "Glue",
+            "Sugar",
+            "Sand"
+          ],
+          "source": "Matilda, the first chapters"
+        },
+        {
+          "id": "dahl.matilda.008",
+          "level": 2,
+          "checked": true,
+          "q": "What does Matilda put inside her father's hat?",
+          "a": "Superglue",
+          "wrong": [
+            "A frog",
+            "Itching powder",
+            "Jam"
+          ],
+          "source": "Matilda, the chapter about the hat"
+        },
+        {
+          "id": "dahl.matilda.009",
+          "level": 2,
+          "checked": true,
+          "q": "Where does Matilda hide the borrowed parrot?",
+          "a": "Up the chimney",
+          "wrong": [
+            "In a cupboard",
+            "Under the sofa",
+            "In the bath"
+          ],
+          "source": "Matilda, the chapter about the ghost"
+        },
+        {
+          "id": "dahl.matilda.010",
+          "level": 2,
+          "checked": true,
+          "q": "What does Matilda mix into her father's hair oil?",
+          "a": "Hair dye",
+          "wrong": [
+            "Glue",
+            "Ink",
+            "Honey"
+          ],
+          "source": "Matilda, the chapter about the hair oil"
+        },
+        {
+          "id": "dahl.matilda.011",
+          "level": 2,
+          "checked": true,
+          "q": "How old is Matilda when she starts school?",
+          "a": "Five and a half",
+          "wrong": [
+            "Three",
+            "Seven",
+            "Six and a half"
+          ],
+          "source": "Matilda, the chapter where Matilda starts school"
+        },
+        {
+          "id": "dahl.matilda.012",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of Matilda's kind teacher?",
+          "a": "Miss Honey",
+          "wrong": [
+            "Miss Trunchbull",
+            "Mrs Phelps",
+            "Miss Spider"
+          ],
+          "source": "Matilda, throughout"
+        },
+        {
+          "id": "dahl.matilda.013",
+          "level": 1,
+          "checked": true,
+          "q": "Who is the fierce headmistress?",
+          "a": "Miss Trunchbull",
+          "wrong": [
+            "Miss Honey",
+            "Mrs Wormwood",
+            "Mrs Phelps"
+          ],
+          "source": "Matilda, throughout"
+        },
+        {
+          "id": "dahl.matilda.014",
+          "level": 2,
+          "checked": true,
+          "q": "What is Miss Trunchbull's first name?",
+          "a": "Agatha",
+          "wrong": [
+            "Gertrude",
+            "Mabel",
+            "Hilda"
+          ],
+          "source": "Matilda, the later chapters"
+        },
+        {
+          "id": "dahl.matilda.015",
+          "level": 1,
+          "checked": true,
+          "q": "Which sport did Miss Trunchbull do at the Olympics?",
+          "a": "Throwing the hammer",
+          "wrong": [
+            "Swimming",
+            "Running",
+            "Gymnastics"
+          ],
+          "source": "Matilda, throughout"
+        },
+        {
+          "id": "dahl.matilda.016",
+          "level": 2,
+          "checked": true,
+          "q": "What is the Chokey?",
+          "a": "A tiny punishment cupboard",
+          "wrong": [
+            "A school dinner",
+            "A playground game",
+            "A sweet shop"
+          ],
+          "source": "Matilda, the chapters about the school"
+        },
+        {
+          "id": "dahl.matilda.017",
+          "level": 2,
+          "checked": true,
+          "q": "Who is Matilda's best friend at school?",
+          "a": "Lavender",
+          "wrong": [
+            "Amanda",
+            "Hortensia",
+            "Sophie"
+          ],
+          "source": "Matilda, the chapters about the school"
+        },
+        {
+          "id": "dahl.matilda.018",
+          "level": 2,
+          "checked": true,
+          "q": "Who does Miss Trunchbull swing by her pigtails?",
+          "a": "Amanda Thripp",
+          "wrong": [
+            "Lavender",
+            "Hortensia",
+            "Matilda"
+          ],
+          "source": "Matilda, the chapter about the pigtails"
+        },
+        {
+          "id": "dahl.matilda.019",
+          "level": 1,
+          "checked": true,
+          "q": "Who has to eat an enormous chocolate cake?",
+          "a": "Bruce Bogtrotter",
+          "wrong": [
+            "Lavender",
+            "Amanda Thripp",
+            "Nigel"
+          ],
+          "source": "Matilda, the chapter about the cake"
+        },
+        {
+          "id": "dahl.matilda.020",
+          "level": 2,
+          "checked": true,
+          "q": "What does Lavender put in Miss Trunchbull's water jug?",
+          "a": "A newt",
+          "wrong": [
+            "A frog",
+            "A spider",
+            "A worm"
+          ],
+          "source": "Matilda, the chapter about the newt"
+        },
+        {
+          "id": "dahl.matilda.021",
+          "level": 1,
+          "checked": true,
+          "q": "What special power does Matilda find she has?",
+          "a": "Moving things with her eyes",
+          "wrong": [
+            "Flying",
+            "Turning invisible",
+            "Talking to animals"
+          ],
+          "source": "Matilda, the later chapters"
+        },
+        {
+          "id": "dahl.matilda.022",
+          "level": 2,
+          "checked": true,
+          "q": "How is Miss Trunchbull related to Miss Honey?",
+          "a": "She is her aunt",
+          "wrong": [
+            "She is her mother",
+            "She is her sister",
+            "She is her granny"
+          ],
+          "source": "Matilda, the chapters about Miss Honey's cottage"
+        },
+        {
+          "id": "dahl.matilda.023",
+          "level": 2,
+          "checked": true,
+          "q": "Where does Miss Honey live?",
+          "a": "A tiny cottage",
+          "wrong": [
+            "A big school house",
+            "A castle",
+            "A flat in town"
+          ],
+          "source": "Matilda, the chapters about Miss Honey's cottage"
+        },
+        {
+          "id": "dahl.matilda.024",
+          "level": 2,
+          "checked": false,
+          "q": "Who does the floating chalk say it is?",
+          "a": "Magnus",
+          "wrong": [
+            "Michael",
+            "Bruce",
+            "Harry"
+          ],
+          "source": "Matilda, the chapter about the chalk"
+        },
+        {
+          "id": "dahl.matilda.025",
+          "level": 1,
+          "checked": true,
+          "q": "Where do Matilda's parents run away to?",
+          "a": "Spain",
+          "wrong": [
+            "France",
+            "America",
+            "Australia"
+          ],
+          "source": "Matilda, the last chapter"
+        },
+        {
+          "id": "dahl.matilda.026",
+          "level": 1,
+          "checked": true,
+          "q": "Who does Matilda live with at the end?",
+          "a": "Miss Honey",
+          "wrong": [
+            "Mrs Phelps",
+            "Lavender",
+            "Her brother"
+          ],
+          "source": "Matilda, the last chapter"
+        }
+      ]
+    }
+  ]
+}

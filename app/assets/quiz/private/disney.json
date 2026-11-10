@@ -1,0 +1,1138 @@
+{
+  "format": 1,
+  "series": "disney",
+  "name": "Disney",
+  "collection": "film",
+  "titles": [
+    {
+      "id": "disney.mickey-and-friends",
+      "name": "Mickey and Friends",
+      "questions": [
+        {
+          "id": "disney.mickey-and-friends.001",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Mickey?",
+          "a": "A mouse",
+          "wrong": [
+            "A rabbit",
+            "A cat",
+            "A bear"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.002",
+          "level": 1,
+          "checked": true,
+          "q": "What colour are Mickey's shorts?",
+          "a": "Red",
+          "wrong": [
+            "Blue",
+            "Green",
+            "Yellow"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.003",
+          "level": 1,
+          "checked": true,
+          "q": "What colour are Mickey's gloves?",
+          "a": "White",
+          "wrong": [
+            "Black",
+            "Red",
+            "Yellow"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.004",
+          "level": 1,
+          "checked": true,
+          "q": "What colour are Mickey's big shoes?",
+          "a": "Yellow",
+          "wrong": [
+            "Red",
+            "Blue",
+            "Black"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.005",
+          "level": 1,
+          "checked": true,
+          "q": "What colour is Mickey's nose?",
+          "a": "Black",
+          "wrong": [
+            "Red",
+            "Pink",
+            "Brown"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.006",
+          "level": 1,
+          "checked": true,
+          "q": "What shape are Mickey's ears?",
+          "a": "Round",
+          "wrong": [
+            "Pointy",
+            "Floppy",
+            "Square"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.007",
+          "level": 2,
+          "checked": true,
+          "q": "Who created Mickey Mouse?",
+          "a": "Walt Disney",
+          "wrong": [
+            "Dr Seuss",
+            "Roald Dahl",
+            "Beatrix Potter"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.008",
+          "level": 2,
+          "checked": false,
+          "q": "In which old cartoon does Mickey steer a boat?",
+          "a": "Steamboat Willie",
+          "wrong": [
+            "Plane Crazy",
+            "Mickey's Garden",
+            "The Skeleton Dance"
+          ],
+          "source": "Steamboat Willie (1928 short)"
+        },
+        {
+          "id": "disney.mickey-and-friends.009",
+          "level": 1,
+          "checked": true,
+          "q": "Who is Mickey's girlfriend?",
+          "a": "Minnie Mouse",
+          "wrong": [
+            "Daisy Duck",
+            "Clarabelle Cow",
+            "Wendy"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.010",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Minnie?",
+          "a": "A mouse",
+          "wrong": [
+            "A duck",
+            "A cow",
+            "A cat"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.011",
+          "level": 1,
+          "checked": true,
+          "q": "What does Minnie wear on her head?",
+          "a": "A bow",
+          "wrong": [
+            "A crown",
+            "A cap",
+            "A flower"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.012",
+          "level": 1,
+          "checked": true,
+          "q": "What pattern is on Minnie's bow?",
+          "a": "Polka dots",
+          "wrong": [
+            "Stripes",
+            "Stars",
+            "Checks"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.013",
+          "level": 2,
+          "checked": true,
+          "q": "What does Minnie sell in her own shop?",
+          "a": "Bows",
+          "wrong": [
+            "Cakes",
+            "Shoes",
+            "Flowers"
+          ],
+          "source": "Minnie's Bow-Toons (TV series)"
+        },
+        {
+          "id": "disney.mickey-and-friends.014",
+          "level": 2,
+          "checked": true,
+          "q": "What is the name of Minnie's pet cat?",
+          "a": "Figaro",
+          "wrong": [
+            "Lucifer",
+            "Whiskers",
+            "Tom"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.015",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Donald?",
+          "a": "A duck",
+          "wrong": [
+            "A goose",
+            "A chicken",
+            "A swan"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.016",
+          "level": 1,
+          "checked": true,
+          "q": "What colour is Donald's sailor shirt?",
+          "a": "Blue",
+          "wrong": [
+            "Red",
+            "Green",
+            "Orange"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.017",
+          "level": 1,
+          "checked": true,
+          "q": "Which friend gets cross most easily?",
+          "a": "Donald Duck",
+          "wrong": [
+            "Mickey Mouse",
+            "Goofy",
+            "Minnie Mouse"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.018",
+          "level": 1,
+          "checked": true,
+          "q": "Whose quacky voice is hard to understand?",
+          "a": "Donald Duck",
+          "wrong": [
+            "Goofy",
+            "Pluto",
+            "Mickey Mouse"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.019",
+          "level": 1,
+          "checked": true,
+          "q": "Who is Donald Duck's girlfriend?",
+          "a": "Daisy Duck",
+          "wrong": [
+            "Minnie Mouse",
+            "Clarabelle Cow",
+            "Wendy"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.020",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Daisy?",
+          "a": "A duck",
+          "wrong": [
+            "A mouse",
+            "A cow",
+            "A hen"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.021",
+          "level": 1,
+          "checked": true,
+          "q": "How many nephews does Donald have?",
+          "a": "Three",
+          "wrong": [
+            "Two",
+            "Four",
+            "Six"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.022",
+          "level": 2,
+          "checked": true,
+          "q": "What are the names of Donald's nephews?",
+          "a": "Huey, Dewey and Louie",
+          "wrong": [
+            "Larry, Harry and Barry",
+            "Tom, Tim and Ted",
+            "Jack, Jim and Joe"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.023",
+          "level": 2,
+          "checked": true,
+          "q": "Who is Donald's very rich uncle?",
+          "a": "Scrooge McDuck",
+          "wrong": [
+            "Goofy",
+            "Pete",
+            "Mortimer Mouse"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.024",
+          "level": 2,
+          "checked": false,
+          "q": "Which duck is a clever professor?",
+          "a": "Ludwig Von Drake",
+          "wrong": [
+            "Daisy Duck",
+            "Donald Duck",
+            "Huey"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.025",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Goofy?",
+          "a": "A dog",
+          "wrong": [
+            "A horse",
+            "A cat",
+            "A cow"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.026",
+          "level": 1,
+          "checked": true,
+          "q": "Which friend is tall and very clumsy?",
+          "a": "Goofy",
+          "wrong": [
+            "Mickey Mouse",
+            "Minnie Mouse",
+            "Pluto"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.027",
+          "level": 2,
+          "checked": true,
+          "q": "What is the name of Goofy's son?",
+          "a": "Max",
+          "wrong": [
+            "Huey",
+            "Chip",
+            "Pete"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.028",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Pluto?",
+          "a": "A dog",
+          "wrong": [
+            "A cat",
+            "A fox",
+            "A pig"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.029",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of Mickey's pet dog?",
+          "a": "Pluto",
+          "wrong": [
+            "Goofy",
+            "Max",
+            "Figaro"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.030",
+          "level": 1,
+          "checked": true,
+          "q": "What does Pluto love to chew?",
+          "a": "A bone",
+          "wrong": [
+            "A shoe",
+            "A carrot",
+            "A fish"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.031",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animals are Chip and Dale?",
+          "a": "Chipmunks",
+          "wrong": [
+            "Mice",
+            "Rabbits",
+            "Hamsters"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.032",
+          "level": 2,
+          "checked": false,
+          "q": "Which chipmunk has a big red nose?",
+          "a": "Dale",
+          "wrong": [
+            "Chip",
+            "Huey",
+            "Max"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.033",
+          "level": 1,
+          "checked": false,
+          "q": "What do Chip and Dale love to collect?",
+          "a": "Acorns",
+          "wrong": [
+            "Carrots",
+            "Fish",
+            "Cheese"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.034",
+          "level": 2,
+          "checked": true,
+          "q": "Who is the big bully who makes trouble for Mickey?",
+          "a": "Pete",
+          "wrong": [
+            "Goofy",
+            "Max",
+            "Ludwig Von Drake"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.035",
+          "level": 2,
+          "checked": true,
+          "q": "What kind of animal is Pete?",
+          "a": "A cat",
+          "wrong": [
+            "A dog",
+            "A bear",
+            "A pig"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.036",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Clarabelle?",
+          "a": "A cow",
+          "wrong": [
+            "A horse",
+            "A sheep",
+            "A duck"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.037",
+          "level": 2,
+          "checked": false,
+          "q": "What kind of animal is Horace Horsecollar?",
+          "a": "A horse",
+          "wrong": [
+            "A cow",
+            "A dog",
+            "A donkey"
+          ],
+          "source": "Mickey and Friends, classic shorts and current shows"
+        },
+        {
+          "id": "disney.mickey-and-friends.038",
+          "level": 2,
+          "checked": true,
+          "q": "What magic words make the Clubhouse appear?",
+          "a": "Meeska, Mooska, Mickey Mouse",
+          "wrong": [
+            "Abracadabra",
+            "Open sesame",
+            "Bibbidi-bobbidi-boo"
+          ],
+          "source": "Mickey Mouse Clubhouse (TV series)"
+        },
+        {
+          "id": "disney.mickey-and-friends.039",
+          "level": 2,
+          "checked": true,
+          "q": "Who brings the Mouseketools in the Clubhouse?",
+          "a": "Toodles",
+          "wrong": [
+            "Pluto",
+            "Goofy",
+            "Professor Owl"
+          ],
+          "source": "Mickey Mouse Clubhouse (TV series)"
+        },
+        {
+          "id": "disney.mickey-and-friends.040",
+          "level": 2,
+          "checked": true,
+          "q": "What is the Clubhouse shaped like?",
+          "a": "Mickey's head",
+          "wrong": [
+            "A star",
+            "A boat",
+            "A cake"
+          ],
+          "source": "Mickey Mouse Clubhouse (TV series)"
+        }
+      ]
+    },
+    {
+      "id": "disney.princesses",
+      "name": "Disney Princesses",
+      "questions": [
+        {
+          "id": "disney.princesses.001",
+          "level": 1,
+          "checked": true,
+          "q": "How many dwarfs does Snow White meet?",
+          "a": "Seven",
+          "wrong": [
+            "Five",
+            "Six",
+            "Nine"
+          ],
+          "source": "Snow White and the Seven Dwarfs (1937 film), opening"
+        },
+        {
+          "id": "disney.princesses.002",
+          "level": 2,
+          "checked": true,
+          "q": "Which of the dwarfs never speaks?",
+          "a": "Dopey",
+          "wrong": [
+            "Grumpy",
+            "Sleepy",
+            "Doc"
+          ],
+          "source": "Snow White and the Seven Dwarfs (1937 film), opening"
+        },
+        {
+          "id": "disney.princesses.003",
+          "level": 2,
+          "checked": true,
+          "q": "What does the Queen ask her magic mirror?",
+          "a": "Who is the fairest of all",
+          "wrong": [
+            "What the weather will be",
+            "Where her crown is",
+            "What time it is"
+          ],
+          "source": "Snow White and the Seven Dwarfs (1937 film), opening"
+        },
+        {
+          "id": "disney.princesses.004",
+          "level": 1,
+          "checked": true,
+          "q": "Which animals are Cinderella's little helpers?",
+          "a": "Mice",
+          "wrong": [
+            "Rabbits",
+            "Frogs",
+            "Squirrels"
+          ],
+          "source": "Cinderella (1950 film), opening"
+        },
+        {
+          "id": "disney.princesses.005",
+          "level": 2,
+          "checked": false,
+          "q": "What are Cinderella's mouse friends called?",
+          "a": "Jaq and Gus",
+          "wrong": [
+            "Chip and Dale",
+            "Pip and Squeak",
+            "Bob and Bill"
+          ],
+          "source": "Cinderella (1950 film), opening"
+        },
+        {
+          "id": "disney.princesses.006",
+          "level": 2,
+          "checked": true,
+          "q": "What are Cinderella's stepsisters called?",
+          "a": "Anastasia and Drizella",
+          "wrong": [
+            "Flora and Fauna",
+            "Elsa and Anna",
+            "Lily and Rose"
+          ],
+          "source": "Cinderella (1950 film), opening"
+        },
+        {
+          "id": "disney.princesses.007",
+          "level": 2,
+          "checked": true,
+          "q": "What is the stepmother's cat called?",
+          "a": "Lucifer",
+          "wrong": [
+            "Figaro",
+            "Meeko",
+            "Rajah"
+          ],
+          "source": "Cinderella (1950 film), opening"
+        },
+        {
+          "id": "disney.princesses.008",
+          "level": 1,
+          "checked": true,
+          "q": "What is the princess called in Sleeping Beauty?",
+          "a": "Aurora",
+          "wrong": [
+            "Belle",
+            "Ariel",
+            "Jasmine"
+          ],
+          "source": "Sleeping Beauty (1959 film), opening"
+        },
+        {
+          "id": "disney.princesses.009",
+          "level": 1,
+          "checked": true,
+          "q": "Who is the wicked fairy in Sleeping Beauty?",
+          "a": "Maleficent",
+          "wrong": [
+            "Ursula",
+            "Merryweather",
+            "Mother Gothel"
+          ],
+          "source": "Sleeping Beauty (1959 film), opening"
+        },
+        {
+          "id": "disney.princesses.010",
+          "level": 2,
+          "checked": true,
+          "q": "How many good fairies look after Aurora?",
+          "a": "Three",
+          "wrong": [
+            "Two",
+            "Four",
+            "Seven"
+          ],
+          "source": "Sleeping Beauty (1959 film), opening"
+        },
+        {
+          "id": "disney.princesses.011",
+          "level": 2,
+          "checked": true,
+          "q": "What does the curse say Aurora will prick her finger on?",
+          "a": "A spinning wheel",
+          "wrong": [
+            "A rose thorn",
+            "A thorny bush",
+            "A pine cone"
+          ],
+          "source": "Sleeping Beauty (1959 film), opening"
+        },
+        {
+          "id": "disney.princesses.012",
+          "level": 2,
+          "checked": true,
+          "q": "What do the fairies call Aurora in the forest?",
+          "a": "Briar Rose",
+          "wrong": [
+            "Snow White",
+            "Little Rose",
+            "Wild Flower"
+          ],
+          "source": "Sleeping Beauty (1959 film), opening"
+        },
+        {
+          "id": "disney.princesses.013",
+          "level": 1,
+          "checked": true,
+          "q": "What is Ariel?",
+          "a": "A mermaid",
+          "wrong": [
+            "A fairy",
+            "A dolphin",
+            "A witch"
+          ],
+          "source": "The Little Mermaid (1989 film), opening"
+        },
+        {
+          "id": "disney.princesses.014",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of Ariel's fish friend?",
+          "a": "Flounder",
+          "wrong": [
+            "Nemo",
+            "Dory",
+            "Sebastian"
+          ],
+          "source": "The Little Mermaid (1989 film), opening"
+        },
+        {
+          "id": "disney.princesses.015",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Sebastian?",
+          "a": "A crab",
+          "wrong": [
+            "A fish",
+            "A seahorse",
+            "A turtle"
+          ],
+          "source": "The Little Mermaid (1989 film), opening"
+        },
+        {
+          "id": "disney.princesses.016",
+          "level": 2,
+          "checked": true,
+          "q": "Who is Ariel's father?",
+          "a": "King Triton",
+          "wrong": [
+            "King Neptune",
+            "King Stefan",
+            "The Sultan"
+          ],
+          "source": "The Little Mermaid (1989 film), opening"
+        },
+        {
+          "id": "disney.princesses.017",
+          "level": 2,
+          "checked": true,
+          "q": "What is the name of Ariel's seagull friend?",
+          "a": "Scuttle",
+          "wrong": [
+            "Flounder",
+            "Iago",
+            "Zazu"
+          ],
+          "source": "The Little Mermaid (1989 film), opening"
+        },
+        {
+          "id": "disney.princesses.018",
+          "level": 1,
+          "checked": true,
+          "q": "What does Ariel long to be?",
+          "a": "A human",
+          "wrong": [
+            "A fish",
+            "A bird",
+            "A queen"
+          ],
+          "source": "The Little Mermaid (1989 film), opening"
+        },
+        {
+          "id": "disney.princesses.019",
+          "level": 2,
+          "checked": true,
+          "q": "What is the sea witch called?",
+          "a": "Ursula",
+          "wrong": [
+            "Maleficent",
+            "Mother Gothel",
+            "Lady Tremaine"
+          ],
+          "source": "The Little Mermaid (1989 film), opening"
+        },
+        {
+          "id": "disney.princesses.020",
+          "level": 1,
+          "checked": true,
+          "q": "What does Belle love to do?",
+          "a": "Read books",
+          "wrong": [
+            "Bake cakes",
+            "Ride horses",
+            "Sing on stage"
+          ],
+          "source": "Beauty and the Beast (1991 film), opening"
+        },
+        {
+          "id": "disney.princesses.021",
+          "level": 2,
+          "checked": true,
+          "q": "What is Belle's father's job?",
+          "a": "Inventor",
+          "wrong": [
+            "Baker",
+            "Farmer",
+            "Soldier"
+          ],
+          "source": "Beauty and the Beast (1991 film), opening"
+        },
+        {
+          "id": "disney.princesses.022",
+          "level": 1,
+          "checked": true,
+          "q": "Which friend in the castle is a teapot?",
+          "a": "Mrs Potts",
+          "wrong": [
+            "Lumière",
+            "Cogsworth",
+            "Chip"
+          ],
+          "source": "Beauty and the Beast (1991 film), opening"
+        },
+        {
+          "id": "disney.princesses.023",
+          "level": 2,
+          "checked": true,
+          "q": "What is the name of Mrs Potts's son, a little cup?",
+          "a": "Chip",
+          "wrong": [
+            "Dale",
+            "Cogsworth",
+            "Gus"
+          ],
+          "source": "Beauty and the Beast (1991 film), opening"
+        },
+        {
+          "id": "disney.princesses.024",
+          "level": 2,
+          "checked": true,
+          "q": "Which friend in the castle is a candlestick?",
+          "a": "Lumière",
+          "wrong": [
+            "Cogsworth",
+            "Mrs Potts",
+            "Chip"
+          ],
+          "source": "Beauty and the Beast (1991 film), opening"
+        },
+        {
+          "id": "disney.princesses.025",
+          "level": 2,
+          "checked": true,
+          "q": "Who in Belle's village wants to marry her?",
+          "a": "Gaston",
+          "wrong": [
+            "Lumière",
+            "Maurice",
+            "Flynn Rider"
+          ],
+          "source": "Beauty and the Beast (1991 film), opening"
+        },
+        {
+          "id": "disney.princesses.026",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of Jasmine's pet tiger?",
+          "a": "Rajah",
+          "wrong": [
+            "Abu",
+            "Meeko",
+            "Pascal"
+          ],
+          "source": "Aladdin (1992 film), opening"
+        },
+        {
+          "id": "disney.princesses.027",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of Aladdin's monkey?",
+          "a": "Abu",
+          "wrong": [
+            "Rajah",
+            "Iago",
+            "Pascal"
+          ],
+          "source": "Aladdin (1992 film), opening"
+        },
+        {
+          "id": "disney.princesses.028",
+          "level": 1,
+          "checked": true,
+          "q": "Who lives inside the magic lamp?",
+          "a": "The Genie",
+          "wrong": [
+            "A dragon",
+            "A fairy",
+            "A parrot"
+          ],
+          "source": "Aladdin (1992 film), opening"
+        },
+        {
+          "id": "disney.princesses.029",
+          "level": 2,
+          "checked": false,
+          "q": "What is the name of Jasmine's city?",
+          "a": "Agrabah",
+          "wrong": [
+            "Arendelle",
+            "Motunui",
+            "Atlantica"
+          ],
+          "source": "Aladdin (1992 film), opening"
+        },
+        {
+          "id": "disney.princesses.030",
+          "level": 2,
+          "checked": true,
+          "q": "What kind of animal is Pocahontas's friend Meeko?",
+          "a": "A raccoon",
+          "wrong": [
+            "A squirrel",
+            "A fox",
+            "A rabbit"
+          ],
+          "source": "Pocahontas (1995 film), opening"
+        },
+        {
+          "id": "disney.princesses.031",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Mulan's friend Mushu?",
+          "a": "A dragon",
+          "wrong": [
+            "A snake",
+            "A cat",
+            "A cricket"
+          ],
+          "source": "Mulan (1998 film), opening"
+        },
+        {
+          "id": "disney.princesses.032",
+          "level": 2,
+          "checked": true,
+          "q": "Why does Mulan join the army?",
+          "a": "To take her father's place",
+          "wrong": [
+            "To find a prince",
+            "To become rich",
+            "To see the world"
+          ],
+          "source": "Mulan (1998 film), opening"
+        },
+        {
+          "id": "disney.princesses.033",
+          "level": 2,
+          "checked": true,
+          "q": "What does Tiana dream of opening?",
+          "a": "A restaurant",
+          "wrong": [
+            "A bakery",
+            "A school",
+            "A dress shop"
+          ],
+          "source": "The Princess and the Frog (2009 film), opening"
+        },
+        {
+          "id": "disney.princesses.034",
+          "level": 2,
+          "checked": true,
+          "q": "In which city does Tiana live?",
+          "a": "New Orleans",
+          "wrong": [
+            "New York",
+            "Paris",
+            "London"
+          ],
+          "source": "The Princess and the Frog (2009 film), opening"
+        },
+        {
+          "id": "disney.princesses.035",
+          "level": 1,
+          "checked": true,
+          "q": "What kind of animal is Rapunzel's friend Pascal?",
+          "a": "A chameleon",
+          "wrong": [
+            "A frog",
+            "A mouse",
+            "A snake"
+          ],
+          "source": "Tangled (2010 film), opening"
+        },
+        {
+          "id": "disney.princesses.036",
+          "level": 1,
+          "checked": true,
+          "q": "Where has Rapunzel lived all her life?",
+          "a": "In a tower",
+          "wrong": [
+            "In a castle",
+            "Under the sea",
+            "In a cottage"
+          ],
+          "source": "Tangled (2010 film), opening"
+        },
+        {
+          "id": "disney.princesses.037",
+          "level": 2,
+          "checked": true,
+          "q": "What does Rapunzel long to see?",
+          "a": "The floating lanterns",
+          "wrong": [
+            "The sea",
+            "A unicorn",
+            "The snowy mountains"
+          ],
+          "source": "Tangled (2010 film), opening"
+        },
+        {
+          "id": "disney.princesses.038",
+          "level": 1,
+          "checked": true,
+          "q": "What is Merida brilliant at?",
+          "a": "Shooting a bow and arrow",
+          "wrong": [
+            "Sword fighting",
+            "Swimming",
+            "Dancing"
+          ],
+          "source": "Brave (2012 film), opening"
+        },
+        {
+          "id": "disney.princesses.039",
+          "level": 2,
+          "checked": true,
+          "q": "In which country is Brave set?",
+          "a": "Scotland",
+          "wrong": [
+            "Norway",
+            "France",
+            "Ireland"
+          ],
+          "source": "Brave (2012 film), opening"
+        },
+        {
+          "id": "disney.princesses.040",
+          "level": 1,
+          "checked": true,
+          "q": "What magic power does Elsa have?",
+          "a": "Making ice and snow",
+          "wrong": [
+            "Making fire",
+            "Flying",
+            "Talking to animals"
+          ],
+          "source": "Frozen (2013 film), opening"
+        },
+        {
+          "id": "disney.princesses.041",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of Elsa's younger sister?",
+          "a": "Anna",
+          "wrong": [
+            "Ariel",
+            "Aurora",
+            "Belle"
+          ],
+          "source": "Frozen (2013 film), opening"
+        },
+        {
+          "id": "disney.princesses.042",
+          "level": 2,
+          "checked": true,
+          "q": "What is the name of Elsa and Anna's kingdom?",
+          "a": "Arendelle",
+          "wrong": [
+            "Agrabah",
+            "Motunui",
+            "Corona"
+          ],
+          "source": "Frozen (2013 film), opening"
+        },
+        {
+          "id": "disney.princesses.043",
+          "level": 1,
+          "checked": true,
+          "q": "What is Olaf?",
+          "a": "A snowman",
+          "wrong": [
+            "A reindeer",
+            "A troll",
+            "A snow bear"
+          ],
+          "source": "Frozen (2013 film), opening"
+        },
+        {
+          "id": "disney.princesses.044",
+          "level": 1,
+          "checked": true,
+          "q": "What is the name of Moana's chicken?",
+          "a": "Heihei",
+          "wrong": [
+            "Pua",
+            "Pascal",
+            "Abu"
+          ],
+          "source": "Moana (2016 film), opening"
+        },
+        {
+          "id": "disney.princesses.045",
+          "level": 2,
+          "checked": true,
+          "q": "Who does Moana sail across the ocean to find?",
+          "a": "Maui",
+          "wrong": [
+            "Tamatoa",
+            "Her father",
+            "Her grandmother"
+          ],
+          "source": "Moana (2016 film), opening"
+        },
+        {
+          "id": "disney.princesses.046",
+          "level": 2,
+          "checked": true,
+          "q": "What is the name of Moana's island?",
+          "a": "Motunui",
+          "wrong": [
+            "Arendelle",
+            "Agrabah",
+            "Atlantica"
+          ],
+          "source": "Moana (2016 film), opening"
+        }
+      ]
+    }
+  ]
+}
