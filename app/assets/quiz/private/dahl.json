@@ -232,7 +232,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.018",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who throws hailstones at the peach from the clouds?",
           "a": "The Cloud-Men",
           "wrong": [
@@ -245,7 +245,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.019",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who gets covered in rainbow paint by the Cloud-Men?",
           "a": "The Centipede",
           "wrong": [
@@ -258,7 +258,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.020",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What do the travellers eat on their long journey?",
           "a": "The peach",
           "wrong": [
@@ -271,7 +271,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.021",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "In which city does the peach finally land?",
           "a": "New York",
           "wrong": [
@@ -284,7 +284,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.022",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What tall building does the peach land on top of?",
           "a": "The Empire State Building",
           "wrong": [
@@ -297,7 +297,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.023",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What becomes James's home in Central Park?",
           "a": "The peach stone",
           "wrong": [
@@ -316,7 +316,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is Charlie's surname?",
           "a": "Bucket",
           "wrong": [
@@ -329,7 +329,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.002",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "How many grandparents share one bed in Charlie's house?",
           "a": "Four",
           "wrong": [
@@ -342,7 +342,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does Charlie get for his birthday each year?",
           "a": "One chocolate bar",
           "wrong": [
@@ -368,7 +368,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.005",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who owns the chocolate factory?",
           "a": "Willy Wonka",
           "wrong": [
@@ -381,7 +381,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.006",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What must a child find to visit the factory?",
           "a": "A Golden Ticket",
           "wrong": [
@@ -394,7 +394,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.007",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "How many Golden Tickets are there?",
           "a": "Five",
           "wrong": [
@@ -407,7 +407,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.008",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who unwraps bars to find Veruca's ticket?",
           "a": "Her dad's factory workers",
           "wrong": [
@@ -433,7 +433,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.010",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which grandparent goes to the factory with Charlie?",
           "a": "Grandpa Joe",
           "wrong": [
@@ -446,7 +446,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.011",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who works in Willy Wonka's factory?",
           "a": "Oompa-Loompas",
           "wrong": [
@@ -459,7 +459,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.012",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What land do the Oompa-Loompas come from?",
           "a": "Loompaland",
           "wrong": [
@@ -485,7 +485,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.014",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What mixes the chocolate in the chocolate river?",
           "a": "A waterfall",
           "wrong": [
@@ -498,7 +498,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.015",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who falls into the chocolate river?",
           "a": "Augustus Gloop",
           "wrong": [
@@ -511,7 +511,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.016",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does Violet Beauregarde never stop chewing?",
           "a": "Gum",
           "wrong": [
@@ -537,7 +537,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.018",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who swells up into a giant blueberry?",
           "a": "Violet Beauregarde",
           "wrong": [
@@ -563,7 +563,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.020",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who do the squirrels push down the rubbish chute?",
           "a": "Veruca Salt",
           "wrong": [
@@ -576,7 +576,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.021",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Mike Teavee love most of all?",
           "a": "Television",
           "wrong": [
@@ -589,7 +589,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.022",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What happens to Mike Teavee in the Television Room?",
           "a": "He is shrunk very small",
           "wrong": [
@@ -602,7 +602,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.023",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Charlie fly in above the factory at the end?",
           "a": "The Great Glass Elevator",
           "wrong": [
@@ -615,7 +615,7 @@
         {
           "id": "dahl.charlie-and-the-chocolate-factory.024",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who does Willy Wonka give his factory to?",
           "a": "Charlie",
           "wrong": [
@@ -634,7 +634,7 @@
         {
           "id": "dahl.bfg.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What do the letters BFG stand for?",
           "a": "Big Friendly Giant",
           "wrong": [
@@ -647,7 +647,7 @@
         {
           "id": "dahl.bfg.002",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of the girl the BFG takes away?",
           "a": "Sophie",
           "wrong": [
@@ -660,7 +660,7 @@
         {
           "id": "dahl.bfg.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Where does Sophie live at the start of the story?",
           "a": "An orphanage",
           "wrong": [
@@ -673,7 +673,7 @@
         {
           "id": "dahl.bfg.004",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the special time in the middle of the night called?",
           "a": "The witching hour",
           "wrong": [
@@ -686,7 +686,7 @@
         {
           "id": "dahl.bfg.005",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Why does the BFG carry Sophie away?",
           "a": "Because she saw him",
           "wrong": [
@@ -699,7 +699,7 @@
         {
           "id": "dahl.bfg.006",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does the BFG blow into children's bedrooms?",
           "a": "Dreams",
           "wrong": [
@@ -712,7 +712,7 @@
         {
           "id": "dahl.bfg.007",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which part of the BFG is extra good at hearing?",
           "a": "His ears",
           "wrong": [
@@ -725,7 +725,7 @@
         {
           "id": "dahl.bfg.008",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Why does the BFG speak in a muddled way?",
           "a": "He never went to school",
           "wrong": [
@@ -738,7 +738,7 @@
         {
           "id": "dahl.bfg.009",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What disgusting vegetable does the BFG eat?",
           "a": "Snozzcumbers",
           "wrong": [
@@ -751,7 +751,7 @@
         {
           "id": "dahl.bfg.010",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the BFG's fizzy drink called?",
           "a": "Frobscottle",
           "wrong": [
@@ -764,7 +764,7 @@
         {
           "id": "dahl.bfg.011",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which way do the bubbles in frobscottle go?",
           "a": "Downwards",
           "wrong": [
@@ -777,7 +777,7 @@
         {
           "id": "dahl.bfg.012",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How many man-eating giants live near the BFG?",
           "a": "Nine",
           "wrong": [
@@ -790,7 +790,7 @@
         {
           "id": "dahl.bfg.013",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which giant is the biggest and most horrible?",
           "a": "The Fleshlumpeater",
           "wrong": [
@@ -803,7 +803,7 @@
         {
           "id": "dahl.bfg.014",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which giant bites the snozzcumber Sophie hides in?",
           "a": "The Bloodbottler",
           "wrong": [
@@ -816,7 +816,7 @@
         {
           "id": "dahl.bfg.015",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Where does the BFG go to catch dreams?",
           "a": "Dream Country",
           "wrong": [
@@ -829,7 +829,7 @@
         {
           "id": "dahl.bfg.016",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does the BFG catch dreams with?",
           "a": "A net",
           "wrong": [
@@ -842,7 +842,7 @@
         {
           "id": "dahl.bfg.017",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Where does the BFG keep the dreams he catches?",
           "a": "In glass jars",
           "wrong": [
@@ -855,7 +855,7 @@
         {
           "id": "dahl.bfg.018",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which hero do the giants fear most in their dreams?",
           "a": "Jack the giant-killer",
           "wrong": [
@@ -868,7 +868,7 @@
         {
           "id": "dahl.bfg.019",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who do Sophie and the BFG ask for help?",
           "a": "The Queen",
           "wrong": [
@@ -881,7 +881,7 @@
         {
           "id": "dahl.bfg.020",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Where are the bad giants kept at the end?",
           "a": "In a huge pit",
           "wrong": [
@@ -894,7 +894,7 @@
         {
           "id": "dahl.bfg.021",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who does the end of the book say wrote the story?",
           "a": "The BFG",
           "wrong": [
@@ -913,7 +913,7 @@
         {
           "id": "dahl.matilda.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is Matilda's surname?",
           "a": "Wormwood",
           "wrong": [
@@ -926,7 +926,7 @@
         {
           "id": "dahl.matilda.002",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Matilda's brother?",
           "a": "Michael",
           "wrong": [
@@ -939,7 +939,7 @@
         {
           "id": "dahl.matilda.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Where does Matilda go to find books?",
           "a": "The library",
           "wrong": [
@@ -952,7 +952,7 @@
         {
           "id": "dahl.matilda.004",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of the kind librarian?",
           "a": "Mrs Phelps",
           "wrong": [
@@ -965,7 +965,7 @@
         {
           "id": "dahl.matilda.005",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "How do the Wormwoods eat their supper?",
           "a": "In front of the telly",
           "wrong": [
@@ -978,7 +978,7 @@
         {
           "id": "dahl.matilda.006",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Mr Wormwood sell?",
           "a": "Second-hand cars",
           "wrong": [
@@ -991,7 +991,7 @@
         {
           "id": "dahl.matilda.007",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Mr Wormwood put in gearboxes to cheat?",
           "a": "Sawdust",
           "wrong": [
@@ -1004,7 +1004,7 @@
         {
           "id": "dahl.matilda.008",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Matilda put inside her father's hat?",
           "a": "Superglue",
           "wrong": [
@@ -1017,7 +1017,7 @@
         {
           "id": "dahl.matilda.009",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Where does Matilda hide the borrowed parrot?",
           "a": "Up the chimney",
           "wrong": [
@@ -1030,7 +1030,7 @@
         {
           "id": "dahl.matilda.010",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Matilda mix into her father's hair oil?",
           "a": "Hair dye",
           "wrong": [
@@ -1043,7 +1043,7 @@
         {
           "id": "dahl.matilda.011",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How old is Matilda when she starts school?",
           "a": "Five and a half",
           "wrong": [
@@ -1056,7 +1056,7 @@
         {
           "id": "dahl.matilda.012",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Matilda's kind teacher?",
           "a": "Miss Honey",
           "wrong": [
@@ -1069,7 +1069,7 @@
         {
           "id": "dahl.matilda.013",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who is the fierce headmistress?",
           "a": "Miss Trunchbull",
           "wrong": [
@@ -1082,7 +1082,7 @@
         {
           "id": "dahl.matilda.014",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is Miss Trunchbull's first name?",
           "a": "Agatha",
           "wrong": [
@@ -1095,7 +1095,7 @@
         {
           "id": "dahl.matilda.015",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which sport did Miss Trunchbull do at the Olympics?",
           "a": "Throwing the hammer",
           "wrong": [
@@ -1108,7 +1108,7 @@
         {
           "id": "dahl.matilda.016",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the Chokey?",
           "a": "A tiny punishment cupboard",
           "wrong": [
@@ -1121,7 +1121,7 @@
         {
           "id": "dahl.matilda.017",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who is Matilda's best friend at school?",
           "a": "Lavender",
           "wrong": [
@@ -1134,7 +1134,7 @@
         {
           "id": "dahl.matilda.018",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who does Miss Trunchbull swing by her pigtails?",
           "a": "Amanda Thripp",
           "wrong": [
@@ -1147,7 +1147,7 @@
         {
           "id": "dahl.matilda.019",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who has to eat an enormous chocolate cake?",
           "a": "Bruce Bogtrotter",
           "wrong": [
@@ -1160,7 +1160,7 @@
         {
           "id": "dahl.matilda.020",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Lavender put in Miss Trunchbull's water jug?",
           "a": "A newt",
           "wrong": [
@@ -1173,7 +1173,7 @@
         {
           "id": "dahl.matilda.021",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What special power does Matilda find she has?",
           "a": "Moving things with her eyes",
           "wrong": [
@@ -1186,7 +1186,7 @@
         {
           "id": "dahl.matilda.022",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How is Miss Trunchbull related to Miss Honey?",
           "a": "She is her aunt",
           "wrong": [
@@ -1199,7 +1199,7 @@
         {
           "id": "dahl.matilda.023",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Where does Miss Honey live?",
           "a": "A tiny cottage",
           "wrong": [
@@ -1225,7 +1225,7 @@
         {
           "id": "dahl.matilda.025",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Where do Matilda's parents run away to?",
           "a": "Spain",
           "wrong": [
@@ -1238,7 +1238,7 @@
         {
           "id": "dahl.matilda.026",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who does Matilda live with at the end?",
           "a": "Miss Honey",
           "wrong": [
