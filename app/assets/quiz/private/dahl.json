@@ -11,7 +11,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What ate James's mother and father?",
           "a": "A rhinoceros",
           "wrong": [
@@ -24,7 +24,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.002",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How old was James when he went to live with his aunts?",
           "a": "Four",
           "wrong": [
@@ -37,7 +37,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What are the names of James's two cruel aunts?",
           "a": "Sponge and Spiker",
           "wrong": [
@@ -50,11 +50,11 @@
         {
           "id": "dahl.james-and-the-giant-peach.004",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does the little old man give James?",
           "a": "Magic green crystals",
           "wrong": [
-            "Magic beans",
+            "Chocolate apples",
             "Gold coins",
             "A box of sweets"
           ],
@@ -63,7 +63,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.005",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What fruit grows enormous on the aunts' tree?",
           "a": "A peach",
           "wrong": [
@@ -76,7 +76,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.006",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How does James first get inside the peach?",
           "a": "He crawls through a hole",
           "wrong": [
@@ -89,7 +89,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.007",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which boastful friend wears lots of boots?",
           "a": "The Centipede",
           "wrong": [
@@ -102,7 +102,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.008",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which friend is blind and always gloomy?",
           "a": "The Earthworm",
           "wrong": [
@@ -115,7 +115,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.009",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which friend lights up the inside of the peach?",
           "a": "The Glow-worm",
           "wrong": [
@@ -128,7 +128,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.010",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which friend plays music like a violin?",
           "a": "The Old-Green-Grasshopper",
           "wrong": [
@@ -141,7 +141,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.011",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How many spots does the Ladybird have?",
           "a": "Nine",
           "wrong": [
@@ -154,7 +154,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.012",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What happens to the aunts when the peach rolls away?",
           "a": "They are squashed flat",
           "wrong": [
@@ -167,7 +167,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.013",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Where does the peach roll to after leaving the hill?",
           "a": "The sea",
           "wrong": [
@@ -180,7 +180,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.014",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What attacks the peach while it floats on the sea?",
           "a": "Sharks",
           "wrong": [
@@ -193,7 +193,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.015",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which birds lift the peach up into the sky?",
           "a": "Seagulls",
           "wrong": [
@@ -206,7 +206,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.016",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Whose idea is it to use the birds to lift the peach?",
           "a": "James",
           "wrong": [
@@ -219,7 +219,7 @@
         {
           "id": "dahl.james-and-the-giant-peach.017",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which friend is used as bait to catch the birds?",
           "a": "The Earthworm",
           "wrong": [
