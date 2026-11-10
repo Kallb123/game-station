@@ -11,7 +11,7 @@
         {
           "id": "disney.mickey-and-friends.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Mickey?",
           "a": "A mouse",
           "wrong": [
@@ -24,7 +24,7 @@
         {
           "id": "disney.mickey-and-friends.002",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What colour are Mickey's shorts?",
           "a": "Red",
           "wrong": [
@@ -37,7 +37,7 @@
         {
           "id": "disney.mickey-and-friends.003",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What colour are Mickey's gloves?",
           "a": "White",
           "wrong": [
@@ -50,7 +50,7 @@
         {
           "id": "disney.mickey-and-friends.004",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What colour are Mickey's big shoes?",
           "a": "Yellow",
           "wrong": [
@@ -63,7 +63,7 @@
         {
           "id": "disney.mickey-and-friends.005",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What colour is Mickey's nose?",
           "a": "Black",
           "wrong": [
@@ -76,7 +76,7 @@
         {
           "id": "disney.mickey-and-friends.006",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What shape are Mickey's ears?",
           "a": "Round",
           "wrong": [
@@ -89,7 +89,7 @@
         {
           "id": "disney.mickey-and-friends.007",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who created Mickey Mouse?",
           "a": "Walt Disney",
           "wrong": [
@@ -115,7 +115,7 @@
         {
           "id": "disney.mickey-and-friends.009",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who is Mickey's girlfriend?",
           "a": "Minnie Mouse",
           "wrong": [
@@ -128,7 +128,7 @@
         {
           "id": "disney.mickey-and-friends.010",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Minnie?",
           "a": "A mouse",
           "wrong": [
@@ -141,7 +141,7 @@
         {
           "id": "disney.mickey-and-friends.011",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does Minnie wear on her head?",
           "a": "A bow",
           "wrong": [
@@ -154,7 +154,7 @@
         {
           "id": "disney.mickey-and-friends.012",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What pattern is on Minnie's bow?",
           "a": "Polka dots",
           "wrong": [
@@ -167,7 +167,7 @@
         {
           "id": "disney.mickey-and-friends.013",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Minnie sell in her own shop?",
           "a": "Bows",
           "wrong": [
@@ -180,7 +180,7 @@
         {
           "id": "disney.mickey-and-friends.014",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Minnie's pet cat?",
           "a": "Figaro",
           "wrong": [
@@ -193,7 +193,7 @@
         {
           "id": "disney.mickey-and-friends.015",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Donald?",
           "a": "A duck",
           "wrong": [
@@ -206,7 +206,7 @@
         {
           "id": "disney.mickey-and-friends.016",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What colour is Donald's sailor shirt?",
           "a": "Blue",
           "wrong": [
@@ -219,7 +219,7 @@
         {
           "id": "disney.mickey-and-friends.017",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which friend gets cross most easily?",
           "a": "Donald Duck",
           "wrong": [
@@ -232,7 +232,7 @@
         {
           "id": "disney.mickey-and-friends.018",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Whose quacky voice is hard to understand?",
           "a": "Donald Duck",
           "wrong": [
@@ -245,7 +245,7 @@
         {
           "id": "disney.mickey-and-friends.019",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who is Donald Duck's girlfriend?",
           "a": "Daisy Duck",
           "wrong": [
@@ -258,7 +258,7 @@
         {
           "id": "disney.mickey-and-friends.020",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Daisy?",
           "a": "A duck",
           "wrong": [
@@ -271,7 +271,7 @@
         {
           "id": "disney.mickey-and-friends.021",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "How many nephews does Donald have?",
           "a": "Three",
           "wrong": [
@@ -284,7 +284,7 @@
         {
           "id": "disney.mickey-and-friends.022",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What are the names of Donald's nephews?",
           "a": "Huey, Dewey and Louie",
           "wrong": [
@@ -297,7 +297,7 @@
         {
           "id": "disney.mickey-and-friends.023",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who is Donald's very rich uncle?",
           "a": "Scrooge McDuck",
           "wrong": [
@@ -323,7 +323,7 @@
         {
           "id": "disney.mickey-and-friends.025",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Goofy?",
           "a": "A dog",
           "wrong": [
@@ -336,7 +336,7 @@
         {
           "id": "disney.mickey-and-friends.026",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which friend is tall and very clumsy?",
           "a": "Goofy",
           "wrong": [
@@ -349,7 +349,7 @@
         {
           "id": "disney.mickey-and-friends.027",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Goofy's son?",
           "a": "Max",
           "wrong": [
@@ -362,7 +362,7 @@
         {
           "id": "disney.mickey-and-friends.028",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Pluto?",
           "a": "A dog",
           "wrong": [
@@ -375,7 +375,7 @@
         {
           "id": "disney.mickey-and-friends.029",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Mickey's pet dog?",
           "a": "Pluto",
           "wrong": [
@@ -388,7 +388,7 @@
         {
           "id": "disney.mickey-and-friends.030",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does Pluto love to chew?",
           "a": "A bone",
           "wrong": [
@@ -401,7 +401,7 @@
         {
           "id": "disney.mickey-and-friends.031",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animals are Chip and Dale?",
           "a": "Chipmunks",
           "wrong": [
@@ -440,7 +440,7 @@
         {
           "id": "disney.mickey-and-friends.034",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who is the big bully who makes trouble for Mickey?",
           "a": "Pete",
           "wrong": [
@@ -453,7 +453,7 @@
         {
           "id": "disney.mickey-and-friends.035",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Pete?",
           "a": "A cat",
           "wrong": [
@@ -466,7 +466,7 @@
         {
           "id": "disney.mickey-and-friends.036",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Clarabelle?",
           "a": "A cow",
           "wrong": [
@@ -492,7 +492,7 @@
         {
           "id": "disney.mickey-and-friends.038",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What magic words make the Clubhouse appear?",
           "a": "Meeska, Mooska, Mickey Mouse",
           "wrong": [
@@ -505,7 +505,7 @@
         {
           "id": "disney.mickey-and-friends.039",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who brings the Mouseketools in the Clubhouse?",
           "a": "Toodles",
           "wrong": [
@@ -518,7 +518,7 @@
         {
           "id": "disney.mickey-and-friends.040",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the Clubhouse shaped like?",
           "a": "Mickey's head",
           "wrong": [
@@ -537,7 +537,7 @@
         {
           "id": "disney.princesses.001",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "How many dwarfs does Snow White meet?",
           "a": "Seven",
           "wrong": [
@@ -550,7 +550,7 @@
         {
           "id": "disney.princesses.002",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which of the dwarfs never speaks?",
           "a": "Dopey",
           "wrong": [
@@ -563,7 +563,7 @@
         {
           "id": "disney.princesses.003",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does the Queen ask her magic mirror?",
           "a": "Who is the fairest of all",
           "wrong": [
@@ -576,7 +576,7 @@
         {
           "id": "disney.princesses.004",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which animals are Cinderella's little helpers?",
           "a": "Mice",
           "wrong": [
@@ -602,7 +602,7 @@
         {
           "id": "disney.princesses.006",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What are Cinderella's stepsisters called?",
           "a": "Anastasia and Drizella",
           "wrong": [
@@ -615,7 +615,7 @@
         {
           "id": "disney.princesses.007",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the stepmother's cat called?",
           "a": "Lucifer",
           "wrong": [
@@ -628,7 +628,7 @@
         {
           "id": "disney.princesses.008",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the princess called in Sleeping Beauty?",
           "a": "Aurora",
           "wrong": [
@@ -641,7 +641,7 @@
         {
           "id": "disney.princesses.009",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who is the wicked fairy in Sleeping Beauty?",
           "a": "Maleficent",
           "wrong": [
@@ -654,7 +654,7 @@
         {
           "id": "disney.princesses.010",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "How many good fairies look after Aurora?",
           "a": "Three",
           "wrong": [
@@ -667,7 +667,7 @@
         {
           "id": "disney.princesses.011",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does the curse say Aurora will prick her finger on?",
           "a": "A spinning wheel",
           "wrong": [
@@ -680,7 +680,7 @@
         {
           "id": "disney.princesses.012",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What do the fairies call Aurora in the forest?",
           "a": "Briar Rose",
           "wrong": [
@@ -693,7 +693,7 @@
         {
           "id": "disney.princesses.013",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is Ariel?",
           "a": "A mermaid",
           "wrong": [
@@ -706,7 +706,7 @@
         {
           "id": "disney.princesses.014",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Ariel's fish friend?",
           "a": "Flounder",
           "wrong": [
@@ -719,7 +719,7 @@
         {
           "id": "disney.princesses.015",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Sebastian?",
           "a": "A crab",
           "wrong": [
@@ -732,7 +732,7 @@
         {
           "id": "disney.princesses.016",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who is Ariel's father?",
           "a": "King Triton",
           "wrong": [
@@ -745,7 +745,7 @@
         {
           "id": "disney.princesses.017",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Ariel's seagull friend?",
           "a": "Scuttle",
           "wrong": [
@@ -758,7 +758,7 @@
         {
           "id": "disney.princesses.018",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does Ariel long to be?",
           "a": "A human",
           "wrong": [
@@ -771,7 +771,7 @@
         {
           "id": "disney.princesses.019",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the sea witch called?",
           "a": "Ursula",
           "wrong": [
@@ -784,7 +784,7 @@
         {
           "id": "disney.princesses.020",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What does Belle love to do?",
           "a": "Read books",
           "wrong": [
@@ -797,7 +797,7 @@
         {
           "id": "disney.princesses.021",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is Belle's father's job?",
           "a": "Inventor",
           "wrong": [
@@ -810,7 +810,7 @@
         {
           "id": "disney.princesses.022",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Which friend in the castle is a teapot?",
           "a": "Mrs Potts",
           "wrong": [
@@ -823,7 +823,7 @@
         {
           "id": "disney.princesses.023",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Mrs Potts's son, a little cup?",
           "a": "Chip",
           "wrong": [
@@ -836,7 +836,7 @@
         {
           "id": "disney.princesses.024",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Which friend in the castle is a candlestick?",
           "a": "Lumière",
           "wrong": [
@@ -849,7 +849,7 @@
         {
           "id": "disney.princesses.025",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who in Belle's village wants to marry her?",
           "a": "Gaston",
           "wrong": [
@@ -862,7 +862,7 @@
         {
           "id": "disney.princesses.026",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Jasmine's pet tiger?",
           "a": "Rajah",
           "wrong": [
@@ -875,7 +875,7 @@
         {
           "id": "disney.princesses.027",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Aladdin's monkey?",
           "a": "Abu",
           "wrong": [
@@ -888,7 +888,7 @@
         {
           "id": "disney.princesses.028",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Who lives inside the magic lamp?",
           "a": "The Genie",
           "wrong": [
@@ -914,7 +914,7 @@
         {
           "id": "disney.princesses.030",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Pocahontas's friend Meeko?",
           "a": "A raccoon",
           "wrong": [
@@ -927,7 +927,7 @@
         {
           "id": "disney.princesses.031",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Mulan's friend Mushu?",
           "a": "A dragon",
           "wrong": [
@@ -940,7 +940,7 @@
         {
           "id": "disney.princesses.032",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Why does Mulan join the army?",
           "a": "To take her father's place",
           "wrong": [
@@ -953,7 +953,7 @@
         {
           "id": "disney.princesses.033",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Tiana dream of opening?",
           "a": "A restaurant",
           "wrong": [
@@ -966,7 +966,7 @@
         {
           "id": "disney.princesses.034",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "In which city does Tiana live?",
           "a": "New Orleans",
           "wrong": [
@@ -979,7 +979,7 @@
         {
           "id": "disney.princesses.035",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What kind of animal is Rapunzel's friend Pascal?",
           "a": "A chameleon",
           "wrong": [
@@ -992,7 +992,7 @@
         {
           "id": "disney.princesses.036",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "Where has Rapunzel lived all her life?",
           "a": "In a tower",
           "wrong": [
@@ -1005,7 +1005,7 @@
         {
           "id": "disney.princesses.037",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What does Rapunzel long to see?",
           "a": "The floating lanterns",
           "wrong": [
@@ -1018,7 +1018,7 @@
         {
           "id": "disney.princesses.038",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is Merida brilliant at?",
           "a": "Shooting a bow and arrow",
           "wrong": [
@@ -1031,7 +1031,7 @@
         {
           "id": "disney.princesses.039",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "In which country is Brave set?",
           "a": "Scotland",
           "wrong": [
@@ -1044,7 +1044,7 @@
         {
           "id": "disney.princesses.040",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What magic power does Elsa have?",
           "a": "Making ice and snow",
           "wrong": [
@@ -1057,7 +1057,7 @@
         {
           "id": "disney.princesses.041",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Elsa's younger sister?",
           "a": "Anna",
           "wrong": [
@@ -1070,7 +1070,7 @@
         {
           "id": "disney.princesses.042",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Elsa and Anna's kingdom?",
           "a": "Arendelle",
           "wrong": [
@@ -1083,7 +1083,7 @@
         {
           "id": "disney.princesses.043",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is Olaf?",
           "a": "A snowman",
           "wrong": [
@@ -1096,7 +1096,7 @@
         {
           "id": "disney.princesses.044",
           "level": 1,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Moana's chicken?",
           "a": "Heihei",
           "wrong": [
@@ -1109,7 +1109,7 @@
         {
           "id": "disney.princesses.045",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "Who does Moana sail across the ocean to find?",
           "a": "Maui",
           "wrong": [
@@ -1122,7 +1122,7 @@
         {
           "id": "disney.princesses.046",
           "level": 2,
-          "checked": false,
+          "checked": true,
           "q": "What is the name of Moana's island?",
           "a": "Motunui",
           "wrong": [
