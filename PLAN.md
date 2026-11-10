@@ -1303,7 +1303,7 @@ have read and the shows and films they have watched on a shelf, then plays a ten
 from everything ticked, or picks one title and is quizzed on that alone. Books first — the Magic
 Faraway Tree, four Roald Dahl books, two Rainbow Magic sets, two Narnia books and Paula Harrison's
 Kitty — then CBeebies (Bluey, Topsy and Tim, Hey Duggee, Waffle the Wonder Dog) and Disney (general
-questions on Mickey and friends, Disney films and Pixar films), and the film *KPop Demon
+questions on Mickey and friends, the Disney princesses, Disney films and Pixar films), and the film *KPop Demon
 Hunters*. A third card on the Arcade menu, after Invaders and Snake. Planned as thirteen pull
 requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
 
