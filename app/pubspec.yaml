@@ -31,7 +31,7 @@ dependencies:
   # and web_socket into the resolved graph. They are unreachable at runtime, but
   # `tool/check_offline.dart` reads the graph rather than trusting reachability,
   # and weakening that check to admit a state library is the wrong trade.
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^3.5.0
   # Saves an exported drawing to the device photo library on Android and iOS
   # (`PLAN-phase-8.md` §3.2, §4.6). Resolved against this SDK before the phase
   # was planned: adds itself to the graph and nothing else, unlike
