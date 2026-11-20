@@ -221,6 +221,10 @@ Code is MIT ([`LICENSE`](LICENSE)). Assets are licensed per file, with rules and
 
 `.claude/` is committed so the tooling travels with the repo.
 
+[`.github/dependabot.yml`](.github/dependabot.yml) proposes dependency updates weekly for the pub
+packages, the Android Gradle build and the GitHub Actions workflows, each a week after its release.
+The Flutter SDK is not among them: its pin in `ci.yml` moves by hand, in its own commit.
+
 ### The toolchain in cloud sessions
 
 An agent that has to download Flutter before it can run `tool/verify.sh` spends its first minutes on
