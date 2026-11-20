@@ -1,0 +1,68 @@
+version: 2
+
+# What this does not update: the Flutter SDK. It is pinned in
+# workflows/ci.yml's FLUTTER_VERSION, which is an environment variable rather
+# than a dependency Dependabot can see, and that is deliberate — the toolchain
+# moves by hand, in its own commit, because it sits underneath the puzzle
+# generator (AGENTS.md, "Puzzle determinism is load-bearing").
+#
+# Nothing here needs to vet an update's contents: every Dependabot pull request
+# runs CI like any other, and check_offline.dart fails it if a new version pulls
+# a network, ad or analytics package into the runtime dependency graph.
+#
+# Each ecosystem waits a week after a release before proposing it. A version
+# that is yanked or found compromised is usually caught in the first days, and
+# nothing in an offline children's app needs an update sooner than that.
+# Security updates are not delayed by the cooldown.
+#
+# Minor and patch updates are grouped into one pull request per ecosystem, so a
+# quiet week costs one CI run rather than one per package. Majors arrive alone,
+# since those are the ones that need reading.
+
+updates:
+  - package-ecosystem: pub
+    directories:
+      - /app
+      - /packages/puzzle_engine
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: Deps
+    groups:
+      pub-minor-and-patch:
+        update-types: [minor, patch]
+
+  # AGP, Kotlin and the Gradle wrapper have to stay within what the pinned
+  # Flutter supports. The APK build in CI is what checks that, so a bump past it
+  # fails there rather than on a release.
+  - package-ecosystem: gradle
+    directory: /app/android
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: Deps
+    groups:
+      gradle-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: Deps
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]
