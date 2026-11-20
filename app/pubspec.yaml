@@ -23,7 +23,7 @@ dependencies:
   # network or forbidden lists; `vector_math` and `meta` were already pulled
   # in through Flutter. `InvadersSim` (`features/arcade/invaders/model/`)
   # holds all of the game's own state and imports none of this.
-  flame: ^1.38.0
+  flame: ^1.38.2
   flutter:
     sdk: flutter
   # State and dependency injection (PLAN.md §2). Pinned to 2.x rather than 3.x:
