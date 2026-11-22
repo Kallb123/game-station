@@ -160,13 +160,10 @@ class SilentHaptics implements AppHaptics {
 ///
 /// [AppHaptics.applySettings] is applied once from the current settings and
 /// again on every change, so moving the **Buzzing** slider takes effect
-/// immediately rather than waiting for the next buzz.
+/// immediately rather than waiting for the next buzz. Through
+/// [followSettings] rather than `ref.listen`, which Riverpod 3 pauses here.
 final Provider<AppHaptics> appHapticsProvider = Provider<AppHaptics>((ref) {
   final haptics = SystemHaptics();
-  haptics.applySettings(ref.read(settingsProvider));
-  ref.listen(
-    settingsProvider,
-    (_, settings) => haptics.applySettings(settings),
-  );
+  followSettings(ref, haptics.applySettings);
   return haptics;
 });

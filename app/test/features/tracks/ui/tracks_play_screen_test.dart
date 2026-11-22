@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 import 'package:zibo_games/core/audio/motif.dart';
-import 'package:zibo_games/core/audio/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
 import 'package:zibo_games/core/ui/completion_card.dart';
@@ -274,10 +273,7 @@ void main() {
   testWidgets('a laid connection plays the place sound, and the fanfare '
       'waits for the end of the journey', (tester) async {
     final audio = RecordingAudio();
-    final container = await pumpTracks(
-      tester,
-      overrides: [appAudioProvider.overrideWithValue(audio)],
-    );
+    final container = await pumpTracks(tester, audio: audio);
     final stroke = solutionStroke(puzzleFor(smallPuzzle.value));
 
     await drag(tester, stroke.take(3).toList());
@@ -314,7 +310,7 @@ void main() {
         store: MemorySaveStore(
           initial: freshSave(settings: AppSettings(reduceMotion: reduceMotion)),
         ),
-        overrides: [appAudioProvider.overrideWithValue(audio)],
+        audio: audio,
       );
       repositoryOf(container).setTracksTheme(theme);
       await tester.pump();

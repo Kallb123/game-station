@@ -788,7 +788,8 @@ What differed from the plan, decided while building it:
 - **`flutter_riverpod` is pinned to `^2.6.1`.** Riverpod 3 declares `package:test` as a runtime
   dependency, which puts `web_socket_channel` in the app's resolved graph, and `tool/check_offline.dart`
   reads the graph rather than trusting that nothing calls it. Narrowing that check to admit a state
-  library is the wrong way round.
+  library is the wrong way round. *Since superseded:* Riverpod 3.5 depends on `test_api` rather than
+  `test`, passes the offline check, and is what the app now uses (`app/pubspec.yaml`).
 - **The profile picker is one scrolling column, not a grid.** A `GridView` tile has a fixed aspect
   ratio, so at 200% text scale a wrapped name is clipped in a box that cannot grow.
 - **`main` falls back to an in-memory store when `path_provider` cannot resolve a directory.** The app

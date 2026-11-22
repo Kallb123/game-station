@@ -8,9 +8,12 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/haptics.dart';
+import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -163,6 +166,43 @@ void main() {
       expect(calls, hasLength(1), reason: 'the second tap should be muted');
     });
   });
+
+  // The provider rather than the class: what carries a change made in Settings
+  // to the `SystemHaptics` the screens hold. Nothing here listens to the
+  // provider, because nothing in the app does either — every screen
+  // `ref.read`s it — and Riverpod 3 pauses a provider nobody listens to, which
+  // silently stopped a `ref.listen` inside it from ever firing
+  // (`followSettings` in `core/storage/providers.dart`).
+  test(
+    'a mute in Settings reaches the provider the screens only read',
+    () async {
+      await runningOn(TargetPlatform.android, () async {
+        final store = MemorySaveStore(
+          initial: SaveData.initial(createdAt: DateTime.utc(2026, 8, 12)),
+        );
+        final container = ProviderContainer(
+          overrides: [
+            saveStoreProvider.overrideWithValue(store),
+            initialSaveProvider.overrideWithValue(await store.load()),
+          ],
+        );
+        addTearDown(container.dispose);
+        final haptics = container.read(appHapticsProvider);
+
+        haptics.tap();
+        await Future<void>.delayed(Duration.zero);
+        expect(calls, hasLength(1));
+
+        container
+            .read(progressRepositoryProvider)
+            .updateSettings(const AppSettings(hapticsLevel: HapticsLevel.off));
+        haptics.tap();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(calls, hasLength(1), reason: 'the second tap should be muted');
+      });
+    },
+  );
 
   group('deviceCanVibrate', () {
     test('true on the two platforms with a motor', () async {

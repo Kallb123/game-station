@@ -5,6 +5,7 @@
 // overridden would be found out thirty tests later.
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
 import 'package:zibo_games/core/storage/providers.dart';

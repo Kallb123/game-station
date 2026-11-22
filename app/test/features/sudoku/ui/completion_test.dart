@@ -15,8 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/audio/app_audio.dart';
 import 'package:zibo_games/core/audio/motif.dart';
-import 'package:zibo_games/core/audio/providers.dart';
 import 'package:zibo_games/core/haptics.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_data.dart';
@@ -64,15 +64,15 @@ void main() {
   Future<ProviderContainer> openTheBoard(
     WidgetTester tester, {
     SaveData? save,
-    List<Override> overrides = const [],
+    AppAudio audio = const SilentAudio(),
+    AppHaptics haptics = const SilentHaptics(),
   }) async {
     final container = await pumpApp(
       tester,
       store: MemorySaveStore(initial: save ?? freshSave()),
-      overrides: [
-        puzzleSourceProvider.overrideWithValue(FakePuzzleSource()),
-        ...overrides,
-      ],
+      audio: audio,
+      haptics: haptics,
+      overrides: [puzzleSourceProvider.overrideWithValue(FakePuzzleSource())],
     );
 
     await tester.tap(find.text('Puzzles'));
@@ -400,10 +400,7 @@ void main() {
       tester,
     ) async {
       final audio = RecordingAudio();
-      await openTheBoard(
-        tester,
-        overrides: [appAudioProvider.overrideWithValue(audio)],
-      );
+      await openTheBoard(tester, audio: audio);
       await fillBoard(tester);
 
       // Every correct digit before the last plays `sudokuCorrect`
@@ -420,10 +417,7 @@ void main() {
     testWidgets('stays silent with sound off', (tester) async {
       final audio = RecordingAudio()
         ..applySettings(const AppSettings(sound: false));
-      await openTheBoard(
-        tester,
-        overrides: [appAudioProvider.overrideWithValue(audio)],
-      );
+      await openTheBoard(tester, audio: audio);
       await fillBoard(tester);
 
       expect(audio.played, isEmpty);
@@ -448,10 +442,7 @@ void main() {
       tester,
     ) async {
       final audio = RecordingAudio();
-      await openTheBoard(
-        tester,
-        overrides: [appAudioProvider.overrideWithValue(audio)],
-      );
+      await openTheBoard(tester, audio: audio);
       final cell = emptyCells(boardOf(tester)).first;
       final right = int.parse(fixtureRecord(solvedPuzzle).solution[cell]);
       final wrong = _wrongDigitFor(cell);
@@ -489,7 +480,7 @@ void main() {
       await openTheBoard(
         tester,
         save: savedWith(MistakeFeedback.atCompletion),
-        overrides: [appAudioProvider.overrideWithValue(audio)],
+        audio: audio,
       );
       final cells = emptyCells(boardOf(tester)).take(3);
 
@@ -511,10 +502,7 @@ void main() {
       tester,
     ) async {
       final haptics = RecordingHaptics();
-      await openTheBoard(
-        tester,
-        overrides: [appHapticsProvider.overrideWithValue(haptics)],
-      );
+      await openTheBoard(tester, haptics: haptics);
       final cell = emptyCells(boardOf(tester)).first;
       final right = int.parse(fixtureRecord(solvedPuzzle).solution[cell]);
       final wrong = _wrongDigitFor(cell);
@@ -543,10 +531,7 @@ void main() {
       // does.
       final haptics = RecordingHaptics()
         ..applySettings(const AppSettings(hapticsLevel: HapticsLevel.off));
-      await openTheBoard(
-        tester,
-        overrides: [appHapticsProvider.overrideWithValue(haptics)],
-      );
+      await openTheBoard(tester, haptics: haptics);
       final cell = emptyCells(boardOf(tester)).first;
 
       await tapIn(tester, cell, _wrongDigitFor(cell));
