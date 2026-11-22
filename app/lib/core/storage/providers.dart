@@ -10,7 +10,11 @@
 // notifies a derived provider's listeners when that value actually changes —
 // which works because everything in `save_data.dart` compares by value.
 
+import 'package:flutter/foundation.dart' show ChangeNotifier;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Riverpod 3 moved ChangeNotifierProvider to `legacy.dart`: discouraged for new
+// code, still supported, and what lets the repository stay a ChangeNotifier.
+import 'package:flutter_riverpod/legacy.dart' show ChangeNotifierProvider;
 
 import 'progress_repository.dart';
 import 'save_data.dart';
@@ -75,6 +79,33 @@ class SaveNotice extends Notifier<bool> {
 
   /// Hides the notice for the rest of this launch.
   void dismiss() => state = false;
+}
+
+/// Calls [apply] with the current settings now, and again whenever they
+/// change, for as long as the provider that owns [ref] lives.
+///
+/// What `appAudioProvider` and `appHapticsProvider` use to keep a mute live,
+/// in place of `ref.listen(settingsProvider, …)`. Riverpod 3 pauses a provider
+/// that nothing listens to, and its own subscriptions with it — and those two
+/// are only ever `ref.read`, so a `ref.listen` inside them never fires and a
+/// mute in Settings would not reach the engine until the next launch. The
+/// repository is a [ChangeNotifier] whose listeners Riverpod does not manage,
+/// so a listener on it cannot be paused. The `==` check keeps the old
+/// behaviour of calling [apply] only when the settings actually differ, rather
+/// than on every save.
+void followSettings(Ref ref, void Function(AppSettings settings) apply) {
+  final repository = ref.read(progressRepositoryProvider);
+  var last = repository.settings;
+  apply(last);
+  void onChange() {
+    final next = repository.settings;
+    if (next == last) return;
+    last = next;
+    apply(next);
+  }
+
+  repository.addListener(onChange);
+  ref.onDispose(() => repository.removeListener(onChange));
 }
 
 String _missingOverride(String name) =>

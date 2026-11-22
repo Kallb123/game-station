@@ -10,6 +10,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/app.dart';
 import 'package:zibo_games/core/audio/app_audio.dart';
@@ -39,12 +40,16 @@ SaveData freshSave({AppSettings? settings}) {
 ///
 /// [overrides] is where a test that reaches a Sudoku screen puts its
 /// `puzzleSourceProvider`: without one the app generates for real, on an
-/// isolate, in a widget test (`PLAN-phase-3.md` §4.2). It is also where a test
-/// that asserts what would have played overrides `appAudioProvider` again,
-/// with a `RecordingAudio` — the default below is a plain [SilentAudio], so no
-/// widget test needs an audio device (`PLAN-phase-5.md` §4.2). `appHapticsProvider`
-/// gets the same treatment with [SilentHaptics], so no widget test needs a
-/// device to vibrate either (`PLAN-phase-5.md` §4.5).
+/// isolate, in a widget test (`PLAN-phase-3.md` §4.2).
+///
+/// [audio] defaults to a plain [SilentAudio], so no widget test needs an audio
+/// device (`PLAN-phase-5.md` §4.2), and [haptics] to [SilentHaptics], so none
+/// needs a device to vibrate either (`PLAN-phase-5.md` §4.5). A test that
+/// asserts what would have played passes a `RecordingAudio` or
+/// `RecordingHaptics` here rather than in [overrides]: Riverpod 3 rejects a
+/// container that overrides the same provider twice, where 2.x let the later
+/// override win, so [overrides] must not name `appAudioProvider`,
+/// `appHapticsProvider` or the two save providers this function owns.
 ///
 /// Called a second time in the same test, it is a relaunch: the previous tree
 /// comes down first. Without that, `pumpWidget` would update the element tree in
@@ -53,6 +58,8 @@ SaveData freshSave({AppSettings? settings}) {
 Future<ProviderContainer> pumpApp(
   WidgetTester tester, {
   required SaveStore store,
+  AppAudio audio = const SilentAudio(),
+  AppHaptics haptics = const SilentHaptics(),
   List<Override> overrides = const [],
 }) async {
   final loaded = await store.load();
@@ -61,8 +68,8 @@ Future<ProviderContainer> pumpApp(
       overrides: [
         saveStoreProvider.overrideWithValue(store),
         initialSaveProvider.overrideWithValue(loaded),
-        appAudioProvider.overrideWithValue(const SilentAudio()),
-        appHapticsProvider.overrideWithValue(const SilentHaptics()),
+        appAudioProvider.overrideWithValue(audio),
+        appHapticsProvider.overrideWithValue(haptics),
         ...overrides,
       ],
     ),

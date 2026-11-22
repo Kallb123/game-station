@@ -12,8 +12,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:puzzle_engine/puzzle_engine.dart';
+import 'package:zibo_games/core/audio/app_audio.dart';
 import 'package:zibo_games/core/storage/progress_repository.dart';
 import 'package:zibo_games/core/storage/providers.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
@@ -57,11 +59,13 @@ Future<ProviderContainer> pumpTracks(
   TracksPuzzleId? id,
   MemorySaveStore? store,
   TracksPuzzleSource? source,
+  AppAudio audio = const SilentAudio(),
   List<Override> overrides = const [],
 }) async {
   final container = await pumpApp(
     tester,
     store: store ?? MemorySaveStore(initial: freshSave()),
+    audio: audio,
     overrides: [
       tracksPuzzleSourceProvider.overrideWithValue(
         source ?? FakeTracksPuzzleSource(),

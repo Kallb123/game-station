@@ -26,12 +26,14 @@ dependencies:
   flame: ^1.38.2
   flutter:
     sdk: flutter
-  # State and dependency injection (PLAN.md §2). Pinned to 2.x rather than 3.x:
-  # riverpod 3 depends on `package:test`, which drags shelf, web_socket_channel
-  # and web_socket into the resolved graph. They are unreachable at runtime, but
-  # `tool/check_offline.dart` reads the graph rather than trusting reachability,
-  # and weakening that check to admit a state library is the wrong trade.
-  flutter_riverpod: ^2.6.1
+  # State and dependency injection (PLAN.md §2). Held at 2.x until 3.5: earlier
+  # 3.x releases depended on `package:test`, which drags shelf,
+  # web_socket_channel and web_socket into the resolved graph, and
+  # `tool/check_offline.dart` reads the graph rather than trusting reachability.
+  # 3.5 depends on `test_api` instead and passes that check; what it adds is
+  # uuid (and fixnum) from riverpod, and material_ui, cupertino_ui,
+  # flutter_localizations and intl from flutter_riverpod.
+  flutter_riverpod: ^3.5.0
   # Saves an exported drawing to the device photo library on Android and iOS
   # (`PLAN-phase-8.md` §3.2, §4.6). Resolved against this SDK before the phase
   # was planned: adds itself to the graph and nothing else, unlike

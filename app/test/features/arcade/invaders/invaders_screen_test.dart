@@ -11,7 +11,6 @@ import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zibo_games/core/audio/motif.dart';
-import 'package:zibo_games/core/audio/providers.dart';
 import 'package:zibo_games/core/clock.dart';
 import 'package:zibo_games/core/storage/save_store.dart';
 import 'package:zibo_games/features/arcade/arcade_menu_screen.dart';
@@ -73,10 +72,8 @@ void main() {
     await pumpApp(
       tester,
       store: MemorySaveStore(initial: freshSave()),
-      overrides: [
-        nowProvider.overrideWithValue(testClock),
-        appAudioProvider.overrideWithValue(audio),
-      ],
+      audio: audio,
+      overrides: [nowProvider.overrideWithValue(testClock)],
     );
 
     await tester.tap(find.text('Arcade'));

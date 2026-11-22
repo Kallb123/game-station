@@ -7,8 +7,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zibo_games/core/audio/app_audio.dart';
 import 'package:zibo_games/core/audio/motif.dart';
-import 'package:zibo_games/core/audio/providers.dart';
 import 'package:zibo_games/core/clock.dart';
 import 'package:zibo_games/core/haptics.dart';
 import 'package:zibo_games/core/storage/providers.dart';
@@ -59,11 +59,11 @@ Future<_Run> _open(
   final container = await pumpApp(
     tester,
     store: store,
+    audio: audio ?? const SilentAudio(),
+    haptics: haptics ?? const SilentHaptics(),
     overrides: [
       quizCatalogProvider.overrideWithValue(fixtureCatalog()),
       nowProvider.overrideWithValue(() => _fixed),
-      if (audio != null) appAudioProvider.overrideWithValue(audio),
-      if (haptics != null) appHapticsProvider.overrideWithValue(haptics),
     ],
   );
   unawaited(
