@@ -1,8 +1,9 @@
 // The store packs against the release filter (`PLAN-phase-10-quiz.md` §6 PR 12,
 // §4.5): over the real `assets/quiz/store/` directory, a catalog with every
-// question unchecked offers nothing and the Arcade menu shows no Quiz card;
-// with ten of one title's questions checked it offers that title and the card
-// appears.
+// question unchecked offers nothing and the Quiz menu shows only Maths; with
+// ten of one title's questions checked it offers that title and the bank's
+// buttons appear. (The Quiz card itself always shows since Maths,
+// `PLAN-quiz-maths.md` §4.5.)
 //
 // The checked flags are rewritten in memory, so this does not depend on how far
 // the owner has got through checking the shipped questions; what it pins is that
@@ -14,13 +15,39 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zibo_games/features/arcade/arcade_menu_screen.dart';
+import 'package:zibo_games/core/storage/providers.dart';
+import 'package:zibo_games/core/storage/save_store.dart';
+import 'package:zibo_games/features/quiz/data/providers.dart';
 import 'package:zibo_games/features/quiz/data/quiz_catalog_loader.dart';
 import 'package:zibo_games/features/quiz/model/quiz_catalog.dart';
+import 'package:zibo_games/features/quiz/ui/quiz_menu_screen.dart';
+import 'package:zibo_games/features/quiz/ui/quiz_style.dart';
 
-import '../arcade/arcade_menu_screen_test.dart' show pumpMenu;
+import '../../app_harness.dart' show freshSave;
+
+/// The Quiz menu alone over [catalog].
+Future<void> _pumpQuizMenu(WidgetTester tester, QuizCatalog catalog) async {
+  final store = MemorySaveStore(initial: freshSave());
+  final container = ProviderContainer(
+    overrides: [
+      saveStoreProvider.overrideWithValue(store),
+      initialSaveProvider.overrideWithValue(await store.load()),
+      quizCatalogProvider.overrideWithValue(catalog),
+    ],
+  );
+  addTearDown(container.dispose);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: QuizMenuScreen()),
+    ),
+  );
+  await tester.pump();
+}
 
 class _FakeBundle extends CachingAssetBundle {
   _FakeBundle(this.files);
@@ -116,20 +143,26 @@ void main() {
       expect([for (final t in ten.offeredTitles) t.id], [firstTitle]);
     });
 
-    testWidgets('the Arcade menu shows no Quiz card over the unchecked store', (
+    testWidgets('the Quiz menu shows only Maths over the unchecked store', (
       tester,
     ) async {
-      await pumpMenu(tester, catalog: none);
+      await _pumpQuizMenu(tester, none);
 
-      expect(find.text(quizCardTitle), findsNothing);
+      expect(find.text(mathsLabel), findsOneWidget);
+      expect(find.text(quizMeLabel), findsNothing);
+      expect(find.text(pickOneLabel), findsNothing);
+      expect(find.text(myShelfLabel), findsNothing);
     });
 
-    testWidgets('the Arcade menu shows the Quiz card once ten are checked', (
+    testWidgets('the Quiz menu shows the bank once ten are checked', (
       tester,
     ) async {
-      await pumpMenu(tester, catalog: ten);
+      await _pumpQuizMenu(tester, ten);
 
-      expect(find.text(quizCardTitle), findsOneWidget);
+      expect(find.text(mathsLabel), findsOneWidget);
+      expect(find.text(quizMeLabel), findsOneWidget);
+      expect(find.text(pickOneLabel), findsOneWidget);
+      expect(find.text(myShelfLabel), findsOneWidget);
     });
   });
 }

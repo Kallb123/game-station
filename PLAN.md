@@ -1331,6 +1331,12 @@ requests in [`PLAN-phase-10-quiz.md`](PLAN-phase-10-quiz.md).
   `Profile.quiz`, with `schemaVersion` still 1. Android gains two product flavours and the store APK
   becomes `app-store-release.apk`.
 
+- **Maths**, added after the phase in [`PLAN-quiz-maths.md`](PLAN-quiz-maths.md): a fourth way
+  into the Quiz menu whose questions are generated, not stored. A child chooses adding, taking away,
+  times tables and dividing, and which tables they know; the profile stores those settings and two
+  counters in `quiz.maths`. Every answer is right by construction, and a test re-parses each
+  generated question to prove it. Because Maths is never empty, the Quiz card always appears.
+
 Like phases 7, 8 and 9, it is a minor release after phase 6 and does not move the release line.
 
 ---

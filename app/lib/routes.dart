@@ -57,6 +57,10 @@ abstract final class AppRoutes {
   /// The list of titles to play one of (`PLAN-phase-10-quiz.md` §4.5).
   static const String quizPick = '/quiz/pick';
 
+  /// The quiz's Maths settings: which operations and times tables to practise
+  /// (`PLAN-quiz-maths.md` §4.5).
+  static const String quizMaths = '/quiz/maths';
+
   /// One quiz round, being played. Pushed with a `QuizPlayArgs`
   /// (`PLAN-phase-10-quiz.md` §4.5).
   static const String quizPlay = '/quiz/play';

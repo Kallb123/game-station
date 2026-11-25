@@ -176,4 +176,34 @@ void main() {
     );
     expect(find.byType(FittedBox), findsOneWidget);
   });
+
+  testWidgets('a glyph button draws its symbol and reads only its label', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpApp(
+      tester,
+      Scaffold(
+        body: Center(
+          child: BigButton.glyph(
+            glyph: '\u00F7',
+            label: 'Dividing',
+            onPressed: () {},
+          ),
+        ),
+      ),
+      theme: AppTheme.day(),
+    );
+
+    expect(find.text('\u00F7'), findsOneWidget);
+    expect(find.byType(Icon), findsNothing);
+    // The symbol is decoration, as an icon is: the label says it in words.
+    expect(find.bySemanticsLabel('Dividing'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('\u00F7')), findsNothing);
+    expect(
+      tester.getSize(find.byType(BigButton)).height,
+      greaterThanOrEqualTo(AppTapTargets.primary),
+    );
+    semantics.dispose();
+  });
 }

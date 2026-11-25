@@ -28,32 +28,39 @@ import '../../../core/ui/theme.dart';
 import '../../../core/ui/tokens.dart';
 import '../../../routes.dart';
 import '../data/providers.dart';
+import '../model/maths_generator.dart';
 import '../model/quiz_picker.dart';
 import '../model/quiz_round.dart';
 import 'quiz_style.dart';
 
-/// Which round to play: a mix of the shelf, or one title
-/// (`PLAN-phase-10-quiz.md` §4.5).
+/// Which round to play: a mix of the shelf, one title
+/// (`PLAN-phase-10-quiz.md` §4.5), or Maths (`PLAN-quiz-maths.md` §4.5).
 ///
 /// A typed object for the reason `TracksPlayArgs` is: `arguments` is
 /// `Object?`, and the route table checks the type rather than casting.
 @immutable
 class QuizPlayArgs {
   /// A round drawn from every ticked title.
-  const QuizPlayArgs.mixed() : titleId = null;
+  const QuizPlayArgs.mixed() : titleId = null, maths = false;
 
   /// A round over the one title [titleId] names.
-  const QuizPlayArgs.title(String this.titleId);
+  const QuizPlayArgs.title(String this.titleId) : maths = false;
 
-  /// The title to play, or null for a mixed round.
+  /// A round generated from the profile's Maths settings.
+  const QuizPlayArgs.maths() : titleId = null, maths = true;
+
+  /// The title to play, or null for a mixed or Maths round.
   final String? titleId;
+
+  /// Whether this is a Maths round.
+  final bool maths;
 
   @override
   bool operator ==(Object other) =>
-      other is QuizPlayArgs && other.titleId == titleId;
+      other is QuizPlayArgs && other.titleId == titleId && other.maths == maths;
 
   @override
-  int get hashCode => titleId.hashCode;
+  int get hashCode => Object.hash(titleId, maths);
 }
 
 /// One round of the quiz, played.
@@ -94,7 +101,9 @@ class _QuizPlayScreenState extends ConsumerState<QuizPlayScreen> {
     final progress = _repository.activeProfile.quiz;
     final rng = GameRng(seed);
     final id = widget.args.titleId;
-    _round = id == null
+    _round = widget.args.maths
+        ? mathsRound(progress.maths, rng)
+        : id == null
         ? picker.mixedRound(progress, rng)
         : picker.singleTitleRound(id, progress, rng);
   }

@@ -15,7 +15,6 @@ import '../../core/ui/screen_scaffold.dart';
 import '../../core/ui/theme.dart';
 import '../../core/ui/tokens.dart';
 import '../../routes.dart';
-import '../quiz/data/providers.dart';
 import '../quiz/ui/quiz_style.dart' show quizBestLabel;
 import 'invaders/invaders_screen.dart' show invadersGameId;
 import 'shared/game_shell.dart' show noScoresYetMessage;
@@ -92,9 +91,14 @@ class ArcadeMenuScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final profile = ref.watch(activeProfileProvider);
-    // No Quiz card until the catalog offers a title: a card that opens an
-    // empty quiz is a dead end for a child.
-    final showQuiz = ref.watch(quizCatalogProvider).offeredTitles.isNotEmpty;
+    // The Quiz card always shows: Maths is generated, so the quiz is never
+    // empty, even over a catalog that offers nothing (`PLAN-quiz-maths.md`
+    // §4.5). Its best line is the better of the mixed and Maths bests.
+    final quiz = profile.quiz;
+    final quizPlayed = quiz.mixed.rounds > 0 || quiz.maths.rounds > 0;
+    final quizBest = quiz.mixed.best > quiz.maths.best
+        ? quiz.mixed.best
+        : quiz.maths.best;
 
     // Read when a toggle is tapped rather than held from this build, so
     // nothing here keeps a repository from a scope that has since been
@@ -212,20 +216,17 @@ class ArcadeMenuScreen extends ConsumerWidget {
                   scores: snakeScores,
                   roundLabel: 'Level',
                 ),
-                if (showQuiz) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  _GameCard(
-                    icon: Icons.quiz,
-                    title: quizCardTitle,
-                    bestLine: profile.quiz.mixed.rounds == 0
-                        ? notPlayedYetMessage
-                        : quizBestLabel(profile.quiz.mixed.best),
-                    playLabel: playQuizLabel,
-                    onPlay: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.quiz),
-                    scores: null,
-                  ),
-                ],
+                const SizedBox(height: AppSpacing.md),
+                _GameCard(
+                  icon: Icons.quiz,
+                  title: quizCardTitle,
+                  bestLine: quizPlayed
+                      ? quizBestLabel(quizBest)
+                      : notPlayedYetMessage,
+                  playLabel: playQuizLabel,
+                  onPlay: () => Navigator.of(context).pushNamed(AppRoutes.quiz),
+                  scores: null,
+                ),
                 const SizedBox(height: AppSpacing.xl),
                 const _SectionHeading(optionsSectionLabel),
                 const SizedBox(height: AppSpacing.md),

@@ -459,6 +459,12 @@ class ProgressRepository extends ChangeNotifier {
         (profile) => profile.copyWith(quiz: update(profile.quiz)),
       );
 
+  /// Changes the active profile's Maths settings to what [update] makes of
+  /// them (`PLAN-quiz-maths.md` §4.5). Written with the usual debounce, as a
+  /// shelf tick is.
+  void updateQuizMaths(QuizMathsProgress Function(QuizMathsProgress) update) =>
+      updateQuiz((quiz) => quiz.copyWith(maths: update(quiz.maths)));
+
   // --- tracks ------------------------------------------------------------
 
   /// Changes the skin the active profile draws Tracks with. Per profile, so
