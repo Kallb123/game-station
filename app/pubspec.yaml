@@ -40,7 +40,7 @@ dependencies:
   # `image_picker` and `file_selector`, which both resolve `http` into what
   # ships. Windows, macOS and Linux never call it — `FolderGalleryExport`
   # writes to a folder under Downloads instead (`gallery_export.dart`).
-  gal: ^2.3.3
+  gal: ^3.0.1
   # Playback on all six targets from one MIT package, with `miniaudio` vendored
   # in `minisound_ffi` rather than fetched at build time (`PLAN.md` §2,
   # `PLAN-phase-5.md` §3.1). Not `flutter_soloud`, which resolves `http` into
