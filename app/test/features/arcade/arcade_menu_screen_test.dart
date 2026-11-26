@@ -89,12 +89,13 @@ Future<void> tapButton(WidgetTester tester, String label) async {
 }
 
 void main() {
-  testWidgets('a fresh profile sees the empty state on both cards', (
+  testWidgets('a fresh profile sees the empty state on every card', (
     tester,
   ) async {
     await pumpMenu(tester, save: freshSave());
 
-    expect(find.text(notPlayedYetMessage), findsNWidgets(2));
+    // Invaders, Snake and Quiz, which shows even over the empty catalog.
+    expect(find.text(notPlayedYetMessage), findsNWidgets(3));
     expect(find.text(noScoresYetMessage), findsNWidgets(2));
     expect(selected(tester, easyModeLabel), isFalse);
     expect(selected(tester, padSideLabel), isFalse);
@@ -163,7 +164,8 @@ void main() {
         find.text(bestScoreLabel(snakeScore, roundLabel: 'Level')),
         findsOneWidget,
       );
-      expect(find.text(notPlayedYetMessage), findsNothing);
+      // Only the Quiz card, which this profile has not played, is unplayed.
+      expect(find.text(notPlayedYetMessage), findsOneWidget);
     },
   );
 
@@ -294,7 +296,7 @@ void main() {
     await tester.pump();
 
     expect(selected(tester, easyModeLabel), isFalse);
-    expect(find.text(notPlayedYetMessage), findsNWidgets(2));
+    expect(find.text(notPlayedYetMessage), findsNWidgets(3));
     expect(find.text(noScoresYetMessage), findsNWidgets(2));
   });
 
@@ -423,18 +425,48 @@ void main() {
         find.text(bestScoreLabel(snakeBest, roundLabel: 'Level')),
         findsOneWidget,
       );
-      // The Invaders card is still unplayed — its own empty state, and only
-      // its own: the Snake card no longer shows one.
-      expect(find.text(notPlayedYetMessage), findsOneWidget);
+      // The Invaders and Quiz cards are still unplayed — their own empty
+      // states, and only theirs: the Snake card no longer shows one.
+      expect(find.text(notPlayedYetMessage), findsNWidgets(2));
     },
   );
 
   group('Quiz card', () {
-    testWidgets('is absent over the empty catalog', (tester) async {
+    // Maths is generated, so the quiz is never empty (`PLAN-quiz-maths.md`
+    // §4.5).
+    testWidgets('shows over the empty catalog', (tester) async {
       await pumpMenu(tester, save: freshSave());
 
-      expect(find.text(quizCardTitle), findsNothing);
-      expect(find.text(playQuizLabel), findsNothing);
+      expect(find.text(quizCardTitle), findsOneWidget);
+      expect(find.text(playQuizLabel), findsOneWidget);
+    });
+
+    testWidgets('shows the better of the mixed and Maths bests', (
+      tester,
+    ) async {
+      final save = freshSave();
+      SaveData playing(QuizProgress quiz) =>
+          save.copyWith(profiles: [save.activeProfile.copyWith(quiz: quiz)]);
+
+      await pumpMenu(
+        tester,
+        save: playing(
+          const QuizProgress(
+            mixed: QuizMixedProgress(rounds: 1, best: 6),
+            maths: QuizMathsProgress(rounds: 2, best: 9),
+          ),
+        ),
+      );
+      expect(find.text('Best 9 out of 10'), findsOneWidget);
+
+      await pumpMenu(
+        tester,
+        save: playing(
+          const QuizProgress(maths: QuizMathsProgress(rounds: 1, best: 4)),
+        ),
+      );
+      expect(find.text('Best 4 out of 10'), findsOneWidget);
+      expect(find.text(notPlayedYetMessage), findsNWidgets(2));
     });
 
     testWidgets('follows the Snake card, with no scores table', (tester) async {

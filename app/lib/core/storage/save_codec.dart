@@ -527,6 +527,7 @@ QuizProgress _readQuiz(Map<String, Object?> raw, String path) {
         if (_quizTitleFits(entry.value)) entry.key: entry.value,
     },
     mixed: _readQuizMixed(_optMap(raw, 'mixed', path), _at(path, 'mixed')),
+    maths: _readQuizMaths(_optMap(raw, 'maths', path), _at(path, 'maths')),
   );
 }
 
@@ -552,6 +553,48 @@ QuizMixedProgress _readQuizMixed(Map<String, Object?> raw, String path) {
   final best = _optInt(raw, 'best', path, 0);
   if (rounds < 0 || best < 0) return const QuizMixedProgress();
   return QuizMixedProgress(rounds: rounds, best: best);
+}
+
+/// Reads the Maths settings (`PLAN-quiz-maths.md` §4.4), by the quiz block's
+/// rule: a wrong type is a format error, a value of the right type that makes
+/// no sense is dropped. An op name this build does not know (a later build's)
+/// and a table outside 1 to [quizMathsMaxTable] are dropped, unlike
+/// [_enum]'s refusal, because these are settings rather than progress: losing
+/// one costs a child a tap. A missing `ops` or `tables` reads as the default,
+/// while a present empty list stays empty: the child turned them all off.
+QuizMathsProgress _readQuizMaths(Map<String, Object?> raw, String path) {
+  final opsPath = _at(path, 'ops');
+  final tablesPath = _at(path, 'tables');
+  final ops = raw['ops'] == null
+      ? QuizMathsProgress.defaultOps
+      : {
+          for (final name in _readStringList(raw['ops'], opsPath))
+            for (final op in QuizMathsOp.values)
+              if (op.name == name) op,
+        };
+  final rawTables = raw['tables'] == null
+      ? null
+      : _list(raw['tables'], tablesPath);
+  final tables = rawTables == null
+      ? QuizMathsProgress.defaultTables
+      : {
+          for (var i = 0; i < rawTables.length; i++)
+            if (_int(rawTables[i], '$tablesPath[$i]') case final t
+                when t >= 1 && t <= quizMathsMaxTable)
+              t,
+        };
+  final upTo = _optInt(raw, 'upTo', path, QuizMathsProgress.defaultUpTo);
+  final rounds = _optInt(raw, 'rounds', path, 0);
+  final best = _optInt(raw, 'best', path, 0);
+  return QuizMathsProgress(
+    ops: ops,
+    tables: tables,
+    upTo: quizMathsUpToChoices.contains(upTo)
+        ? upTo
+        : QuizMathsProgress.defaultUpTo,
+    rounds: rounds < 0 ? 0 : rounds,
+    best: best < 0 ? 0 : best,
+  );
 }
 
 DailyStreak _readStreak(Map<String, Object?> raw, String path) => DailyStreak(
@@ -659,6 +702,17 @@ Map<String, Object?> _writeQuiz(QuizProgress quiz) => {
   'known': quiz.known.toList()..sort(),
   'titles': _sorted(quiz.titles, _writeQuizTitle),
   'mixed': {'rounds': quiz.mixed.rounds, 'best': quiz.mixed.best},
+  'maths': {
+    // In enum order and sorted, so the file does not churn with set order.
+    'ops': [
+      for (final op in QuizMathsOp.values)
+        if (quiz.maths.ops.contains(op)) op.name,
+    ],
+    'tables': quiz.maths.tables.toList()..sort(),
+    'upTo': quiz.maths.upTo,
+    'rounds': quiz.maths.rounds,
+    'best': quiz.maths.best,
+  },
 };
 
 Map<String, Object?> _writeQuizTitle(QuizTitleProgress title) => {

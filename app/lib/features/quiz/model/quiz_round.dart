@@ -56,12 +56,26 @@ class QuizRound {
   /// Creates a round over [questions] in presented order. [titleId] is the
   /// title of a single-title round, or null for a mixed one.
   QuizRound({required this.titleId, required List<QuizRoundQuestion> questions})
-    : questions = List.unmodifiable(questions),
+    : isMaths = false,
+      questions = List.unmodifiable(questions),
       _solved = List<bool>.filled(questions.length, false),
       _wrong = List.generate(questions.length, (_) => <int>[]);
 
-  /// The title id of a single-title round, or null for a mixed round.
+  /// A round of generated Maths questions (`PLAN-quiz-maths.md` §4.3). It has
+  /// no title, and its questions' cursor fields are never read.
+  QuizRound.maths({required List<QuizRoundQuestion> questions})
+    : isMaths = true,
+      titleId = null,
+      questions = List.unmodifiable(questions),
+      _solved = List<bool>.filled(questions.length, false),
+      _wrong = List.generate(questions.length, (_) => <int>[]);
+
+  /// The title id of a single-title round, or null for a mixed or Maths round.
   final String? titleId;
+
+  /// Whether this round was generated from the Maths settings rather than
+  /// drawn from the bank.
+  final bool isMaths;
 
   /// Questions in presented order.
   final List<QuizRoundQuestion> questions;
@@ -70,7 +84,7 @@ class QuizRound {
   final List<List<int>> _wrong;
   int _index = 0;
 
-  bool get isMixed => titleId == null;
+  bool get isMixed => !isMaths && titleId == null;
 
   /// The question on screen.
   int get index => _index;
@@ -151,7 +165,22 @@ class QuizRound {
   /// over for this cycle, which is better than asking a solved one first
   /// next time. A question with only wrong tries counts as unsolved, so it is
   /// asked again.
+  ///
+  /// A Maths round touches only [QuizProgress.maths], and only when finished:
+  /// it has no order to advance, so a quit writes nothing
+  /// (`PLAN-quiz-maths.md` §4.3).
   QuizProgress applyTo(QuizProgress current) {
+    if (isMaths) {
+      if (!isComplete) return current;
+      final maths = current.maths;
+      return current.copyWith(
+        maths: maths.copyWith(
+          rounds: maths.rounds + 1,
+          best: score > maths.best ? score : maths.best,
+        ),
+      );
+    }
+
     final latest = <String, QuizRoundQuestion>{};
     for (var i = 0; i < questions.length; i++) {
       if (!_solved[i]) continue;
@@ -193,10 +222,6 @@ class QuizRound {
         );
       }
     }
-    return QuizProgress(
-      known: current.known,
-      titles: Map.unmodifiable(titles),
-      mixed: mixed,
-    );
+    return current.copyWith(titles: Map.unmodifiable(titles), mixed: mixed);
   }
 }

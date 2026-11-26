@@ -167,6 +167,26 @@ void main() {
       expect((e.rounds, e.best, e.next, e.pool), (0, 0, 10, 24));
     });
 
+    // `PLAN-quiz-maths.md` §4.3: a bank round must carry the Maths settings
+    // through, finished or quit.
+    test('a bank round leaves the Maths settings alone', () {
+      const p = QuizProgress(
+        known: {'t.a'},
+        maths: QuizMathsProgress(
+          ops: {QuizMathsOp.divide},
+          tables: {9},
+          rounds: 3,
+          best: 7,
+        ),
+      );
+      final quit = picker.mixedRound(p, GameRng(1))!;
+      _answer(quit, 1);
+      expect(quit.applyTo(p).maths, p.maths);
+      final done = picker.mixedRound(p, GameRng(2))!;
+      _answer(done, 10);
+      expect(done.applyTo(p).maths, p.maths);
+    });
+
     test('a quit after one answer advances that title and no counter', () {
       final r = single(const QuizProgress());
       _answer(r, 1);

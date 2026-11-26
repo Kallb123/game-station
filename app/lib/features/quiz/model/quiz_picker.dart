@@ -11,7 +11,7 @@ import 'quiz_round.dart';
 
 /// Fisher–Yates, the one shuffle every choice in this feature goes through so
 /// the rng is consumed the same way everywhere.
-void _shuffle<T>(List<T> items, GameRng rng) {
+void quizShuffle<T>(List<T> items, GameRng rng) {
   for (var i = items.length - 1; i > 0; i--) {
     final j = rng.nextInt(i + 1);
     final held = items[i];
@@ -24,7 +24,7 @@ void _shuffle<T>(List<T> items, GameRng rng) {
 /// the order does not depend on how the pack file happens to list them.
 List<QuizQuestion> titleOrder(QuizTitle title, int seed) {
   final order = [...title.questions]..sort((a, b) => a.id.compareTo(b.id));
-  _shuffle(order, GameRng(seed));
+  quizShuffle(order, GameRng(seed));
   return order;
 }
 
@@ -117,9 +117,9 @@ class QuizPicker {
     }
     if (groups.isEmpty) return null;
 
-    _shuffle(groups, rng);
+    quizShuffle(groups, rng);
     for (final g in groups) {
-      _shuffle(g, rng);
+      quizShuffle(g, rng);
     }
     // Rotating by series first stops four ticked Dahl books and one Narnia
     // book giving four Dahl questions in five; rotating titles within a
@@ -166,30 +166,37 @@ class QuizPicker {
     );
   }
 
-  /// The right answer and two of the three wrong ones, shuffled. The right
-  /// answer is tracked by index, so a wrong answer that happens to equal it
-  /// as text could not be mistaken for it.
   QuizRoundQuestion _present(_Drawn d, GameRng rng) {
-    final q = d.question;
-    final dropped = rng.nextInt(wrongAnswerCount);
-    final texts = [q.a, ...q.wrong];
-    final picks = [
-      0,
-      for (var w = 0; w < wrongAnswerCount; w++)
-        if (w != dropped) w + 1,
-    ];
-    _shuffle(picks, rng);
+    final (options, answerIndex) = presentOptions(d.question, rng);
     return QuizRoundQuestion(
-      question: q,
+      question: d.question,
       titleId: d.titleId,
-      options: [for (final p in picks) texts[p]],
-      answerIndex: picks.indexOf(0),
+      options: options,
+      answerIndex: answerIndex,
       drawIndex: d.drawIndex,
       seedAfter: d.seed,
       nextAfter: d.next,
       poolAfter: d.pool,
     );
   }
+}
+
+/// [q]'s right answer and two of its three wrong ones, shuffled, and where
+/// the right one landed. Shared by bank and Maths rounds so the two look
+/// alike and consume the rng alike (`PLAN-quiz-maths.md` §4.2).
+///
+/// The right answer is tracked by index, so a wrong answer that happens to
+/// equal it as text could not be mistaken for it.
+(List<String>, int) presentOptions(QuizQuestion q, GameRng rng) {
+  final dropped = rng.nextInt(wrongAnswerCount);
+  final texts = [q.a, ...q.wrong];
+  final picks = [
+    0,
+    for (var w = 0; w < wrongAnswerCount; w++)
+      if (w != dropped) w + 1,
+  ];
+  quizShuffle(picks, rng);
+  return ([for (final p in picks) texts[p]], picks.indexOf(0));
 }
 
 class _Drawn {

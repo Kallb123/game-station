@@ -614,12 +614,101 @@ class QuizMixedProgress {
   int get hashCode => Object.hash(rounds, best);
 }
 
+/// An operation the quiz's Maths topic can ask about (`PLAN-quiz-maths.md`
+/// §4.1). Stored by name, so the order here is the order they are shown and
+/// written in, never a stored index.
+enum QuizMathsOp { add, subtract, multiply, divide }
+
+/// The times tables a child can choose: 1 to 12, the end of the UK primary
+/// curriculum's tables (`PLAN-quiz-maths.md` §2).
+const int quizMathsMaxTable = 12;
+
+/// The sizes adding and taking away can go up to (`PLAN-quiz-maths.md` §4.1).
+const List<int> quizMathsUpToChoices = [10, 20, 100];
+
+/// One profile's Maths settings and counters (`PLAN-quiz-maths.md` §4.1).
+///
+/// Settings, not questions: a round is generated fresh from these each time,
+/// so nothing here depends on what the generator produced before.
+class QuizMathsProgress {
+  const QuizMathsProgress({
+    this.ops = defaultOps,
+    this.tables = defaultTables,
+    this.upTo = defaultUpTo,
+    this.rounds = 0,
+    this.best = 0,
+  });
+
+  /// Adding and taking away within 10, and the 2, 5 and 10 tables, which are
+  /// taught first: a start for a child of about six (`PLAN-quiz-maths.md` §9).
+  static const Set<QuizMathsOp> defaultOps = {
+    QuizMathsOp.add,
+    QuizMathsOp.subtract,
+  };
+  static const Set<int> defaultTables = {2, 5, 10};
+  static const int defaultUpTo = 10;
+
+  /// The operations to practise.
+  final Set<QuizMathsOp> ops;
+
+  /// The times tables known, each 1 to [quizMathsMaxTable]. Drives both
+  /// multiplying and dividing.
+  final Set<int> tables;
+
+  /// The largest sum, and the largest number taken away from: one of
+  /// [quizMathsUpToChoices].
+  final int upTo;
+
+  /// Finished Maths rounds.
+  final int rounds;
+
+  /// The best Maths score, 0 to 10.
+  final int best;
+
+  /// Whether a round can be made: an operation is on and, if multiplying or
+  /// dividing is, a table is chosen. Otherwise the child would be asked
+  /// something other than what they chose.
+  bool get isPlayable =>
+      ops.isNotEmpty &&
+      (tables.isNotEmpty ||
+          !(ops.contains(QuizMathsOp.multiply) ||
+              ops.contains(QuizMathsOp.divide)));
+
+  QuizMathsProgress copyWith({
+    Set<QuizMathsOp>? ops,
+    Set<int>? tables,
+    int? upTo,
+    int? rounds,
+    int? best,
+  }) => QuizMathsProgress(
+    ops: ops ?? this.ops,
+    tables: tables ?? this.tables,
+    upTo: upTo ?? this.upTo,
+    rounds: rounds ?? this.rounds,
+    best: best ?? this.best,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is QuizMathsProgress &&
+      _setEquals(other.ops, ops) &&
+      _setEquals(other.tables, tables) &&
+      other.upTo == upTo &&
+      other.rounds == rounds &&
+      other.best == best;
+
+  @override
+  int get hashCode =>
+      Object.hash(_setHash(ops), _setHash(tables), upTo, rounds, best);
+}
+
 /// One profile's quiz history (`PLAN-phase-10-quiz.md` §4.7).
 class QuizProgress {
   const QuizProgress({
     this.known = const <String>{},
     this.titles = const {},
     this.mixed = const QuizMixedProgress(),
+    this.maths = const QuizMathsProgress(),
   });
 
   /// The title ids this profile has ticked as read or watched.
@@ -636,14 +725,19 @@ class QuizProgress {
   /// Counters for mixed rounds.
   final QuizMixedProgress mixed;
 
+  /// Maths settings and counters (`PLAN-quiz-maths.md` §4.4).
+  final QuizMathsProgress maths;
+
   QuizProgress copyWith({
     Set<String>? known,
     Map<String, QuizTitleProgress>? titles,
     QuizMixedProgress? mixed,
+    QuizMathsProgress? maths,
   }) => QuizProgress(
     known: known ?? this.known,
     titles: titles ?? this.titles,
     mixed: mixed ?? this.mixed,
+    maths: maths ?? this.maths,
   );
 
   @override
@@ -651,10 +745,12 @@ class QuizProgress {
       other is QuizProgress &&
       _setEquals(other.known, known) &&
       _mapEquals(other.titles, titles) &&
-      other.mixed == mixed;
+      other.mixed == mixed &&
+      other.maths == maths;
 
   @override
-  int get hashCode => Object.hash(_setHash(known), _mapHash(titles), mixed);
+  int get hashCode =>
+      Object.hash(_setHash(known), _mapHash(titles), mixed, maths);
 }
 
 /// One entry in a game's high-score table.

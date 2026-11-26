@@ -29,6 +29,10 @@ comments cite these files by path (`AGENTS.md`).
 is a minor release after it, as phases 7, 8 and 9 are, and it ships at PR 13 whatever content is
 checked by then (§6).
 
+**Maths**, a generated topic rather than a pack, was added after this phase in
+[`PLAN-quiz-maths.md`](PLAN-quiz-maths.md). It changes §4.5's Quiz card and Quiz menu rules, and
+adds `quiz.maths` to §4.7's save block.
+
 **Contents:**
 [1 Scope and constraints](#1-scope-and-constraints) ·
 [2 Non-goals](#2-non-goals) ·
@@ -371,10 +375,14 @@ Home ─ Arcade ─┬─ Invaders
   as auto-fire sits on Invaders'. The arcade-wide *Easy mode* and *Buttons on the left* below the
   cards do not touch the quiz. The card appears only when the loaded catalog offers at least one
   title, so a store build made before any store pack is ready has no quiz rather than an empty one.
+  *Superseded by `PLAN-quiz-maths.md` §4.5:* Maths is generated and never empty, so the card always
+  appears, and its best line is the better of the mixed and Maths bests.
   The quiz's own screens take the arcade's role colour, as the menu that opens them does.
 - **The Quiz menu** is three `BigButton`s. *Quiz me* is disabled with a one-line hint — *Tick what
   you've read on your shelf* — when nothing offered is ticked, and the shelf button is then
-  highlighted; a disabled button that leads nowhere would otherwise be a dead end.
+  highlighted; a disabled button that leads nowhere would otherwise be a dead end. *Since
+  `PLAN-quiz-maths.md` §4.5:* a fourth button, *Maths*, opens the Maths settings, and the three
+  bank buttons appear only when the catalog offers a title.
 - **My shelf** has a four-way switch — Books, TV, Films, Topics — built as stacked `BigButton`s, the
   shape the Tracks size toggle settled on (`PLAN-phase-9-tracks.md` §6, PR 8). Below it, each series
   is a heading with an *I've read them all* (or *watched*) button, and each title a full-width tile
@@ -829,7 +837,10 @@ of one title's questions checked, it offers that title and the card appears.
 `beatrix-potter.peter-rabbit`, and `general-knowledge.animals`, `general-knowledge.uk` and
 `general-knowledge.world`, in that shelf order. Peter Rabbit has 9 of 20 questions at level 1, and
 the topics 19, 18 and 18 of 40. Every question is drafted with `checked: false`. A store release build
-therefore still has no Quiz card, which is the done-when's first case holding today. Debug builds
+therefore still has no Quiz card, which is the done-when's first case holding today. *Since
+`PLAN-quiz-maths.md`:* the card always appears, for Maths, and `store_bank_test.dart` asserts the
+same claim on the Quiz menu instead: only *Maths* over the unchecked store, the bank's buttons once
+ten are checked. Debug builds
 show the four titles, so the shelf's collection switch now has a *Topics* position. Drafting kept
 to facts that were safe to state from memory. It left out contested conventions (how many
 continents, whether the Nile or the Amazon is longer, countries with more than one capital) and any

@@ -1015,6 +1015,117 @@ void main() {
     });
   });
 
+  // `PLAN-quiz-maths.md` §4.4.
+  group('the quiz maths block', () {
+    String profileJson(Map<String, Object?>? maths) => jsonEncode({
+      'schemaVersion': 1,
+      'activeProfileId': 'p1',
+      'profiles': [
+        {
+          'id': 'p1',
+          'name': 'Ana',
+          'avatar': 'fox',
+          'createdAt': '2026-08-11T10:00:00Z',
+          'quiz': {'maths': ?maths},
+        },
+      ],
+    });
+
+    QuizMathsProgress decodeMaths(Map<String, Object?>? maths) =>
+        decodeSave(profileJson(maths)).activeProfile.quiz.maths;
+
+    test('settings and counters round trip unchanged', () {
+      const maths = QuizMathsProgress(
+        ops: {QuizMathsOp.multiply, QuizMathsOp.subtract},
+        tables: {4, 9},
+        upTo: 20,
+        rounds: 2,
+        best: 7,
+      );
+      final save = fullSave().copyWith(
+        profiles: [
+          fullSave().activeProfile.copyWith(
+            quiz: const QuizProgress(maths: maths),
+          ),
+        ],
+      );
+      expect(decodeSave(encodeSave(save)).activeProfile.quiz.maths, maths);
+    });
+
+    test('is written in enum and numeric order', () {
+      final json = jsonDecode(encodeSave(fullSave())) as Map<String, Object?>;
+      final profile = (json['profiles']! as List<Object?>).first!;
+      final quiz = (profile as Map<String, Object?>)['quiz']!;
+      expect((quiz as Map<String, Object?>)['maths'], {
+        'ops': ['add', 'divide'],
+        'tables': [3, 7, 12],
+        'upTo': 100,
+        'rounds': 4,
+        'best': 9,
+      });
+    });
+
+    test('a missing block, or missing keys, read as the defaults', () {
+      expect(decodeMaths(null), const QuizMathsProgress());
+      expect(decodeMaths({}), const QuizMathsProgress());
+    });
+
+    test('an empty list stays empty: the child turned them all off', () {
+      final maths = decodeMaths({'ops': <String>[], 'tables': <int>[]});
+      expect(maths.ops, isEmpty);
+      expect(maths.tables, isEmpty);
+    });
+
+    test('an unknown op and a table outside 1 to 12 are dropped', () {
+      final maths = decodeMaths({
+        'ops': ['add', 'square-root'],
+        'tables': [0, 2, 13, 12],
+      });
+      expect(maths.ops, {QuizMathsOp.add});
+      expect(maths.tables, {2, 12});
+    });
+
+    test(
+      'an upTo that is not offered reads as 10, a negative counter as 0',
+      () {
+        final maths = decodeMaths({'upTo': 50, 'rounds': -1, 'best': -3});
+        expect(maths.upTo, 10);
+        expect(maths.rounds, 0);
+        expect(maths.best, 0);
+      },
+    );
+
+    test('a mistyped field is refused and names its path', () {
+      void expectRefused(Map<String, Object?> maths, String path) => expect(
+        () => decodeSave(profileJson(maths)),
+        throwsA(isA<SaveFormatException>().having((e) => e.path, 'path', path)),
+      );
+      expectRefused({'ops': 'add'}, 'profiles[0].quiz.maths.ops');
+      expectRefused({
+        'ops': [1],
+      }, 'profiles[0].quiz.maths.ops[0]');
+      expectRefused({
+        'tables': ['2'],
+      }, 'profiles[0].quiz.maths.tables[0]');
+      expectRefused({'upTo': 10.5}, 'profiles[0].quiz.maths.upTo');
+      expectRefused({'best': 'x'}, 'profiles[0].quiz.maths.best');
+    });
+
+    test('a file written before Maths decodes with maths defaulted and '
+        'nothing else changed', () {
+      final expected = fullSave().copyWith(
+        profiles: [
+          for (final profile in fullSave().profiles)
+            profile.copyWith(
+              quiz: profile.quiz.copyWith(maths: const QuizMathsProgress()),
+            ),
+        ],
+      );
+
+      expect(decodeSave(preMathsSaveJson), expected);
+    });
+  });
+
   // `PLAN-phase-10-quiz.md` §4.7 and §6, PR 4.
   group('the quiz block', () {
     String profileJson(Map<String, Object?>? quiz) => jsonEncode({

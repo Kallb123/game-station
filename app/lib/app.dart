@@ -16,6 +16,7 @@ import 'features/draw/ui/draw_sheet_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/profiles/profile_screen.dart';
 import 'features/puzzles/puzzles_menu_screen.dart';
+import 'features/quiz/ui/quiz_maths_screen.dart';
 import 'features/quiz/ui/quiz_menu_screen.dart';
 import 'features/quiz/ui/quiz_pick_screen.dart';
 import 'features/quiz/ui/quiz_play_screen.dart';
@@ -218,6 +219,7 @@ WidgetBuilder? _screenFor(RouteSettings settings) => switch (settings.name) {
   AppRoutes.quiz => (context) => const QuizMenuScreen(),
   AppRoutes.quizShelf => (context) => const QuizShelfScreen(),
   AppRoutes.quizPick => (context) => const QuizPickScreen(),
+  AppRoutes.quizMaths => (context) => const QuizMathsScreen(),
   AppRoutes.quizPlay => _quizPlayScreen(settings.arguments),
   AppRoutes.draw => (context) => const DrawGalleryScreen(),
   AppRoutes.drawSheet => _drawSheetScreen(settings.arguments),

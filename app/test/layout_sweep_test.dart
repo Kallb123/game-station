@@ -92,6 +92,9 @@ Map<String, Object?> _sweepRoutes(PuzzleId puzzleId) => {
   AppRoutes.quiz: null,
   AppRoutes.quizShelf: null,
   AppRoutes.quizPick: null,
+  // A fresh save's defaults hide the times-table grid; its own 200 % check is
+  // in `quiz_maths_screen_test.dart`.
+  AppRoutes.quizMaths: null,
   // A single-title round, because a fresh save has nothing ticked for a mixed
   // one to draw from (`PLAN-phase-10-quiz.md` §4.5).
   AppRoutes.quizPlay: const QuizPlayArgs.title(narniaId),
