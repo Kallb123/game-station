@@ -96,7 +96,7 @@ jobs:
       # hashes them), or after seven days without a hit, or when the
       # repository's cache allowance evicts it. What is left is a rare flake
       # instead of a regular one, and re-running the job clears it.
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
